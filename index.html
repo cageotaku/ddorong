@@ -451,6 +451,22 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .cday.sel::after { box-shadow: inset 0 0 0 3px var(--ink); }
 .cday:disabled { opacity: 0.35; cursor: default; }
 
+/* 오늘의 또롱이: 날짜별 ↔ 사진첩 */
+.seg.wide { display: flex; width: 100%; }
+.seg.wide button { flex: 1 1 0; padding: 8px 10px; font-size: 15px; }
+.album { display: flex; flex-direction: column; gap: 6px; }
+.ahead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 2px 0; }
+.ahead:first-child { padding-top: 0; }
+.ahead b { font-size: 16px; }
+.ahead span { font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.agrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; border-radius: 14px; overflow: hidden; }
+.atile { position: relative; aspect-ratio: 1; border: 0; padding: 0; margin: 0; background: var(--surface-2); overflow: hidden; display: block; width: 100%; }
+.atile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s ease; }
+.atile img[data-wait] { opacity: 0; }
+.aday { position: absolute; left: 4px; bottom: 4px; font-size: 11px; font-weight: 700; color: #fff; background: rgba(0, 0, 0, 0.5); border-radius: 999px; padding: 0 6px; line-height: 17px; pointer-events: none; }
+.amore { display: block; width: 100%; border: 0; background: none; text-align: center; color: var(--ink-3); font-size: 13.5px; font-weight: 600; padding: 12px 0; }
+button.amore { color: var(--accent); }
+
 /* 홈: 오늘 챙기기 */
 .tlist { display: flex; flex-direction: column; }
 .t-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; border: 0; background: none; padding: 9px 0; text-align: left; border-top: 1px solid var(--line); color: var(--ink); min-height: 50px; }
@@ -714,6 +730,7 @@ const S = {
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
   dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: 14,
+  diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
 };
 
 const famName = (key) => { const m = (S.info.family?.members || []).find((x) => x.key === key); return m ? m.name : ''; };
@@ -1442,9 +1459,79 @@ function renderSnacks() {
 
 /* ───────── 오늘의 또롱이 ───────── */
 const dayPhotos = (doc) => (Array.isArray(doc.photos) ? doc.photos : []).filter((p) => p && p.id);
+function setDiaryMode(m) { S.diaryMode = m === 'album' ? 'album' : 'day'; store.set('ddorong-diary-mode', S.diaryMode); }
+const diaryModeSeg = () => `<div class="seg wide" role="group" aria-label="보기 방식"><button type="button" data-act="diary-mode" data-mode="day" aria-pressed="${S.diaryMode !== 'album'}">날짜별</button><button type="button" data-act="diary-mode" data-mode="album" aria-pressed="${S.diaryMode === 'album'}">사진첩</button></div>`;
+/* 사진첩: 알고 있는 모든 날의 사진 (최근 날짜부터, 하루 안에서는 올린 순서) */
+function albumList() {
+  const dates = new Set(Object.keys((S.raw && S.raw.diary) || {}));
+  for (const m of Object.values(S.hist.diary || {})) for (const d of Object.keys(m || {})) dates.add(d);
+  for (const key of Object.keys(Q)) { const [c, d] = key.split('|'); if (c === 'diary') dates.add(d); }
+  const list = [];
+  for (const d of [...dates].filter(isDate).sort().reverse()) for (const p of dayPhotos(dayDoc('diary', d))) list.push({ id: p.id, date: d });
+  return list;
+}
+/* 넉 달보다 오래된 사진까지 한 번에 불러와요 (사진첩을 열 때만, 2분에 한 번) */
+function loadAlbum(force) {
+  if (!ready() || S.album.loading) return;
+  if (!force && S.album.loadedAt && Date.now() - S.album.loadedAt < 120000) return;
+  if (!force && S.album.failed && Date.now() - S.album.failed < 30000) return;
+  S.album.loading = true;
+  gsr('getDiaryAll').then((txt) => {
+    const all = JSON.parse(txt || '{}');
+    const byM = {};
+    for (const [d, doc] of Object.entries(all)) if (isDate(d)) (byM[ym(d)] = byM[ym(d)] || {})[d] = doc;
+    const newer = (a, b) => String((a && a.updatedAt) || '') >= String((b && b.updatedAt) || '');
+    const end = ym(todayStr());
+    for (let k = minMonth(), g = 0; k <= end && g < 600; k = addMonths(`${k}-01`, 1).slice(0, 7), g++) {
+      const got = byM[k] || {};
+      for (const src of [S.hist.diary[k] || {}, (S.raw && S.raw.diary) || {}]) {
+        for (const [d, doc] of Object.entries(src)) if (ym(d) === k && (!got[d] || newer(doc, got[d]))) got[d] = doc;
+      }
+      S.hist.diary[k] = got;
+    }
+    S.album.loadedAt = Date.now(); S.album.failed = 0;
+  }).catch(() => { S.album.failed = Date.now(); }).finally(() => { S.album.loading = false; softRender(); });
+}
+function renderAlbum(el) {
+  loadAlbum(false);
+  const list = albumList();
+  const days = new Set(list.map((x) => x.date)).size;
+  const shown = list.slice(0, S.album.limit);
+  const perMonth = {};
+  for (const x of list) perMonth[ym(x.date)] = (perMonth[ym(x.date)] || 0) + 1;
+  let body = '', grid = '', curM = '', curD = '';
+  shown.forEach((x, i) => {
+    const k = ym(x.date);
+    if (k !== curM) { if (grid) body += `<div class="agrid">${grid}</div>`; grid = ''; curM = k; curD = ''; body += `<div class="ahead"><b>${esc(ymKo(k))}</b><span>${perMonth[k]}장</span></div>`; }
+    const first = x.date !== curD; curD = x.date;
+    grid += `<button class="atile" type="button" data-act="album-photo" data-i="${i}" aria-label="${esc(mdKo(x.date))} 사진">${photoImg(x.id, 'thumb')}${first ? `<span class="aday">${parts(x.date).d}일</span>` : ''}</button>`;
+  });
+  if (grid) body += `<div class="agrid">${grid}</div>`;
+  const up = Object.values(S.uploading).reduce((s, n) => s + (Number(n) || 0), 0);
+  const tail = !S.album.loadedAt
+    ? `<div class="amore">${S.album.failed && !S.album.loading ? '예전 사진을 불러오지 못했어요. <button class="link" type="button" data-act="album-retry">다시 불러오기</button>' : '예전 사진까지 불러오는 중이에요…'}</div>`
+    : '';
+  el.innerHTML = `
+    <div class="view-head"><h1>오늘의 또롱이</h1>${list.length ? `<span class="sub">사진 ${list.length}장 · ${days}일</span>` : ''}</div>
+    ${diaryModeSeg()}
+    ${up ? `<div class="banner">사진 ${up}장을 올리는 중이에요…</div>` : ''}
+    ${list.length ? `<div class="album">${body}</div>` : S.album.loadedAt ? `<button class="d-empty" type="button" data-act="diary-add-today">${IC.photo}<b>아직 올린 사진이 없어요</b><span>눌러서 오늘 또롱이 사진을 올려 주세요</span></button>` : ''}
+    ${list.length > shown.length ? `<button class="amore" type="button" id="album-more" data-act="album-more">사진 ${list.length - shown.length}장 더 보기</button>` : ''}
+    ${tail}`;
+}
+/* 사진첩 맨 아래에 닿으면 90장씩 더 그려요 */
+let albumIO = null;
+function albumObserve() {
+  if (albumIO) albumIO.disconnect();
+  const s = $('#album-more');
+  if (!s || !('IntersectionObserver' in window)) return;
+  if (!albumIO) albumIO = new IntersectionObserver((ents) => { if (ents.some((e) => e.isIntersecting)) { albumIO.disconnect(); S.album.limit += 90; render(); } }, { rootMargin: '600px 0px' });
+  albumIO.observe(s);
+}
 function renderDiary() {
   const el = $('#v-diary');
   if (!ready()) { el.innerHTML = `<div class="view-head"><h1>오늘의 또롱이</h1></div>${loadingOr('')}<div class="card"><div class="empty">날짜마다 또롱이 사진을 올려서 모아 봐요.</div></div>`; return; }
+  if (S.diaryMode === 'album') { renderAlbum(el); return; }
   const T = todayStr(); const date = curDay('diary');
   needMonth('diary', ym(date));
   const doc = dayDoc('diary', date);
@@ -1468,6 +1555,7 @@ function renderDiary() {
   }
   el.innerHTML = `
     <div class="view-head"><h1>오늘의 또롱이</h1>${photos.length ? `<span class="sub">사진 ${photos.length}장</span>` : ''}</div>
+    ${diaryModeSeg()}
     <div class="card">
       ${dayNav('diary', date)}
       ${grid}
@@ -1533,16 +1621,18 @@ function todayCard() {
       <div class="tlist">
         <div class="t-row"><span class="t-lbl">약</span><div class="t-meds">${slots.map(([k, l]) => { const v = md0[k]; return `<button class="mchip${v ? ' on' : ''}" type="button" data-act="home-med" data-slot="${k}" aria-label="${esc(l)} 약 ${v ? `먹음 ${esc(timeKo(v.time))}` : '체크하기'}">${v ? IC.check : ''}${esc(l)}${v ? `<small>${esc(v.time || '')}</small>` : ''}</button>`; }).join('')}</div><button class="t-end icon-btn" type="button" data-act="tab" data-tab="meds" aria-label="약 체크리스트 열기" style="width:32px;height:32px;background:none">${IC.right}</button></div>
         <button class="t-row" type="button" data-act="tab" data-tab="snacks"><span class="t-lbl">간식</span><span class="t-val${total ? '' : ' muted'}">${total ? esc(`${total}개 · ${bits.join(', ')}`) : '오늘은 아직 안 줬어요'}</span><span class="t-end">${IC.right}</span></button>
-        <button class="t-row" type="button" data-act="tab" data-tab="diary"><span class="t-lbl">사진</span><span class="t-val${ps.length ? '' : ' muted'}">${ps.length ? `${ps.length}장 올렸어요` : '오늘 사진 올리기'}</span><span class="t-end">${ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((p) => photoImg(p.id, 'thumb')).join('')}</span>` : ''}${IC.right}</span></button>
+        <button class="t-row" type="button" data-act="tab" data-tab="diary" data-dmode="day"><span class="t-lbl">사진</span><span class="t-val${ps.length ? '' : ' muted'}">${ps.length ? `${ps.length}장 올렸어요` : '오늘 사진 올리기'}</span><span class="t-end">${ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((p) => photoImg(p.id, 'thumb')).join('')}</span>` : ''}${IC.right}</span></button>
       </div>
     </div>`;
 }
 
 /* ───────── 사진 크게 보기 (넘겨 보기 · 오늘의 또롱이 사진 지우기) ───────── */
-const LB = { ids: [], i: 0, date: '', confirm: false };
+/* LB.dates[i] = 그 사진의 오늘의 또롱이 날짜 (기록·지출 사진은 '') · LB.album = 사진첩에서 열었는지 */
+const LB = { ids: [], dates: [], i: 0, album: false, confirm: false };
 function lbShow() {
   const id = LB.ids[LB.i];
   if (!id) { lbClose(); return; }
+  const date = LB.dates[LB.i] || '';
   const img = $('#lightbox-img');
   const own = photoSrc(id, 'full');
   img.dataset.ph = id; img.dataset.kind = 'full';
@@ -1554,15 +1644,20 @@ function lbShow() {
   $('#lb-prev').hidden = !many; $('#lb-next').hidden = !many;
   $('#lb-prev').disabled = LB.i <= 0; $('#lb-next').disabled = LB.i >= LB.ids.length - 1;
   let top = '';
-  if (LB.date) { const p = dayPhotos(dayDoc('diary', LB.date)).find((x) => x.id === id); top = [dayKo(LB.date), p && famName(p.who) ? `${famName(p.who)} 올림` : ''].filter(Boolean).join(' · '); }
+  if (date) { const p = dayPhotos(dayDoc('diary', date)).find((x) => x.id === id); top = [dayKo(date), parts(date).y !== parts(todayStr()).y ? `${parts(date).y}년` : '', p && famName(p.who) ? `${famName(p.who)} 올림` : ''].filter(Boolean).join(' · '); }
   $('#lb-top').textContent = top;
   const bar = [];
   if (many) bar.push(`<span>${LB.i + 1} / ${LB.ids.length}</span>`);
-  if (LB.date && canEdit()) bar.push(LB.confirm ? '<span>이 사진을 지울까요?</span><button class="lb-btn warn" type="button" data-act="lb-del-yes">지우기</button><button class="lb-btn" type="button" data-act="lb-del-no">그대로 두기</button>' : '<button class="lb-btn" type="button" data-act="lb-del">이 사진 지우기</button>');
+  if (LB.album && date && !LB.confirm) bar.push('<button class="lb-btn" type="button" data-act="lb-day">그날 보기</button>');
+  if (date && canEdit()) bar.push(LB.confirm ? '<span>이 사진을 지울까요?</span><button class="lb-btn warn" type="button" data-act="lb-del-yes">지우기</button><button class="lb-btn" type="button" data-act="lb-del-no">그대로 두기</button>' : '<button class="lb-btn" type="button" data-act="lb-del">지우기</button>');
   $('#lb-bar').innerHTML = bar.join('');
   $('#lightbox').hidden = false;
 }
-function lbOpen(ids, i, date) { LB.ids = ids.slice(); LB.i = Math.max(0, Math.min(ids.length - 1, i)); LB.date = date || ''; LB.confirm = false; lbShow(); }
+function lbOpen(ids, i, dates, album) {
+  LB.ids = ids.slice(); LB.i = Math.max(0, Math.min(ids.length - 1, i));
+  LB.dates = Array.isArray(dates) ? dates.slice() : ids.map(() => dates || '');
+  LB.album = !!album; LB.confirm = false; lbShow();
+}
 function lbGo(dir) { const j = LB.i + dir; if ($('#lightbox').hidden || j < 0 || j >= LB.ids.length) return; LB.i = j; LB.confirm = false; lbShow(); }
 function lbClose() { $('#lightbox').hidden = true; LB.confirm = false; }
 
@@ -1646,6 +1741,7 @@ function renderNow() {
   const R = { home: renderHome, diary: renderDiary, meds: renderMeds, snacks: renderSnacks, records: renderRecords, money: renderMoney, info: renderInfo };
   (R[S.tab] || renderStar)();
   drawCharts();
+  albumObserve();
 }
 let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCharts, 150); });
 
@@ -2347,7 +2443,7 @@ function insForm() {
 /* ───────── actions ───────── */
 const ACT = {
   noop() {},
-  tab(b) { S.tab = b.dataset.tab; S.back = S.tab; window.scrollTo(0, 0); render(); },
+  tab(b) { S.tab = b.dataset.tab; S.back = S.tab; if (b.dataset.dmode) setDiaryMode(b.dataset.dmode); window.scrollTo(0, 0); render(); },
   star(b) { S.starPet = b.dataset.pet; S.back = S.tab === 'star' ? S.back : S.tab; S.tab = 'star'; window.scrollTo(0, 0); render(); },
   back() { S.tab = S.back || 'home'; window.scrollTo(0, 0); render(); },
   filter(b) { S.filter = b.dataset.filter; render(); },
@@ -2357,7 +2453,21 @@ const ACT = {
     const i = months.indexOf(S.month) + Number(b.dataset.dir); if (i >= 0 && i < months.length) { S.month = months[i]; render(); }
   },
   'month-set'(b) { S.month = b.dataset.month; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
-  'add-menu'() { if (S.tab === 'diary') diaryUpload(curDay('diary')); else addMenu(); },
+  'add-menu'() { if (S.tab === 'diary') diaryUpload(S.diaryMode === 'album' ? todayStr() : curDay('diary')); else addMenu(); },
+  /* 오늘의 또롱이: 날짜별 ↔ 사진첩 */
+  'diary-mode'(b) { setDiaryMode(b.dataset.mode); window.scrollTo(0, 0); render(); },
+  'album-photo'(b) {
+    const list = albumList(); const i = Number(b.dataset.i);
+    if (!list[i]) return;
+    lbOpen(list.map((x) => x.id), i, list.map((x) => x.date), true);
+  },
+  'album-more'() { S.album.limit += 90; render(); },
+  'album-retry'() { S.album.failed = 0; loadAlbum(true); render(); },
+  'diary-add-today'() { diaryUpload(todayStr()); },
+  'lb-day'() {
+    const d = LB.dates[LB.i]; if (!d) return;
+    lbClose(); setDiaryMode('day'); setDay('diary', d); S.tab = 'diary'; S.back = 'diary'; window.scrollTo(0, 0); render();
+  },
   /* 날짜별 탭 */
   'day-set'(b) { setDay(b.dataset.tab, b.dataset.date); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   'day-move'(b) { const tab = b.dataset.tab; setDay(tab, addDays(curDay(tab), Number(b.dataset.dir))); render(); },
@@ -2395,12 +2505,12 @@ const ACT = {
   'lb-del'() { LB.confirm = true; lbShow(); },
   'lb-del-no'() { LB.confirm = false; lbShow(); },
   async 'lb-del-yes'() {
-    const id = LB.ids[LB.i]; const date = LB.date; if (!id || !date) return;
+    const id = LB.ids[LB.i]; const date = LB.dates[LB.i]; if (!id || !date) return;
     $('#lb-bar').innerHTML = '<span>지우는 중…</span>';
     const done = await diaryRemove(date, id);
     LB.confirm = false;
     if (!done) { lbShow(); return; }
-    LB.ids.splice(LB.i, 1);
+    LB.ids.splice(LB.i, 1); LB.dates.splice(LB.i, 1);
     if (!LB.ids.length) lbClose(); else { LB.i = Math.min(LB.i, LB.ids.length - 1); lbShow(); }
     toast('사진을 지웠어요');
   },
