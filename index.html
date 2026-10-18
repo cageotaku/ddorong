@@ -266,7 +266,7 @@ svg { display: block; }
 /* tab bar & fab */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
   padding-left: max(4px, env(safe-area-inset-left, 0px)); padding-right: max(4px, env(safe-area-inset-right, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.tabbar-in { max-width: 560px; margin: 0 auto; height: var(--tabbar-h); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.tabbar-in { max-width: 560px; margin: 0 auto; height: var(--tabbar-h); display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .tab { border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--ink-3); font-size: 11px; font-weight: 600; min-width: 0; padding: 0; white-space: nowrap; }
 .tab[aria-current="page"] { color: var(--accent); }
 .fab { position: fixed; z-index: 21; width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 6px 18px rgba(201, 67, 31, 0.32);
@@ -400,6 +400,36 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .date-find .ic { width: 18px; height: 18px; flex: none; color: var(--ink-3); }
 .date-find .go { margin-left: auto; display: flex; }
 .date-find input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; margin: 0; padding: 0; font-size: 16px; cursor: pointer; -webkit-appearance: none; appearance: none; background: none; }
+/* 달력 탭 */
+.ucard { padding: 12px 8px; gap: 10px; }
+.ucard .month-nav { padding: 0 6px; }
+.uhead { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.uhead .sun, .ucell.sun .un { color: var(--danger); }
+.uhead .sat, .ucell.sat .un { color: var(--f-wt); }
+.ugrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); margin-top: -4px; touch-action: pan-y; }
+.ucell { min-width: 0; min-height: 78px; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 4px 1px 5px; display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left; color: var(--ink); border-radius: 0; }
+.ucell .un { align-self: center; position: relative; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; flex: none; }
+.ucell.other { opacity: 0.38; }
+.ucell.sel { background: var(--surface-2); border-radius: 10px; }
+.ucell.today .un { background: var(--accent); color: var(--accent-ink); }
+.uph { position: absolute; top: 1px; right: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--surface); }
+.uev { display: block; font-size: 10.5px; line-height: 1.3; font-weight: 600; padding: 1px 3px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: clip; color: var(--ink); background: var(--surface-2); }
+.u-med { background: color-mix(in srgb, var(--f-med) 24%, transparent); }
+.u-pre { background: color-mix(in srgb, var(--f-pre) 24%, transparent); }
+.u-wt { background: color-mix(in srgb, var(--f-wt) 22%, transparent); }
+.u-out { background: color-mix(in srgb, var(--f-out) 24%, transparent); }
+.u-care { background: color-mix(in srgb, var(--f-care) 26%, transparent); }
+.u-snack { background: color-mix(in srgb, var(--butter) 45%, transparent); }
+.u-money { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); }
+.umore { font-size: 10px; font-weight: 700; color: var(--ink-3); padding-left: 3px; line-height: 1.2; }
+.ucats { margin: 2px -8px -2px; padding: 0 8px; }
+.u-dot-med { background: var(--f-med); } .u-dot-pre { background: var(--f-pre); } .u-dot-wt { background: var(--f-wt); }
+.u-dot-out { background: var(--f-out); } .u-dot-care { background: var(--f-care); } .u-dot-snack { background: var(--butter); }
+.u-dot-money { background: var(--ink-3); }
+.ucats .fchip { padding: 6px 11px; font-size: 13px; }
+.ucats .fchip[aria-pressed="true"] { background: var(--surface); color: var(--ink-2); border-color: var(--line); }
+.ucats .fchip[aria-pressed="false"] { opacity: 0.45; text-decoration: line-through; }
+.crow .row-date b.all { font-size: 13px; color: var(--ink-3); }
 @keyframes rowflash { 0%, 55% { background: var(--accent-soft); box-shadow: 0 0 0 6px var(--accent-soft); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
 .row.jump { animation: rowflash 2.6s ease-out; border-radius: 8px; }
 .med-later { justify-content: space-between; align-items: center; }
@@ -517,6 +547,7 @@ button.amore { color: var(--accent); }
 <div class="app" id="app">
   <section class="view gate" id="v-gate" aria-label="들어가기" hidden></section>
   <section class="view" id="v-home" aria-label="홈"></section>
+  <section class="view" id="v-cal" aria-label="달력" hidden></section>
   <section class="view" id="v-diary" aria-label="오늘의 또롱이" hidden></section>
   <section class="view" id="v-meds" aria-label="약 체크리스트" hidden></section>
   <section class="view" id="v-snacks" aria-label="간식 체크리스트" hidden></section>
@@ -535,6 +566,7 @@ button.amore { color: var(--accent); }
 <nav class="tabbar" aria-label="메뉴">
   <div class="tabbar-in">
     <button class="tab" data-act="tab" data-tab="home" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>홈</button>
+    <button class="tab" data-act="tab" data-tab="cal" aria-label="달력"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M8 13.5h2M14 13.5h2M8 16.5h2"/></svg>달력</button>
     <button class="tab" data-act="tab" data-tab="diary" aria-label="오늘의 또롱이"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m4.5 17.6 4.9-4.5 3.4 3 2.7-2.4 4 3.7"/></svg>오늘</button>
     <button class="tab" data-act="tab" data-tab="meds" aria-label="약 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="8.6" width="18.4" height="6.8" rx="3.4" transform="rotate(-45 12 12)"/><path d="m9.6 9.6 4.8 4.8"/></svg>약</button>
     <button class="tab" data-act="tab" data-tab="snacks" aria-label="간식 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12c2-3.3 4.8-5 7.9-5 2.8 0 4.9 1.7 6.6 5-1.7 3.3-3.8 5-6.6 5-3.1 0-5.9-1.7-7.9-5z"/><path d="M7 12 2.8 8.6v6.8z"/><circle cx="17.2" cy="11.1" r="1" fill="currentColor" stroke="none"/></svg>간식</button>
@@ -622,7 +654,7 @@ const MED_SLOTS = [['morning', '아침', '08:00'], ['lunch', '점심', '13:00'],
 const MEDS_DAYS = 5; /* 약 지난 기록을 처음에 보여 주는 날 수 (오늘 포함) */
 const SNACKS = [['treat', '트릿', '트릿'], ['churu', '츄르', '츄르'], ['dental', '덴탈과자', '덴탈'], ['food', '사료', '사료'], ['etc', '기타', '기타']];
 const LOG_MAX = 40;
-const TABS = ['home', 'diary', 'meds', 'snacks', 'records', 'money', 'info'];
+const TABS = ['home', 'cal', 'diary', 'meds', 'snacks', 'records', 'money', 'info'];
 const IC = {
   check: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 12.5 4.2 4.2 8.8-9.2"/></svg>',
   minus: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>',
@@ -755,7 +787,7 @@ const S = {
   raw: null, records: [], expenses: [], pets: {}, info: {},
   events: null, uids: {}, calError: '', calPartial: false,
   loading: false, loadedAt: 0, lastWriteAt: 0, reloadPending: false, fromCache: false, loadError: '', fatalMsg: '',
-  tab: 'home', back: 'home', filter: 'all', q: '', month: null, recLimit: 10, recJump: null,
+  tab: 'home', back: 'home', filter: 'all', q: '', month: null, recLimit: 10, recJump: null, calMonth: '', calSel: '', addDate: '',
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
   dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: MEDS_DAYS, medHist: '',
@@ -1110,6 +1142,146 @@ function renderRecords() {
     const el = [...list.querySelectorAll('.row[data-act="open-record"]')].find((x) => x.dataset.id === S.recJump.id);
     if (el) { el.classList.add('jump'); requestAnimationFrame(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' })); setTimeout(() => el.classList.remove('jump'), 2600); }
   }
+}
+
+/* ───────── 달력: 기록·일정·간식·지출을 한 달에 모아 보기 ─────────
+ * 칸에는 기록(예정 포함), 생일·온 날·함께한 N일, 보험료, 예방약 예상, 간식 개수(사료 빼고), 지출을 보여 줘요.
+ * 날을 누르면 아래에 그날 것을 모두(약 체크·사진·한 줄 기록 포함) 보여 줘요. */
+const CAL_CATS = [['med', '병원·검사'], ['pre', '접종·예방'], ['wt', '몸무게'], ['out', '나들이·기념'], ['care', '돌봄'], ['snack', '간식'], ['money', '지출']];
+const CAL_ORDER = ['med', 'pre', 'out', 'wt', 'care', 'money', 'snack'];
+const CAL_HIDE = 'ddorong-cal-hide';
+function calHidden() { try { const a = JSON.parse(store.get(CAL_HIDE) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch { return new Set(); } }
+const manwon = (n) => { const v = Math.round(Number(n) || 0); return v >= 10000 ? `${Math.round(v / 1000) / 10}만` : `${v.toLocaleString('ko-KR')}원`; };
+/* 사료(food)는 매일 같아서 빼고 센 간식 수와 내역 */
+function calSnacks(d) {
+  const x = dayDoc('snacks', d);
+  const bits = SNACKS.filter(([k]) => k !== 'food' && Number(x[k]) > 0).map(([k, l]) => [l, Number(x[k])]);
+  return { n: bits.reduce((s, b) => s + b[1], 0), bits };
+}
+/* from~to 사이 날짜마다 보여 줄 것 [{fam, label, ...}] */
+function calEvents(from, to, hide) {
+  const T = todayStr(); const out = new Map();
+  const add = (d, ev) => { if (d < from || d > to || hide.has(ev.fam)) return; if (!out.has(d)) out.set(d, []); out.get(d).push(ev); };
+  const home = new Set(homePets().map((p) => p.id));
+  for (const r of S.records) {
+    if (!isDate(r.date)) continue;
+    const t = TYPES[r.type] || { label: '기록', fam: 'out' };
+    if (home.has(r.pet)) add(r.date, { fam: t.fam, label: r.type === 'weight' ? wt(r.kg) : r.title || t.label, time: r.time || '', rec: r });
+    if (r.type === 'milestone' && r.yearly) {
+      const p0 = parts(r.date); const pet = S.pets[r.pet]; const nm = pet?.name || '';
+      for (let y = Math.max(parts(from).y, p0.y + 1); y <= parts(to).y; y++) {
+        const d = `${y}-${pad(p0.m)}-${pad(Math.min(p0.d, dim(y, p0.m)))}`; const n = y - p0.y;
+        let title = r.title || '기념일', sub = `${n}주년`;
+        if (r.kind === 'birth') { title = `${nm} 생일`; sub = pet?.status === 'star' ? '기억하는 날' : `${n}살이 돼요`; }
+        else if (r.kind === 'home') { title = `${nm} 온 날`; sub = `함께한 지 ${n}년`; }
+        add(d, { fam: 'out', label: title, title, sub, act: `data-act="open-record" data-id="${esc(r.id)}"` });
+      }
+    }
+  }
+  for (const p of homePets()) {
+    if (!isDate(p.home)) continue;
+    for (const M of DAY_STEPS) add(addDays(p.home, M - 1), { fam: 'out', label: `${M.toLocaleString('ko-KR')}일`, title: `함께한 ${M.toLocaleString('ko-KR')}일`, sub: p.name });
+  }
+  for (const u of upcoming()) if (u.guess) add(u.date, { fam: u.fam, label: '예방약?', title: u.title, sub: u.sub });
+  const ins = S.info.insurance;
+  if (ins && ins.active && ins.payDay) {
+    for (let k = ym(from); k <= ym(to); k = addMonths(`${k}-01`, 1).slice(0, 7)) {
+      const [y, m] = k.split('-').map(Number); const d = `${k}-${pad(Math.min(ins.payDay, dim(y, m)))}`;
+      if (d > T && !(ins.firstPay && d < ins.firstPay)) add(d, { fam: 'out', label: '보험료', title: '보험료 자동이체', sub: [won(rateFor(ins, k)), ins.method].filter(Boolean).join(' · '), act: 'data-act="tab" data-tab="info"' });
+    }
+  }
+  for (const e of allExpenses()) if (isDate(e.date) && Number(e.amount) > 0) add(e.date, { fam: 'money', label: manwon(e.amount), exp: e });
+  if (!hide.has('snack')) {
+    for (let d = from; d <= to && d <= T; d = addDays(d, 1)) { const s = calSnacks(d); if (s.n) add(d, { fam: 'snack', label: `간식 ${s.n}`, snack: s }); }
+  }
+  for (const list of out.values()) list.sort((a, b) => CAL_ORDER.indexOf(a.fam) - CAL_ORDER.indexOf(b.fam) || String(a.time || '').localeCompare(String(b.time || '')));
+  return out;
+}
+/* 그날 줄: 왼쪽은 시간(없으면 종일) */
+function calRow(o) {
+  const tk = o.time ? timeKo(o.time).split(' ') : null;
+  return `<button class="row crow" type="button" ${o.attrs || ''}>${tk ? `<span class="row-date"><b>${esc(tk[1])}</b><small>${esc(tk[0])}</small></span>` : `<span class="row-date"><b class="all">${esc(o.left || '종일')}</b></span>`}<span class="row-main"><span class="row-title">${esc(o.title)}</span><span class="row-sub">${o.dot || ''}${esc(o.sub || '')}${o.tags || ''}</span></span>${o.end || ''}</button>`;
+}
+function calDayHtml(d, hide) {
+  const T = todayStr(); const rows = [];
+  const evs = calEvents(d, d, hide).get(d) || [];
+  for (const e of evs) {
+    if (e.rec) {
+      const r = e.rec; const t = TYPES[r.type] || { label: '기록', fam: 'out' };
+      const bits = [t.label]; if (r.place) bits.push(r.place); if (r.type === 'test' && r.result) bits.push(`결과: ${r.result}`); if (r.who && whoLabel(r.who)) bits.push(whoLabel(r.who));
+      const tags = [];
+      if (r.type === 'test' && !r.result) tags.push('<span class="tag warn">결과 미기록</span>');
+      if ((r.photos || []).length) tags.push(`<span class="tag">사진 ${r.photos.length}</span>`);
+      if (r.src === 'gcal') tags.push('<span class="tag gc">캘린더</span>');
+      rows.push(calRow({ time: r.type === 'weight' ? '' : r.time, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title || t.label, sub: bits.join(' · '), dot: famDot(t.fam), tags: tags.join(''), attrs: `data-act="open-record" data-id="${esc(r.id)}"`, end: r.date > T ? `<span class="dchip${diffDays(T, r.date) <= 7 ? ' soon' : ''}">${dday(diffDays(T, r.date))}</span>` : '' }));
+    } else if (e.exp) {
+      const x = e.exp;
+      rows.push(calRow({ left: '지출', title: `${x.item || x.category || '지출'} ${won(x.amount)}`, sub: [x.category, x.place, whoLabel(x.payer)].filter(Boolean).join(' · '), dot: '<i class="dot u-dot-money" aria-hidden="true"></i>', attrs: `data-act="open-expense" data-id="${esc(x.id)}"` }));
+    } else if (e.snack) {
+      rows.push(calRow({ left: '간식', title: `간식 ${e.snack.n}개`, sub: e.snack.bits.map(([l, n]) => `${l} ${n}`).join(' · '), dot: '<i class="dot u-dot-snack" aria-hidden="true"></i>', attrs: `data-act="cal-go" data-tab="snacks" data-date="${d}"` }));
+    } else {
+      rows.push(calRow({ title: e.title, sub: e.sub, dot: famDot(e.fam), attrs: e.act || '' }));
+    }
+  }
+  if (d <= T) {
+    const md0 = dayDoc('meds', d);
+    for (const m of medItems().filter((x) => medOn(x, d))) {
+      const parts2 = m.times.map((t) => { const v = medVal(md0, m, t.id); return `${tLabel(t)} ${v ? `✓ ${v.time || ''}` : '–'}`; });
+      rows.push(calRow({ left: '약', title: medName(m), sub: parts2.join(' · '), dot: '<i class="dot u-dot-med" aria-hidden="true"></i>', attrs: `data-act="cal-go" data-tab="meds" data-date="${d}"` }));
+    }
+    const dd = dayDoc('diary', d); const ps = dayPhotos(dd);
+    if (ps.length || dd.note) rows.push(calRow({ left: '사진', title: ps.length ? `사진 ${ps.length}장` : '한 줄 기록', sub: dd.note || '', attrs: `data-act="cal-go" data-tab="diary" data-date="${d}"`, end: ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((p) => photoImg(p.id, 'thumb')).join('')}</span>` : '' }));
+  }
+  const when = d === T ? '오늘' : d < T ? `${diffDays(d, T)}일 전` : dday(diffDays(T, d));
+  return `<div class="card" id="cal-day">
+      <div class="card-head"><h2>${esc(dayKo(d))}</h2><span class="sub">${esc(when)}</span></div>
+      ${rows.length ? `<div class="list">${rows.join('')}</div>` : `<div class="empty">${d > T ? '이날은 아직 예정된 일이 없어요.' : '이날은 남긴 기록이 없어요.'}</div>`}
+      ${S.readOnly ? '' : '<button class="btn ghost sm" type="button" data-act="cal-add">+ 이날 기록 남기기</button>'}
+    </div>`;
+}
+const calMin = () => { const ds = S.records.map((r) => r.date).filter(isDate).sort(); const k = ds.length ? ym(ds[0]) : minMonth(); return k < minMonth() ? k : minMonth(); };
+const calMax = () => addMonths(`${ym(todayStr())}-01`, 24).slice(0, 7);
+function renderCal() {
+  const el = $('#v-cal');
+  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>달력</h1></div>${loadingOr('')}<div class="card"><div class="empty">기록과 일정이 한 달 달력에 모여요.</div></div>`; return; }
+  const T = todayStr();
+  if (!S.calMonth) S.calMonth = ym(T);
+  if (!isDate(S.calSel)) S.calSel = T;
+  const k = S.calMonth; const [y, m] = k.split('-').map(Number);
+  const startDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const from = addDays(`${k}-01`, -startDow); const weeks = Math.ceil((startDow + dim(y, m)) / 7); const to = addDays(from, weeks * 7 - 1);
+  for (const mk of new Set([ym(from), k, ym(to)])) if (mk <= ym(T) && mk >= minMonth()) { needMonth('snacks', mk); needMonth('diary', mk); needMonth('meds', mk); }
+  const hide = calHidden(); const evs = calEvents(from, to, hide);
+  let cells = '';
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = addDays(from, i); const dow = i % 7; const list = evs.get(d) || [];
+    const shown = list.slice(0, 3); const more = list.length - shown.length;
+    const ph = d <= T && dayPhotos(dayDoc('diary', d)).length > 0;
+    cells += `<button class="ucell${ym(d) !== k ? ' other' : ''}${d === T ? ' today' : ''}${d === S.calSel ? ' sel' : ''}${dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}" type="button" data-act="cal-pick" data-date="${d}" aria-label="${esc(dayKo(d))}${list.length ? ` · ${list.length}개` : ''}"><span class="un">${parts(d).d}${ph ? '<i class="uph" aria-hidden="true"></i>' : ''}</span>${shown.map((e) => `<span class="uev u-${e.fam}">${esc(e.label)}</span>`).join('')}${more > 0 ? `<span class="umore">+${more}</span>` : ''}</button>`;
+  }
+  const loading = [ym(from), k, ym(to)].some((mk) => mk <= ym(T) && mk >= minMonth() && !(monthReady('snacks', mk) && monthReady('diary', mk)));
+  el.innerHTML = `
+    <div class="view-head"><h1>달력</h1>${k !== ym(T) || S.calSel !== T ? '<button class="link" type="button" data-act="cal-today">오늘로 가기</button>' : ''}</div>
+    <div class="card ucard">
+      <div class="month-nav"><button class="icon-btn" type="button" data-act="ucal-move" data-dir="-1" aria-label="이전 달"${k <= calMin() ? ' disabled' : ''}>${IC.left}</button><strong>${esc(ymKo(k))}</strong><button class="icon-btn" type="button" data-act="ucal-move" data-dir="1" aria-label="다음 달"${k >= calMax() ? ' disabled' : ''}>${IC.right}</button></div>
+      <div class="uhead" aria-hidden="true"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+      <div class="ugrid" id="ucal-grid">${cells}</div>
+      ${loading ? '<div class="empty" style="text-align:center">이 달 간식·사진 기록을 불러오는 중이에요…</div>' : ''}
+      <div class="filters ucats" role="group" aria-label="달력에 보일 것">${CAL_CATS.map(([c, l]) => `<button class="fchip" type="button" data-act="cal-cat" data-cat="${c}" aria-pressed="${!hide.has(c)}"><i class="dot u-dot-${c}" aria-hidden="true"></i>${esc(l)}</button>`).join('')}</div>
+    </div>
+    ${calDayHtml(S.calSel, hide)}`;
+  /* 달력을 옆으로 밀어서 달 넘기기 */
+  const g = $('#ucal-grid'); let sx = null, sy = 0;
+  g.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, { passive: true });
+  g.addEventListener('touchend', (e) => {
+    if (sx == null) return; const t = e.changedTouches[0]; const dx = t.clientX - sx, dy = t.clientY - sy; sx = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) calMove(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+function calMove(dir) {
+  const T = todayStr(); const k = addMonths(`${S.calMonth}-01`, dir).slice(0, 7);
+  if (k < calMin() || k > calMax()) return;
+  S.calMonth = k; S.calSel = ym(T) === k ? T : `${k}-01`; render();
 }
 
 /* ───────── render: money ───────── */
@@ -1934,7 +2106,7 @@ function renderNow() {
   document.querySelectorAll('.tab').forEach((b) => { if (b.dataset.tab === (S.tab === 'star' ? S.back : S.tab)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   $('#fab').hidden = S.readOnly || !ready() || ['star', 'meds', 'snacks'].includes(S.tab);
   $('#fab').setAttribute('aria-label', S.tab === 'diary' ? '사진 올리기' : '기록 추가');
-  const R = { home: renderHome, diary: renderDiary, meds: renderMeds, snacks: renderSnacks, records: renderRecords, money: renderMoney, info: renderInfo };
+  const R = { home: renderHome, cal: renderCal, diary: renderDiary, meds: renderMeds, snacks: renderSnacks, records: renderRecords, money: renderMoney, info: renderInfo };
   (R[S.tab] || renderStar)();
   drawCharts();
   albumObserve();
@@ -2373,7 +2545,7 @@ function openSheet(title, html, onMount) {
 }
 async function closeSheet() {
   if (F && F.fresh && F.fresh.length) { for (const id of F.fresh) dropPhoto(id); }
-  F = null; $('#sheet').hidden = true; $('#sheet-body').innerHTML = '';
+  F = null; S.addDate = ''; $('#sheet').hidden = true; $('#sheet-body').innerHTML = '';
 }
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 document.addEventListener('keydown', (e) => {
@@ -2393,7 +2565,7 @@ function addMenu(petId) {
 
 function recordForm(rec, kind, petId) {
   const T = todayStr(); const isNew = !rec;
-  const r = rec ? { ...rec } : { type: kind, pet: petId || mainPet()?.id, date: T, time: '', title: '', place: '', memo: '', result: '', kg: null, who: meKey(), photos: [], yearly: false, kind: '' };
+  const r = rec ? { ...rec } : { type: kind, pet: petId || mainPet()?.id, date: S.addDate || T, time: '', title: '', place: '', memo: '', result: '', kg: null, who: meKey(), photos: [], yearly: false, kind: '' };
   const type = r.type; const t = TYPES[type];
   const pet = S.pets[r.pet];
   F = { kind: 'record', id: rec ? rec.id : null, data: r, orig: rec ? { ...rec } : null, photos: [...(r.photos || [])], fresh: [], dropped: [] };
@@ -2454,7 +2626,7 @@ function recordForm(rec, kind, petId) {
 
 function expenseForm(exp) {
   const T = todayStr(); const isNew = !exp;
-  const e0 = exp ? { ...exp } : { pet: mainPet()?.id || '', date: T, category: '', item: '', amount: '', place: '', reason: '', payer: meKey(), photos: [] };
+  const e0 = exp ? { ...exp } : { pet: mainPet()?.id || '', date: S.addDate || T, category: '', item: '', amount: '', place: '', reason: '', payer: meKey(), photos: [] };
   F = { kind: 'expense', id: exp ? exp.id : null, data: e0, photos: [...(e0.photos || [])], fresh: [], dropped: [] };
   const all = allExpenses();
   const html = `<form class="form" id="exp-form" novalidate>
@@ -2654,7 +2826,18 @@ const ACT = {
     const i = months.indexOf(S.month) + Number(b.dataset.dir); if (i >= 0 && i < months.length) { S.month = months[i]; render(); }
   },
   'month-set'(b) { S.month = b.dataset.month; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
-  'add-menu'() { if (S.tab === 'diary') diaryUpload(S.diaryMode === 'album' ? todayStr() : curDay('diary')); else addMenu(); },
+  'add-menu'() { if (S.tab === 'diary') diaryUpload(S.diaryMode === 'album' ? todayStr() : curDay('diary')); else { S.addDate = S.tab === 'cal' ? S.calSel : ''; addMenu(); } },
+  /* 달력 */
+  'cal-pick'(b) {
+    const d = b.dataset.date; if (!isDate(d)) return;
+    S.calSel = d; if (ym(d) !== S.calMonth) S.calMonth = ym(d); render();
+    requestAnimationFrame(() => { const c = $('#cal-day'); if (c) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+  },
+  'ucal-move'(b) { calMove(Number(b.dataset.dir)); },
+  'cal-today'() { S.calMonth = ym(todayStr()); S.calSel = todayStr(); render(); },
+  'cal-cat'(b) { const h = calHidden(); const c = b.dataset.cat; if (h.has(c)) h.delete(c); else h.add(c); store.set(CAL_HIDE, JSON.stringify([...h])); render(); },
+  'cal-add'() { if (S.readOnly) return; S.addDate = S.calSel; addMenu(); },
+  'cal-go'(b) { const tab = b.dataset.tab; if (tab === 'diary') setDiaryMode('day'); setDay(tab, b.dataset.date); S.tab = tab; S.back = tab; window.scrollTo(0, 0); render(); },
   /* 오늘의 또롱이: 날짜별 ↔ 사진첩 */
   'diary-mode'(b) { setDiaryMode(b.dataset.mode); window.scrollTo(0, 0); render(); },
   'album-photo'(b) {
