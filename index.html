@@ -356,6 +356,8 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .who-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .who-pick button { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 18px 12px; font-size: 18px; font-weight: 700; color: var(--ink); }
 .who-pick button:active { background: var(--accent-soft); }
+.banner.apptip { border: 1.5px solid var(--accent); background: var(--accent-soft); color: var(--ink); display: flex; flex-direction: column; gap: 10px; }
+.banner.apptip .btn-row .btn { flex: 0 1 auto; }
 
 /* 날짜별 탭 공통: 날짜 넘기기 */
 .day-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -865,11 +867,45 @@ function onAuthFail(code) {
   S.raw = null; S.records = []; S.expenses = []; S.pets = {}; S.info = {}; S.fromCache = false;
   render();
 }
+/* 아이폰에서 앱(홈 화면 웹 앱)이 아니라 브라우저 안에서 열렸는지 */
+const UA = () => navigator.userAgent || '';
+const otherBrowser = () => {
+  const u = UA();
+  if (/CriOS/.test(u)) return 'Chrome';
+  if (/FxiOS/.test(u)) return 'Firefox';
+  if (/EdgiOS/.test(u)) return 'Edge';
+  if (/KAKAOTALK/i.test(u)) return '카카오톡';
+  if (/NAVER\(|NAVER\b/.test(u)) return '네이버';
+  if (/Instagram|FBAN|FBAV|Line\/|DaumApps|Whale/i.test(u)) return '다른 앱';
+  return '';
+};
+const inBrowserTab = () => isIOS() && !isStandalone();
+const appHome = () => S.appUrl || `${location.origin}${location.pathname.replace(/index\.html$/, '')}`;
+function addSteps() {
+  return `<ol class="steps">
+      <li><b>Safari</b>에서 아래쪽 <b>공유</b> 버튼(네모에 위쪽 화살표)을 눌러요. 안 보이면 주소창 옆 <b>···</b> → <b>공유</b>.</li>
+      <li><b>홈 화면에 추가</b>를 눌러요. 목록에 없으면 아래로 내리거나 <b>더 보기</b>에 있어요.</li>
+      <li><b>‘웹 앱으로 열기’가 켜져 있는지(초록색)</b> 확인하고 <b>추가</b>를 눌러요.</li>
+      <li>홈 화면에 생긴 <b>또롱이 아이콘</b>으로 열어요. 주소창 없이 앱처럼 열려요.</li>
+    </ol>
+    <span class="muted" style="font-size:13px">이미 만든 아이콘이 Safari나 Chrome으로 열리면, 그 아이콘을 지우고 이 방법으로 다시 추가해 주세요. 앱으로 처음 열 때 비밀번호를 한 번 더 넣어요.</span>`;
+}
+function installSteps() {
+  const ob = otherBrowser();
+  if (!ob) return addSteps();
+  return `<div class="note"><span><b>지금은 ${esc(ob)} 안에서 열려 있어요.</b> 앱으로 설치하려면 <b>Safari</b>에서 열어야 해요. 아래 주소를 복사해서 Safari 주소창에 붙여 넣은 뒤, 이 화면의 방법대로 추가해 주세요.</span></div>
+    <div class="phone"><span style="font-size:14px;word-break:break-all">${esc(appHome())}</span><button class="btn ghost sm" type="button" data-act="copy" data-what="주소" data-text="${esc(appHome())}">주소 복사</button></div>
+    ${addSteps()}`;
+}
 function installHint() {
-  if (isStandalone() || !isIOS()) return '';
-  return `<div class="card"><div class="card-head"><h2>홈 화면에 앱으로 추가하기</h2></div>
-    <ol class="steps"><li>아래쪽 <b>공유</b> 버튼을 눌러요.</li><li><b>홈 화면에 추가</b> → <b>추가</b>를 눌러요.</li><li>홈 화면에 생긴 <b>또롱이 아이콘</b>을 눌러 열고, 거기서 비밀번호를 넣어요.</li></ol>
-    <span class="muted" style="font-size:13px">여기 사파리에서 바로 써도 되지만, 아이콘으로 열면 주소창 없이 앱처럼 보여요.</span></div>`;
+  if (!inBrowserTab()) return '';
+  return `<div class="card"><div class="card-head"><h2>앱으로 설치하기</h2></div>${installSteps()}</div>`;
+}
+let tipClosed = (() => { try { return sessionStorage.getItem('ddorong-tip') === '1'; } catch { return false; } })();
+function appTipBanner() {
+  if (!inBrowserTab() || tipClosed) return '';
+  const ob = otherBrowser();
+  return `<div class="banner apptip"><div><b>지금은 ${ob ? esc(ob) : 'Safari'} 화면으로 열려 있어요.</b> 홈 화면에 ‘웹 앱’으로 추가하면 아이콘을 눌렀을 때 주소창 없이 앱처럼 열려요.</div><div class="btn-row"><button class="btn sm" type="button" data-act="app-howto">앱으로 설치하는 방법</button><button class="btn ghost sm" type="button" data-act="tip-close">닫기</button></div></div>`;
 }
 function renderGate() {
   const el = $('#v-gate');
@@ -925,6 +961,7 @@ function renderHome() {
 
   el.innerHTML = `
     ${S.readOnly ? '<div class="banner">보기 전용으로 열려 있어요. 기록을 남기려면 이 페이지의 편집 권한이 필요해요.</div>' : ''}
+    ${appTipBanner()}
     ${syncLine()}
     <div class="card hero">
       <div class="hero-top">${petAvatar(p)}<div class="hero-name"><h1>${esc(p.name)}</h1><span class="meta">${esc(metaBits.join(' · '))}</span>${togetherN ? `<span class="chip butter">함께한 지 ${togetherN.toLocaleString('ko-KR')}일째</span>` : ''}</div></div>
@@ -1863,7 +1900,8 @@ function accountCard() {
     ${ms.length ? `<div class="seg" role="group" aria-label="이 폰 사용자">${ms.map((m) => `<button type="button" data-act="set-me" data-key="${esc(m.key)}" aria-pressed="${m.key === me}">${esc(m.name)}</button>`).join('')}</div>` : ''}
     <span class="muted" style="font-size:13px">새로 남기는 기록과 지출에 이 이름이 먼저 들어가요.</span>
     ${S.appUrl ? `<div class="phone"><div style="min-width:0"><div class="muted" style="font-size:12.5px">앱 주소</div><span style="font-size:12.5px;word-break:break-all">${esc(S.appUrl)}</span></div><button class="btn ghost sm" data-act="copy" data-what="주소" data-text="${esc(S.appUrl)}">주소 복사</button></div>` : ''}
-    <ol class="steps"><li>아이폰 <b>Safari</b>에서 앱 주소를 열어요.</li><li>아래쪽 <b>공유</b> 버튼 → <b>홈 화면에 추가</b> → <b>추가</b>.</li><li>홈 화면의 <b>또롱이 아이콘</b>으로 열고 가족 비밀번호를 한 번 넣어요.</li></ol>
+    <ol class="steps"><li>아이폰 <b>Safari</b>에서 앱 주소를 열어요. Chrome이나 카카오톡 안에서 열면 앱으로 설치되지 않아요.</li><li><b>공유</b> 버튼 → <b>홈 화면에 추가</b> → <b>‘웹 앱으로 열기’ 켜기</b> → <b>추가</b>.</li><li>홈 화면의 <b>또롱이 아이콘</b>으로 열고 가족 비밀번호를 한 번 넣어요.</li></ol>
+    ${inBrowserTab() ? `<div class="note"><span>이 폰은 지금 ${esc(otherBrowser() || 'Safari')} 화면으로 열려 있어요. <button class="link" type="button" data-act="app-howto" style="padding:0">앱으로 설치하는 방법</button></span></div>` : ''}
     <div class="btn-row"><button class="btn ghost sm" data-act="code-form">가족 비밀번호 바꾸기</button><button class="btn ghost sm" data-act="logout">이 폰에서 나가기</button></div>
     <div id="logout-slot"></div>
   </div>`;
@@ -2427,6 +2465,8 @@ const ACT = {
   'set-me'(b) { store.set(ME_STORE, b.dataset.key); render(); toast(`이 폰은 ${famName(b.dataset.key)} 폰으로 기록해요`); },
   'gate-me'(b) { store.set(ME_STORE, b.dataset.key); S.phase = S.raw ? 'live' : 'needkey'; S.tab = 'home'; window.scrollTo(0, 0); render(); toast(`${famName(b.dataset.key)} 폰으로 시작해요`); },
   'code-form'() { codeForm(); },
+  'app-howto'() { F = null; openSheet('앱으로 설치하기', `<div class="form">${installSteps()}</div>`); },
+  'tip-close'() { tipClosed = true; try { sessionStorage.setItem('ddorong-tip', '1'); } catch { /* 넘어감 */ } render(); },
   logout(b) {
     const slot = $('#logout-slot'); if (!slot) return;
     slot.innerHTML = '<div class="confirm"><span>이 폰에서 비밀번호와 저장된 기록을 지울까요? 다시 들어오려면 비밀번호를 넣어야 해요.</span><button class="btn sm" data-act="logout-yes">나가기</button><button class="btn ghost sm" data-act="logout-no">그대로 두기</button></div>';
