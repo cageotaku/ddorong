@@ -396,6 +396,10 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .med-times .empty { padding: 2px 0; }
 .med-trow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 140px) 40px; gap: 8px; align-items: center; }
 .med-trow input[type=time] { padding-left: 10px; padding-right: 8px; font-variant-numeric: tabular-nums; }
+.date-find { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 11px 12px; color: var(--ink-2); font-size: 15px; font-weight: 600; cursor: pointer; }
+.date-find .ic { width: 18px; height: 18px; flex: none; color: var(--ink-3); }
+.date-find .go { margin-left: auto; display: flex; }
+.date-find input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; margin: 0; padding: 0; font-size: 16px; cursor: pointer; -webkit-appearance: none; appearance: none; background: none; }
 .med-later { justify-content: space-between; align-items: center; }
 .med-later .link { flex: none; padding: 0; }
 #v-meds, #medcfg-form, #med-form, .t-meds { word-break: keep-all; overflow-wrap: anywhere; }
@@ -1446,6 +1450,7 @@ function renderMeds() {
     }).join('');
     hist = `<div class="card">
       <div class="card-head"><h2>지난 기록</h2><span class="sub">줄을 누르면 그날로 가요</span></div>
+      <label class="date-find">${IC.cal}<span>날짜로 찾기</span><span class="go">${IC.right}</span><input type="date" data-day-input="meds" data-find="1" value="" max="${esc(T)}" min="${esc(minMonth())}-01" aria-label="날짜로 찾기"></label>
       ${hm.length > 1 ? `<div class="pick" role="group" aria-label="볼 약 고르기">${hm.map((m) => `<button type="button" data-act="med-hist" data-id="${esc(m.id)}" aria-pressed="${m === sel}">${esc(medName(m))}</button>`).join('')}</div>` : ''}
       <div class="mtbl">${th}${rows}</div>
       ${more || less ? `<div class="btn-row">${more ? '<button class="btn ghost sm" type="button" data-act="meds-more">더 보기</button>' : ''}${less ? '<button class="btn ghost sm" type="button" data-act="meds-less">접기</button>' : ''}</div>` : ''}
@@ -1454,6 +1459,7 @@ function renderMeds() {
   el.innerHTML = `${head(edit ? '<button class="link" type="button" data-act="med-add">+ 약 추가</button>' : '')}
     <div class="card">
       ${dayNav('meds', date)}
+      ${monthReady('meds', ym(date)) ? '' : '<div class="empty">이날 기록을 불러오는 중이에요…</div>'}
       ${on.length ? `${groups}<div class="med-sum">${done === n ? `<b>${date === T ? '오늘' : esc(mdKo(date))} 약을 다 챙겼어요</b>` : `${done} / ${n} 챙겼어요`}</div>` : `<div class="empty">${date === T ? '오늘 챙길 약이 없어요.' : '이날은 챙길 약이 없었어요.'}</div>`}
       ${laterHtml}
     </div>
@@ -2844,7 +2850,14 @@ $('#rec-q').addEventListener('input', (e) => { S.q = e.target.value; renderRecor
 document.addEventListener('change', (e) => {
   const t = e.target;
   if (!t || !t.matches) return;
-  if (t.matches('[data-day-input]')) { if (isDate(t.value)) { setDay(t.dataset.dayInput, t.value); render(); } return; }
+  if (t.matches('[data-day-input]')) {
+    if (isDate(t.value)) {
+      setDay(t.dataset.dayInput, t.value); render();
+      /* 지난 기록의 '날짜로 찾기': 고른 날을 위 카드에서 보여 줘요 */
+      if (t.dataset.find) window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    return;
+  }
   if (t.matches('[data-snack]')) {
     const date = curDay('snacks'); const k = t.dataset.snack;
     const cur = Number(dayDoc('snacks', date)[k]) || 0;
