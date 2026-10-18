@@ -382,6 +382,27 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .med-slot.on .go { color: var(--ink-3); font-weight: 600; }
 .med-sum { font-size: 14px; color: var(--ink-2); text-align: center; }
 .med-sum b { color: var(--accent); }
+.med-group { display: flex; flex-direction: column; gap: 10px; }
+.med-group + .med-group { border-top: 1px solid var(--line); padding-top: 14px; }
+.med-kind { font-size: 13px; font-weight: 700; color: var(--ink-3); }
+.med-item { display: flex; flex-direction: column; gap: 8px; }
+.med-item + .med-item { margin-top: 8px; }
+.med-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.med-head .nm { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.med-head .nm b { font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
+.med-head .nm .s { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.med-head .link { flex: none; padding-top: 2px; }
+.med-times { display: flex; flex-direction: column; gap: 8px; }
+.med-times .empty { padding: 2px 0; }
+.med-trow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 140px) 40px; gap: 8px; align-items: center; }
+.med-trow input[type=time] { padding-left: 10px; padding-right: 8px; font-variant-numeric: tabular-nums; }
+.med-later { justify-content: space-between; align-items: center; }
+.med-later .link { flex: none; padding: 0; }
+#v-meds, #medcfg-form, #med-form, .t-meds { word-break: keep-all; overflow-wrap: anywhere; }
+.t-meds.lines { flex-direction: column; align-items: flex-start; gap: 8px; }
+.t-mline { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.t-mline .nm { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.t-mline .cs { display: flex; flex-wrap: wrap; gap: 6px; }
 .mtbl { display: flex; flex-direction: column; }
 .mrow { display: grid; grid-template-columns: 74px repeat(var(--n, 3), minmax(0, 1fr)); align-items: center; gap: 4px; width: 100%; border: 0; background: none; padding: 7px 6px; border-top: 1px solid var(--line); text-align: center; font-variant-numeric: tabular-nums; border-radius: 10px; color: var(--ink); }
 .mrow.head { border-top: 0; padding-top: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
@@ -729,7 +750,7 @@ const S = {
   tab: 'home', back: 'home', filter: 'all', q: '', month: null,
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
-  dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: 14,
+  dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: 14, medHist: '',
   diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
 };
 
@@ -1308,96 +1329,217 @@ function monthNav(tab, k) {
 }
 
 /* ───────── 약 체크리스트 ───────── */
-function medCfg() {
-  const c = S.info.meds || {};
-  const all = MED_SLOTS.map((s) => s[0]);
-  const slots = Array.isArray(c.slots) ? c.slots.filter((k) => all.includes(k)) : [];
-  return { name: c.name || '', dose: c.dose || '', slots: slots.length ? slots : all };
+/* 약마다 종류(복용약·바르는 약)와 챙기는 때(아침·저녁처럼 직접 고른 시간)를 정해요.
+ * 체크는 그날 문서의 '약.때' 자리에 남아요. 예전 화면(아침·점심·저녁 고정)에서 한 체크는 문서 맨 위 자리에 있어서,
+ * 그 약은 legacy 로 표시하고 같은 자리를 그대로 읽고 써요. */
+const MED_KINDS = {
+  oral: { label: '복용약', did: '먹였어요', plan: '먹여요', ask: '먹였으면 눌러 주세요', when: '먹인 시간', namePh: '예: 항생제, 소염제', dose: '먹이는 양·방법', dosePh: '예: 1/4알, 츄르에 섞어서' },
+  topical: { label: '바르는 약', did: '발랐어요', plan: '발라요', ask: '발랐으면 눌러 주세요', when: '바른 시간', namePh: '예: 구강 젤, 연고', dose: '바르는 곳·방법', dosePh: '예: 잇몸에 얇게' },
+};
+const MED_KIND_ORDER = ['oral', 'topical'];
+const medKind = (k) => MED_KINDS[k] || MED_KINDS.oral;
+const medName = (m) => m.name || medKind(m.kind).label;
+const medShort = (s, n = 8) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+const tLabel = (t) => t.label || timeKo(t.time) || '때';
+const medUid = (p) => p + `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`.replace(/[^a-z0-9]/g, '').slice(-8);
+const medPath = (m, tid) => (m.legacy ? tid : `${m.id}.${tid}`);
+const isDay = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+const byTime = (a, b) => (a.time || '99:99').localeCompare(b.time || '99:99');
+const X_SVG = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+function medVal(doc, m, tid) {
+  const v = m.legacy ? doc[tid] : doc[m.id] && doc[m.id][tid];
+  return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
 }
-const medSlots = () => { const on = medCfg().slots; return MED_SLOTS.filter(([k]) => on.includes(k)); };
-const slotOf = (k) => MED_SLOTS.find((s) => s[0] === k) || [k, k, '09:00'];
+function normMed(x) {
+  if (!x || typeof x !== 'object' || !/^[A-Za-z][A-Za-z0-9_]{0,30}$/.test(String(x.id || ''))) return null;
+  const times = (Array.isArray(x.times) ? x.times : [])
+    .filter((t) => t && /^[A-Za-z0-9_]{1,40}$/.test(String(t.id || '')))
+    .map((t) => ({ id: String(t.id), label: String(t.label || ''), time: /^\d{2}:\d{2}$/.test(String(t.time || '')) ? t.time : '' }))
+    .sort(byTime);
+  return { id: String(x.id), kind: MED_KINDS[x.kind] ? x.kind : 'oral', name: String(x.name || ''), dose: String(x.dose || ''), times, from: isDay(x.from) ? x.from : '', off: isDay(x.off) ? x.off : '', legacy: !!x.legacy };
+}
+const medStored = ({ virtual, legacy, ...x }) => (legacy ? { ...x, legacy: true } : x);
+/* 지금 불러와 있는 약 체크 문서들 [날짜, 문서] */
+function medDays() {
+  const out = Object.entries((S.raw && S.raw.meds) || {});
+  for (const h of Object.values(S.hist.meds || {})) out.push(...Object.entries(h || {}));
+  return out.filter(([d, x]) => isDay(d) && x && typeof x === 'object');
+}
+function medItems() {
+  const c = S.info.meds || {};
+  if (Array.isArray(c.items)) return c.items.map(normMed).filter(Boolean);
+  /* 예전 화면을 쓰던 집: 정해 둔 때나 체크한 적 있는 때를 약 하나로 이어서 보여 줘요 */
+  const keys = MED_SLOTS.map((s) => s[0]); const want = new Set();
+  for (const [, doc] of medDays()) for (const k of keys) if (doc[k] && typeof doc[k] === 'object') want.add(k);
+  for (const q of Object.values(Q)) if (q.col === 'meds') for (const op of [...(q.flying || []), ...q.ops]) if (keys.includes(op[1])) want.add(op[1]);
+  if (c.name || c.dose) { const on = Array.isArray(c.slots) && c.slots.length ? c.slots : keys; on.forEach((k) => want.add(k)); }
+  if (!want.size) return [];
+  return [{ id: 'L', kind: 'oral', name: c.name || '', dose: c.dose || '', times: MED_SLOTS.filter(([k]) => want.has(k)).map(([id, label, time]) => ({ id, label, time })), from: '', off: '', legacy: true, virtual: true }];
+}
+const medOn = (m, date) => m.times.length > 0 && (!m.from || date >= m.from) && (!m.off || date < m.off);
+function medFind(id, tid) {
+  const m = medItems().find((x) => x.id === id); const t = m && m.times.find((x) => x.id === tid);
+  return m && t ? [m, t] : null;
+}
+/* 오늘 전에 한 번이라도 체크한 적이 있는지 (있으면 빼도 지난 기록에 남겨 둬요) */
+function medUsedBefore(m, T) {
+  const keys = m.legacy ? [...new Set([...m.times.map((t) => t.id), ...MED_SLOTS.map((s) => s[0])])] : [];
+  return medDays().some(([d, x]) => d < T && (m.legacy ? keys.some((k) => x[k] && typeof x[k] === 'object') : !!(x[m.id] && typeof x[m.id] === 'object' && Object.keys(x[m.id]).length)));
+}
+function medSlotBtn(doc, m, t, date, T) {
+  const K = medKind(m.kind); const v = medVal(doc, m, t.id);
+  const sub = v ? [timeKo(v.time), famName(v.who)].filter(Boolean).join(' · ') : date === T ? (t.time ? `${timeKo(t.time)}에 ${K.plan}` : K.ask) : '체크 안 했어요';
+  return `<button class="med-slot${v ? ' on' : ''}" type="button" data-act="med-tap" data-id="${esc(m.id)}" data-t="${esc(t.id)}" aria-pressed="${!!v}"><span class="ck">${IC.check}</span><span><b>${esc(tLabel(t))}</b><span class="s">${esc(sub)}</span></span><span class="go">${v ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>`;
+}
 function renderMeds() {
   const el = $('#v-meds');
-  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>약 체크리스트</h1></div>${loadingOr('')}<div class="card"><div class="empty">아침·점심·저녁 약을 먹였으면 눌러서 시간을 남겨요.</div></div>`; return; }
-  const T = todayStr(); const date = curDay('meds'); const cfg = medCfg(); const slots = medSlots();
+  const head = (extra = '') => `<div class="view-head"><h1>약 체크리스트</h1>${extra}</div>`;
+  if (!ready()) { el.innerHTML = `${head()}${loadingOr('')}<div class="card"><div class="empty">약을 먹이거나 바르면 눌러서 시간을 남겨요.</div></div>`; return; }
+  const T = todayStr(); const date = curDay('meds'); const all = medItems(); const edit = !S.readOnly;
+  if (!all.length) {
+    el.innerHTML = `${head()}<div class="card">
+        <div class="empty">챙길 약을 추가하면 아침·저녁처럼 정한 때마다 눌러서 누가 언제 했는지 남길 수 있어요.</div>
+        ${edit ? `<div class="btn-row">${MED_KIND_ORDER.map((k) => `<button class="btn" type="button" data-act="med-add" data-kind="${k}">${esc(MED_KINDS[k].label)} 추가</button>`).join('')}</div>` : ''}
+      </div>`;
+    return;
+  }
   needMonth('meds', ym(date));
   const doc = dayDoc('meds', date);
-  const done = slots.filter(([k]) => doc[k]).length;
-  const slotHtml = slots.map(([k, label]) => {
-    const v = doc[k]; const on = !!v;
-    const sub = on ? [timeKo(v.time), famName(v.who)].filter(Boolean).join(' · ') : date === T ? '먹였으면 눌러 주세요' : '체크 안 했어요';
-    return `<button class="med-slot${on ? ' on' : ''}" type="button" data-act="med-tap" data-slot="${k}" aria-pressed="${on}"><span class="ck">${IC.check}</span><span><b>${esc(label)}</b><span class="s">${esc(sub)}</span></span><span class="go">${on ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>`;
+  const on = all.filter((m) => medOn(m, date));
+  /* 지난날을 보는데 아직 시작 전인 약: 시작한 날을 앞당기면 그날도 체크할 수 있어요 */
+  const later = all.filter((m) => m.times.length && m.from && date < m.from && (!m.off || date < m.off));
+  const laterHtml = later.map((m) => `<div class="note med-later"><span><b>${esc(medName(m))}</b> · ${esc(mdKo(m.from))}부터 챙겨요</span>${edit ? `<button class="link" type="button" data-act="med-edit" data-id="${esc(m.id)}" aria-label="${esc(medName(m))} 시작한 날 고치기">고치기</button>` : ''}</div>`).join('');
+  let n = 0; let done = 0;
+  for (const m of on) for (const t of m.times) { n++; if (medVal(doc, m, t.id)) done++; }
+  const groups = MED_KIND_ORDER.map((kind) => {
+    const ms = on.filter((m) => m.kind === kind);
+    if (!ms.length) return '';
+    return `<div class="med-group"><div class="med-kind">${esc(MED_KINDS[kind].label)}</div>${ms.map((m) => `<div class="med-item">
+        <div class="med-head"><div class="nm"><b>${esc(medName(m))}</b>${m.dose ? `<span class="s">${esc(m.dose)}</span>` : ''}</div>${edit ? `<button class="link" type="button" data-act="med-edit" data-id="${esc(m.id)}" aria-label="${esc(medName(m))} 고치기">고치기</button>` : ''}</div>
+        ${m.virtual ? '<div class="note"><span>예전 화면에서 체크한 기록이에요. ‘고치기’에서 약 이름과 종류를 정해 주세요.</span></div>' : ''}
+        <div class="med-list">${m.times.map((t) => medSlotBtn(doc, m, t, date, T)).join('')}</div>
+      </div>`).join('')}</div>`;
   }).join('');
+  /* 지난 기록: 약 하나를 골라 날짜 × 때 표로 */
   const days = [];
   for (let i = 0; i < S.medsDays; i++) days.push(addDays(T, -i));
   [...new Set(days.map(ym))].forEach((k) => needMonth('meds', k));
-  const n = slots.length;
-  const head = `<div class="mrow head" style="--n:${n}"><span class="d">날짜</span>${slots.map(([, l]) => `<span>${esc(l)}</span>`).join('')}</div>`;
-  const rows = days.map((d) => {
-    const x = dayDoc('meds', d); const ok = monthReady('meds', ym(d)) || Object.keys(x).length;
-    return `<button class="mrow${d === date ? ' sel' : ''}${d === T ? ' today' : ''}" type="button" style="--n:${n}" data-act="day-set" data-tab="meds" data-date="${d}" aria-label="${esc(dayKo(d))}"><span class="d">${esc(md(d))}<small>${esc(wd(d))}</small></span>${slots.map(([k]) => { const v = x[k]; return v ? `<span class="c on">✓<small>${esc(v.time || '')}</small></span>` : `<span class="c">${ok ? '–' : '…'}</span>`; }).join('')}</button>`;
-  }).join('');
-  el.innerHTML = `
-    <div class="view-head"><h1>약 체크리스트</h1><button class="link" type="button" data-act="med-cfg">${cfg.name || cfg.dose ? '약 정보 고치기' : '약 이름 적기'}</button></div>
-    ${cfg.name || cfg.dose ? `<div class="note"><span>먹는 약</span><span><b>${esc(cfg.name)}</b>${cfg.dose ? `${cfg.name ? ' · ' : ''}${esc(cfg.dose)}` : ''}</span></div>` : ''}
+  const last = days[days.length - 1];
+  const hm = all.filter((m) => m.times.length && (!m.from || m.from <= T) && (!m.off || m.off > last));
+  const sel = hm.find((m) => m.id === S.medHist) || hm[0];
+  let hist = '';
+  if (sel) {
+    const nn = sel.times.length;
+    /* 시작한 날보다 앞은 빈 줄뿐이라 보여 주지 않아요 */
+    const shown = sel.from ? days.filter((d) => d >= sel.from) : days;
+    const more = S.medsDays < 98 && !(sel.from && sel.from > last);
+    const th = `<div class="mrow head" style="--n:${nn}"><span class="d">날짜</span>${sel.times.map((t) => `<span>${esc(tLabel(t))}</span>`).join('')}</div>`;
+    const rows = shown.map((d) => {
+      const x = dayDoc('meds', d); const ok = monthReady('meds', ym(d)) || Object.keys(x).length; const act = medOn(sel, d);
+      return `<button class="mrow${d === date ? ' sel' : ''}${d === T ? ' today' : ''}" type="button" style="--n:${nn}" data-act="day-set" data-tab="meds" data-date="${d}" aria-label="${esc(dayKo(d))}"><span class="d">${esc(md(d))}<small>${esc(wd(d))}</small></span>${sel.times.map((t) => {
+        if (!act) return '<span class="c"></span>';
+        const v = medVal(x, sel, t.id);
+        return v ? `<span class="c on">✓<small>${esc(v.time || '')}</small></span>` : `<span class="c">${ok ? '–' : '…'}</span>`;
+      }).join('')}</button>`;
+    }).join('');
+    hist = `<div class="card">
+      <div class="card-head"><h2>지난 기록</h2><span class="sub">줄을 누르면 그날로 가요</span></div>
+      ${hm.length > 1 ? `<div class="pick" role="group" aria-label="볼 약 고르기">${hm.map((m) => `<button type="button" data-act="med-hist" data-id="${esc(m.id)}" aria-pressed="${m === sel}">${esc(medName(m))}</button>`).join('')}</div>` : ''}
+      <div class="mtbl">${th}${rows}</div>
+      ${more ? '<button class="btn ghost sm" type="button" data-act="meds-more">2주 더 보기</button>' : ''}
+    </div>`;
+  }
+  el.innerHTML = `${head(edit ? '<button class="link" type="button" data-act="med-add">+ 약 추가</button>' : '')}
     <div class="card">
       ${dayNav('meds', date)}
-      <div class="med-list">${slotHtml}</div>
-      <div class="med-sum">${done === n ? `<b>${date === T ? '오늘' : esc(mdKo(date))} 약을 다 먹었어요</b>` : `${done} / ${n} 먹었어요`}</div>
+      ${on.length ? `${groups}<div class="med-sum">${done === n ? `<b>${date === T ? '오늘' : esc(mdKo(date))} 약을 다 챙겼어요</b>` : `${done} / ${n} 챙겼어요`}</div>` : `<div class="empty">${date === T ? '오늘 챙길 약이 없어요.' : '이날은 챙길 약이 없었어요.'}</div>`}
+      ${laterHtml}
     </div>
-    <div class="card">
-      <div class="card-head"><h2>지난 기록</h2><span class="sub">줄을 누르면 그날로 가요</span></div>
-      <div class="mtbl">${head}${rows}</div>
-      ${S.medsDays < 98 ? '<button class="btn ghost sm" type="button" data-act="meds-more">2주 더 보기</button>' : ''}
-    </div>`;
+    ${hist}`;
 }
-function medCheck(date, k, time) {
+function medCheck(date, m, t, time) {
   const v = { time, who: meKey(), at: new Date().toISOString() };
-  const label = slotOf(k)[1];
-  const done = mut('meds', date, [['setnx', k, v]], (doc) => {
-    const got = doc[k];
+  const done = mut('meds', date, [['setnx', medPath(m, t.id), v]], (doc) => {
+    const got = medVal(doc, m, t.id);
     if (got && got.at !== v.at) toast(`${iga(famName(got.who) || '다른 사람')} 이미 ${timeKo(got.time)}에 체크했어요`);
   });
-  if (done) toast(`${label} 약 체크했어요 · ${timeKo(time)}`);
+  if (done) toast(`${medShort(medName(m), 12)} ${tLabel(t)} ${medKind(m.kind).did} · ${timeKo(time)}`);
 }
-function medSheet(date, k) {
-  const [, label, def] = slotOf(k);
-  const v = dayDoc('meds', date)[k];
+function medSheet(date, m, t) {
+  const K = medKind(m.kind); const v = medVal(dayDoc('meds', date), m, t.id);
   const who = v ? [famName(v.who), timeKo(v.time)].filter(Boolean).join(' · ') : '';
-  openSheet(`${label} 약 · ${mdKo(date)}`, `<form class="form" id="med-form" novalidate>
+  openSheet(`${medName(m)} · ${tLabel(t)} · ${mdKo(date)}`, `<form class="form" id="med-form" novalidate>
       ${v ? `<div class="note"><span>${esc(who)}에 체크했어요${v.by && v.by !== v.who && famName(v.by) ? ` · ${esc(famName(v.by))} 고침` : ''}</span></div>` : ''}
-      <div class="fld"><label for="m-time">먹인 시간</label><input type="time" id="m-time" value="${esc(v ? v.time : date === todayStr() ? hhmm() : def)}"></div>
+      <div class="fld"><label for="m-time">${esc(K.when)}</label><input type="time" id="m-time" value="${esc(v ? v.time : date === todayStr() ? hhmm() : t.time || '09:00')}"></div>
       <button class="btn" type="submit">${v ? '이 시간으로 고치기' : '체크하기'}</button>
       ${v ? '<button class="btn ghost" type="button" data-act="med-undo">체크 취소</button>' : ''}
     </form>`, (body) => {
-    F = { kind: 'med', date, slot: k };
+    F = { kind: 'med', date, med: m.id, t: t.id };
     body.querySelector('#med-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const t = $('#m-time').value;
-      if (!/^\d{2}:\d{2}$/.test(t)) { toast('시간을 골라 주세요.'); return; }
+      const tm = $('#m-time').value;
+      if (!/^\d{2}:\d{2}$/.test(tm)) { toast('시간을 골라 주세요.'); return; }
       if (v) {
-        if (mut('meds', date, [['set', k, { ...v, time: t, by: meKey(), edited: new Date().toISOString() }]])) { await closeSheet(); toast(`${label} 약 시간을 고쳤어요 · ${timeKo(t)}`); }
-      } else { await closeSheet(); medCheck(date, k, t); }
+        if (mut('meds', date, [['set', medPath(m, t.id), { ...v, time: tm, by: meKey(), edited: new Date().toISOString() }]])) { await closeSheet(); toast(`${tLabel(t)} 시간을 고쳤어요 · ${timeKo(tm)}`); }
+      } else { await closeSheet(); medCheck(date, m, t, tm); }
     });
   });
 }
-function medCfgForm() {
-  const c = medCfg();
-  openSheet('먹는 약', `<form class="form" id="medcfg-form" novalidate>
-      <div class="fld"><label for="mc-name">약 이름</label><input type="text" id="mc-name" maxlength="60" value="${esc(c.name)}" placeholder="예: 항생제, 소염제"></div>
-      <div class="fld"><label for="mc-dose">먹는 양·방법</label><input type="text" id="mc-dose" maxlength="80" value="${esc(c.dose)}" placeholder="예: 1/4알, 츄르에 섞어서"></div>
-      <div class="fld"><span class="lbl">체크할 때</span><div class="pick" role="group" id="mc-slots">${MED_SLOTS.map(([k, l]) => `<button type="button" data-val="${k}" aria-pressed="${c.slots.includes(k)}">${esc(l)}</button>`).join('')}</div><span class="hint">안 먹는 때는 꺼 두면 체크 목록에서 빠져요.</span></div>
-      <button class="btn" type="submit">저장</button>
-    </form>`, (body) => {
-    F = null;
-    body.querySelector('#mc-slots').addEventListener('click', (e) => { const b = e.target.closest('button[data-val]'); if (b) b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); });
-    body.querySelector('#medcfg-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const slots = [...body.querySelectorAll('#mc-slots button[aria-pressed="true"]')].map((b) => b.dataset.val);
-      if (!slots.length) { toast('적어도 한 때는 골라 주세요.'); return; }
-      if (await patch('info', 'meds', { name: $('#mc-name').value.trim(), dose: $('#mc-dose').value.trim(), slots })) { await closeSheet(); toast('저장했어요'); }
-    });
+/* 약 추가·고치기: 종류, 이름, 방법, 챙기는 때(아침·점심·저녁 또는 직접 고른 시간), 시작한 날 */
+function medForm(m0, kind0) {
+  const T = todayStr(); const isNew = !m0;
+  const m = m0 ? { ...m0, times: m0.times.map((t) => ({ ...t })) } : { id: medUid('md'), kind: MED_KINDS[kind0] ? kind0 : 'oral', name: '', dose: '', times: [], from: T, off: '', legacy: false };
+  F = { kind: 'medcfg', m, orig: m0 ? m0.times.map((t) => ({ ...t })) : [] };
+  const rowHtml = (t, i) => `<div class="med-trow">
+      <input type="text" id="mt-l-${i}" maxlength="12" value="${esc(t.label)}" placeholder="예: 자기 전" aria-label="때 이름">
+      <input type="time" id="mt-t-${i}" value="${esc(t.time)}" aria-label="${esc(t.label || '이 때')} 시간">
+      <button class="icon-btn" type="button" data-act="med-time-del" data-i="${i}" aria-label="${esc(t.label || '이 때')} 빼기">${X_SVG}</button>
+    </div>`;
+  const draw = () => {
+    const K = medKind(F.m.kind);
+    $('#mf-times').innerHTML = F.m.times.length ? F.m.times.map(rowHtml).join('') : '<div class="empty">아래에서 챙길 때를 골라 주세요.</div>';
+    const have = new Set(F.m.times.map((t) => String(t.label || '').trim()));
+    $('#mf-quick').innerHTML = MED_SLOTS.filter(([, l]) => !have.has(l)).map(([, l, tm]) => `<button type="button" data-act="med-time-add" data-label="${esc(l)}" data-time="${tm}">+ ${esc(l)}</button>`).join('') + '<button type="button" data-act="med-time-add">+ 다른 시간</button>';
+    $('#mf-name').placeholder = K.namePh; $('#mf-dose-l').textContent = K.dose; $('#mf-dose').placeholder = K.dosePh;
+    document.querySelectorAll('#mf-kind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === F.m.kind)));
+  };
+  const html = `<form class="form" id="medcfg-form" novalidate>
+      <div class="fld"><span class="lbl">종류</span><div class="seg wide" role="group" id="mf-kind" aria-label="약 종류">${MED_KIND_ORDER.map((k) => `<button type="button" data-val="${k}" aria-pressed="${k === m.kind}">${esc(MED_KINDS[k].label)}</button>`).join('')}</div></div>
+      <div class="fld"><label for="mf-name">약 이름</label><input type="text" id="mf-name" maxlength="60" value="${esc(m.name)}"></div>
+      <div class="fld"><label for="mf-dose" id="mf-dose-l">${esc(medKind(m.kind).dose)}</label><input type="text" id="mf-dose" maxlength="80" value="${esc(m.dose)}"></div>
+      <div class="fld"><span class="lbl">챙기는 때</span><div class="med-times" id="mf-times"></div><div class="pick" id="mf-quick"></div><span class="hint">고른 때마다 체크 칸이 생겨요. 시간은 칸 순서와 지난날 체크에 쓰여요.</span></div>
+      <div class="fld"><label for="mf-from">시작한 날</label><input type="date" id="mf-from" value="${esc(m.from)}" max="${esc(T)}"><span class="hint">이날부터 체크 칸이 생겨요.</span></div>
+      <button class="btn" type="submit">${isNew ? '추가하기' : '저장'}</button>
+      ${isNew ? '' : '<button class="btn danger" type="button" data-act="med-del-ask">이 약 빼기</button><div id="med-del-slot"></div>'}
+    </form>`;
+  openSheet(isNew ? '약 추가' : '약 고치기', html, (body) => {
+    F.draw = draw;
+    F.sync = () => {
+      F.m.name = $('#mf-name').value; F.m.dose = $('#mf-dose').value; F.m.from = $('#mf-from').value;
+      F.m.times = F.m.times.map((t, i) => ({ ...t, label: $(`#mt-l-${i}`) ? $(`#mt-l-${i}`).value : t.label, time: $(`#mt-t-${i}`) ? $(`#mt-t-${i}`).value : t.time }));
+    };
+    draw();
+    body.querySelector('#mf-kind').addEventListener('click', (e) => { const b = e.target.closest('button[data-val]'); if (!b) return; F.sync(); F.m.kind = b.dataset.val; draw(); });
+    body.querySelector('#medcfg-form').addEventListener('submit', (e) => { e.preventDefault(); F.sync(); medSave(); });
   });
+}
+async function medSave() {
+  if (!F || F.kind !== 'medcfg') return;
+  const m = F.m; const T = todayStr(); const times = [];
+  for (const t of m.times) {
+    const label = String(t.label || '').trim(); const time = String(t.time || '').trim();
+    if (!label && !time) continue;
+    if (!/^\d{2}:\d{2}$/.test(time)) { toast(`${label ? `‘${label}’` : '새로 넣은 때'} 시간을 골라 주세요.`); return; }
+    times.push({ id: t.id, label: label || timeKo(time), time });
+  }
+  if (!times.length) { toast('챙기는 때를 하나 이상 골라 주세요.'); return; }
+  times.sort(byTime);
+  const from = isDay(m.from) ? (m.from > T ? T : m.from) : '';
+  const item = medStored({ id: m.id, kind: m.kind, name: String(m.name || '').trim(), dose: String(m.dose || '').trim(), times, from, off: m.off || '', legacy: m.legacy });
+  const list = medItems().map(medStored);
+  const i = list.findIndex((x) => x.id === item.id);
+  if (i >= 0) list[i] = item; else list.push(item);
+  if (await patch('info', 'meds', { items: list })) { await closeSheet(); toast(i >= 0 ? '저장했어요' : `추가했어요 · ${medName(item)}`); }
 }
 
 /* ───────── 간식 체크리스트 ───────── */
@@ -1611,7 +1753,18 @@ async function diaryRemove(date, id) {
 /* ───────── 홈: 오늘 챙기기 ───────── */
 function todayCard() {
   const T = todayStr();
-  const md0 = dayDoc('meds', T); const slots = medSlots();
+  const md0 = dayDoc('meds', T); const meds = medItems().filter((m) => medOn(m, T));
+  const chipsOf = (m) => m.times.map((t) => {
+    const v = medVal(md0, m, t.id);
+    return `<button class="mchip${v ? ' on' : ''}" type="button" data-act="home-med" data-id="${esc(m.id)}" data-t="${esc(t.id)}" aria-label="${esc(`${medName(m)} ${tLabel(t)}`)} ${v ? `${esc(medKind(m.kind).did)} ${esc(timeKo(v.time))}` : '체크하기'}">${v ? IC.check : ''}${esc(tLabel(t))}${v ? `<small>${esc(v.time || '')}</small>` : ''}</button>`;
+  }).join('');
+  /* 약이 둘 이상이면 약마다 한 줄: 이름 + 때 칩 */
+  const chips = meds.length > 1
+    ? `<div class="t-meds lines">${meds.map((m) => `<div class="t-mline"><span class="nm">${esc(medShort(medName(m)))}</span><span class="cs">${chipsOf(m)}</span></div>`).join('')}</div>`
+    : meds.length ? `<div class="t-meds">${chipsOf(meds[0])}</div>` : '';
+  const medRow = chips
+    ? `<div class="t-row"><span class="t-lbl">약</span>${chips}<button class="t-end icon-btn" type="button" data-act="tab" data-tab="meds" aria-label="약 체크리스트 열기" style="width:32px;height:32px;background:none">${IC.right}</button></div>`
+    : `<button class="t-row" type="button" data-act="tab" data-tab="meds"><span class="t-lbl">약</span><span class="t-val muted">${medItems().length ? '오늘 챙길 약이 없어요' : '챙길 약 추가하기'}</span><span class="t-end">${IC.right}</span></button>`;
   const sn = dayDoc('snacks', T);
   const total = SNACKS.reduce((s, [k]) => s + (Number(sn[k]) || 0), 0);
   const bits = SNACKS.filter(([k]) => Number(sn[k]) > 0).map(([k, l]) => `${l} ${Number(sn[k])}`);
@@ -1619,7 +1772,7 @@ function todayCard() {
   return `<div class="card">
       <div class="card-head"><h2>오늘 챙기기</h2><span class="sub">${esc(dayKo(T))}</span></div>
       <div class="tlist">
-        <div class="t-row"><span class="t-lbl">약</span><div class="t-meds">${slots.map(([k, l]) => { const v = md0[k]; return `<button class="mchip${v ? ' on' : ''}" type="button" data-act="home-med" data-slot="${k}" aria-label="${esc(l)} 약 ${v ? `먹음 ${esc(timeKo(v.time))}` : '체크하기'}">${v ? IC.check : ''}${esc(l)}${v ? `<small>${esc(v.time || '')}</small>` : ''}</button>`; }).join('')}</div><button class="t-end icon-btn" type="button" data-act="tab" data-tab="meds" aria-label="약 체크리스트 열기" style="width:32px;height:32px;background:none">${IC.right}</button></div>
+        ${medRow}
         <button class="t-row" type="button" data-act="tab" data-tab="snacks"><span class="t-lbl">간식</span><span class="t-val${total ? '' : ' muted'}">${total ? esc(`${total}개 · ${bits.join(', ')}`) : '오늘은 아직 안 줬어요'}</span><span class="t-end">${IC.right}</span></button>
         <button class="t-row" type="button" data-act="tab" data-tab="diary" data-dmode="day"><span class="t-lbl">사진</span><span class="t-val${ps.length ? '' : ' muted'}">${ps.length ? `${ps.length}장 올렸어요` : '오늘 사진 올리기'}</span><span class="t-end">${ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((p) => photoImg(p.id, 'thumb')).join('')}</span>` : ''}${IC.right}</span></button>
       </div>
@@ -2479,20 +2632,59 @@ const ACT = {
   },
   'meds-more'() { S.medsDays = Math.min(98, S.medsDays + 14); render(); },
   'med-tap'(b) {
-    const date = curDay('meds'); const k = b.dataset.slot;
-    if (dayDoc('meds', date)[k] || date !== todayStr()) medSheet(date, k);
-    else medCheck(date, k, hhmm());
+    const date = curDay('meds'); const f = medFind(b.dataset.id, b.dataset.t); if (!f) return;
+    const [m, t] = f;
+    if (medVal(dayDoc('meds', date), m, t.id) || date !== todayStr()) medSheet(date, m, t);
+    else medCheck(date, m, t, hhmm());
   },
   'med-undo'() {
     if (!F || F.kind !== 'med') return;
-    const { date, slot } = F;
-    if (mut('meds', date, [['unset', slot]])) { closeSheet(); toast(`${slotOf(slot)[1]} 약 체크를 취소했어요`); }
+    const { date } = F; const f = medFind(F.med, F.t); if (!f) return;
+    const [m, t] = f;
+    if (mut('meds', date, [['unset', medPath(m, t.id)]])) { closeSheet(); toast(`${medName(m)} ${tLabel(t)} 체크를 취소했어요`); }
   },
-  'med-cfg'() { medCfgForm(); },
+  'med-add'(b) { if (!S.readOnly) medForm(null, b.dataset.kind); },
+  'med-edit'(b) { const m = medItems().find((x) => x.id === b.dataset.id); if (m && !S.readOnly) medForm(m); },
+  'med-hist'(b) { S.medHist = b.dataset.id; render(); },
+  'med-time-add'(b) {
+    if (!F || F.kind !== 'medcfg') return;
+    F.sync();
+    const label = b.dataset.label || ''; let time = b.dataset.time || '';
+    const used = new Set(F.m.times.map((t) => t.id));
+    let id = '';
+    if (label) {
+      /* 뺐다가 다시 넣은 때는 예전 자리를 그대로 써서 지난 체크가 이어져요 */
+      const prev = F.orig.find((t) => t.label === label && !used.has(t.id));
+      if (prev) { id = prev.id; time = prev.time || time; }
+      else if (F.m.legacy) { const s = MED_SLOTS.find(([, l]) => l === label); if (s && !used.has(s[0])) id = s[0]; }
+    }
+    F.m.times.push({ id: id || medUid('t'), label, time });
+    if (label) F.m.times.sort(byTime);
+    F.draw();
+    if (!label) { const inp = $(`#mt-l-${F.m.times.length - 1}`); if (inp) inp.focus(); }
+  },
+  'med-time-del'(b) { if (!F || F.kind !== 'medcfg') return; F.sync(); F.m.times.splice(Number(b.dataset.i), 1); F.draw(); },
+  'med-del-ask'() {
+    const s = $('#med-del-slot'); if (!s) return;
+    s.innerHTML = '<div class="confirm"><span>이 약을 목록에서 뺄까요? 지난 체크 기록은 그대로 남아요.</span><button class="btn sm" type="button" data-act="med-del-yes">빼기</button><button class="btn ghost sm" type="button" data-act="med-del-no">그대로 두기</button></div>';
+  },
+  'med-del-no'() { const s = $('#med-del-slot'); if (s) s.innerHTML = ''; },
+  async 'med-del-yes'(b) {
+    if (!F || F.kind !== 'medcfg') return;
+    const T = todayStr(); const cur = medItems().find((x) => x.id === F.m.id);
+    if (!cur) { closeSheet(); return; }
+    b.disabled = true;
+    /* 오늘 전에 체크한 적이 있으면 오늘부터만 빼서 지난 기록에 남기고, 없으면 아예 지워요 */
+    const keep = medUsedBefore(cur, T);
+    const list = medItems().map(medStored).flatMap((x) => (x.id !== cur.id ? [x] : keep ? [{ ...x, off: T }] : []));
+    if (await patch('info', 'meds', { items: list })) { await closeSheet(); toast(`목록에서 뺐어요 · ${medName(cur)}`); }
+    else b.disabled = false;
+  },
   'home-med'(b) {
-    const k = b.dataset.slot; const T = todayStr();
-    if (dayDoc('meds', T)[k]) { setDay('meds', T); S.tab = 'meds'; S.back = 'meds'; window.scrollTo(0, 0); render(); }
-    else medCheck(T, k, hhmm());
+    const T = todayStr(); const f = medFind(b.dataset.id, b.dataset.t); if (!f) return;
+    const [m, t] = f;
+    if (medVal(dayDoc('meds', T), m, t.id)) { setDay('meds', T); S.tab = 'meds'; S.back = 'meds'; window.scrollTo(0, 0); render(); }
+    else medCheck(T, m, t, hhmm());
   },
   'snack-step'(b) {
     const date = curDay('snacks'); const k = b.dataset.k; const d = Number(b.dataset.d);
