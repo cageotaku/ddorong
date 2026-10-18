@@ -612,6 +612,7 @@ const PUSH_TYPES = ['vet', 'test', 'vaccine', 'prevent', 'outing', 'milestone'];
 const DAY_COLS = ['diary', 'meds', 'snacks'];
 const DAY_TABS = { diary: '오늘의 또롱이', meds: '약 체크리스트', snacks: '간식 체크리스트' };
 const MED_SLOTS = [['morning', '아침', '08:00'], ['lunch', '점심', '13:00'], ['evening', '저녁', '19:00']];
+const MEDS_DAYS = 5; /* 약 지난 기록을 처음에 보여 주는 날 수 (오늘 포함) */
 const SNACKS = [['treat', '트릿', '트릿'], ['churu', '츄르', '츄르'], ['dental', '덴탈과자', '덴탈'], ['food', '사료', '사료'], ['etc', '기타', '기타']];
 const LOG_MAX = 40;
 const TABS = ['home', 'diary', 'meds', 'snacks', 'records', 'money', 'info'];
@@ -750,7 +751,7 @@ const S = {
   tab: 'home', back: 'home', filter: 'all', q: '', month: null,
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
-  dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: 14, medHist: '',
+  dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: MEDS_DAYS, medHist: '',
   diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
 };
 
@@ -1433,6 +1434,7 @@ function renderMeds() {
     /* 시작한 날보다 앞은 빈 줄뿐이라 보여 주지 않아요 */
     const shown = sel.from ? days.filter((d) => d >= sel.from) : days;
     const more = S.medsDays < 98 && !(sel.from && sel.from > last);
+    const less = S.medsDays > MEDS_DAYS;
     const th = `<div class="mrow head" style="--n:${nn}"><span class="d">날짜</span>${sel.times.map((t) => `<span>${esc(tLabel(t))}</span>`).join('')}</div>`;
     const rows = shown.map((d) => {
       const x = dayDoc('meds', d); const ok = monthReady('meds', ym(d)) || Object.keys(x).length; const act = medOn(sel, d);
@@ -1446,7 +1448,7 @@ function renderMeds() {
       <div class="card-head"><h2>지난 기록</h2><span class="sub">줄을 누르면 그날로 가요</span></div>
       ${hm.length > 1 ? `<div class="pick" role="group" aria-label="볼 약 고르기">${hm.map((m) => `<button type="button" data-act="med-hist" data-id="${esc(m.id)}" aria-pressed="${m === sel}">${esc(medName(m))}</button>`).join('')}</div>` : ''}
       <div class="mtbl">${th}${rows}</div>
-      ${more ? '<button class="btn ghost sm" type="button" data-act="meds-more">2주 더 보기</button>' : ''}
+      ${more || less ? `<div class="btn-row">${more ? '<button class="btn ghost sm" type="button" data-act="meds-more">더 보기</button>' : ''}${less ? '<button class="btn ghost sm" type="button" data-act="meds-less">접기</button>' : ''}</div>` : ''}
     </div>`;
   }
   el.innerHTML = `${head(edit ? '<button class="link" type="button" data-act="med-add">+ 약 추가</button>' : '')}
@@ -2630,7 +2632,12 @@ const ACT = {
     if (k > ym(todayStr()) || k < minMonth()) return;
     S.cal[tab] = k; S.calPinned[tab] = true; render();
   },
-  'meds-more'() { S.medsDays = Math.min(98, S.medsDays + 14); render(); },
+  /* 지난 기록: 처음엔 최근 5일, 더 보기를 누르면 2주 → 4주 … 최대 14주까지 펼쳐요 */
+  'meds-more'() { S.medsDays = S.medsDays < 14 ? 14 : Math.min(98, S.medsDays + 14); render(); },
+  'meds-less'() {
+    S.medsDays = MEDS_DAYS; render();
+    const c = document.querySelector('#v-meds .mtbl'); if (c) c.closest('.card').scrollIntoView({ block: 'nearest' });
+  },
   'med-tap'(b) {
     const date = curDay('meds'); const f = medFind(b.dataset.id, b.dataset.t); if (!f) return;
     const [m, t] = f;
