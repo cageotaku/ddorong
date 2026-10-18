@@ -37,6 +37,7 @@
   --f-wt: #4861DD;
   --f-care: #C48608;
   --f-out: #8760CF;
+  --f-hl: #0E7FA6;
   --danger: #B8322A;
   --scrim: rgba(16, 19, 30, 0.42);
   --shadow: 0 1px 2px rgba(22, 27, 45, 0.05), 0 6px 20px rgba(22, 27, 45, 0.06);
@@ -55,7 +56,7 @@
   :root:not([data-theme="light"]) {
     --bg: #101218; --surface: #1A1D27; --surface-2: #232734; --ink: #ECEEF5; --ink-2: #ADB2C2; --ink-3: #7E8497;
     --line: #2B303E; --accent: #FF7A55; --accent-ink: #1E0E08; --accent-soft: #3B231A; --butter: #E8C04C; --butter-ink: #261C00;
-    --f-med: #F0779C; --f-pre: #3CC6B1; --f-wt: #8799FF; --f-care: #E6AE3C; --f-out: #B697F3; --danger: #FF8074;
+    --f-med: #F0779C; --f-pre: #3CC6B1; --f-wt: #8799FF; --f-care: #E6AE3C; --f-out: #B697F3; --f-hl: #4FC0E8; --danger: #FF8074;
     --scrim: rgba(0, 0, 0, 0.6); --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.32);
     --night: #141834; --night-2: #232A60; --night-ink: #EEF0FF; --night-ink-2: #AEB5E4; --star: #FFE19A;
     color-scheme: dark;
@@ -64,7 +65,7 @@
 :root[data-theme="dark"] {
   --bg: #101218; --surface: #1A1D27; --surface-2: #232734; --ink: #ECEEF5; --ink-2: #ADB2C2; --ink-3: #7E8497;
   --line: #2B303E; --accent: #FF7A55; --accent-ink: #1E0E08; --accent-soft: #3B231A; --butter: #E8C04C; --butter-ink: #261C00;
-  --f-med: #F0779C; --f-pre: #3CC6B1; --f-wt: #8799FF; --f-care: #E6AE3C; --f-out: #B697F3; --danger: #FF8074;
+  --f-med: #F0779C; --f-pre: #3CC6B1; --f-wt: #8799FF; --f-care: #E6AE3C; --f-out: #B697F3; --f-hl: #4FC0E8; --danger: #FF8074;
   --scrim: rgba(0, 0, 0, 0.6); --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.32);
   --night: #141834; --night-2: #232A60; --night-ink: #EEF0FF; --night-ink-2: #AEB5E4; --star: #FFE19A;
   color-scheme: dark;
@@ -123,6 +124,7 @@ svg { display: block; }
 .fields div:first-child { border-left: 0; padding-left: 0; }
 .fields dt { font-size: 12px; color: var(--ink-3); letter-spacing: 0.02em; }
 .fields dd { margin: 0; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 359px) { .fields div { padding: 0 5px; } .fields dd { font-size: 12px; letter-spacing: -0.02em; } .fields dt { font-size: 11px; } }
 
 /* rows */
 .list { display: flex; flex-direction: column; }
@@ -173,6 +175,27 @@ svg { display: block; }
 .chart .area { fill: var(--accent); opacity: 0.1; }
 .chart .enddot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
 .chart .cross { stroke: var(--ink-3); stroke-width: 1; }
+.chart .tgt { stroke: var(--f-pre); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .tgtl { fill: var(--f-pre); font-size: 11px; font-weight: 700; font-family: var(--font-body); }
+/* 최근 30일 간식 막대, 최근 4주 약 칸 */
+.trend { display: flex; flex-direction: column; gap: 8px; }
+.trend-bars { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); align-items: end; gap: 2px; height: 64px; }
+.trend-bars i { display: block; background: var(--f-care); border-radius: 2px 2px 0 0; min-height: 2px; opacity: 0.85; }
+.trend-bars i.z { background: var(--line); opacity: 1; }
+.trend-bars i.t { outline: 2px solid var(--ink); outline-offset: 1px; }
+.trend-ax { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); }
+.trend-dots { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.trend-dots i { display: block; aspect-ratio: 1 / 1; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); }
+.trend-dots i.full { background: var(--f-pre); border-color: var(--f-pre); }
+.trend-dots i.part { background: var(--f-pre); border-color: transparent; opacity: 0.38; }
+.trend-key i.pk { background: var(--f-pre); opacity: 0.38; }
+.trend-dots i.wait { background: transparent; border-style: dashed; }
+.trend-dots i.miss { background: var(--accent-soft); border-color: var(--accent-soft); }
+.trend-dots i.t { outline: 2px solid var(--ink); outline-offset: 1px; }
+.trend-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-3); }
+.trend-key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.pick.bcs { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
+.pick.bcs button { min-width: 0; padding: 8px 0; text-align: center; }
 .chart .hov { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
 .tip { position: absolute; top: 0; transform: translateX(-50%); background: var(--ink); color: var(--surface); border-radius: 8px; padding: 5px 9px; font-size: 12px; line-height: 1.35; pointer-events: none; white-space: nowrap; text-align: center; }
 .tip b { font-size: 14px; }
@@ -540,6 +563,82 @@ button.amore { color: var(--accent); }
 .mchip small { font-size: 12px; font-weight: 600; opacity: 0.9; }
 .t-thumbs { display: flex; gap: 4px; }
 .t-thumbs img { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; background: var(--surface-2); }
+.t-two { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mchip.auto:not(.on) { border-style: dashed; }
+.mchip.ate-none { background: var(--surface-2); border-color: var(--danger); color: var(--danger); }
+.mchip.ate-some { background: var(--butter); border-color: var(--butter); color: var(--butter-ink); }
+
+/* 병원 문서 */
+.doc-ic { display: inline-block; width: 15px; height: 15px; vertical-align: -2px; margin-right: 5px; color: var(--f-med); }
+.doc-ic .ic { width: 15px; height: 15px; stroke-width: 2; }
+.sum-one { font-size: 16px; font-weight: 700; line-height: 1.45; background: var(--surface-2); border-radius: var(--r-sm); padding: 12px 14px; word-break: keep-all; overflow-wrap: anywhere; }
+.sum-sec { display: flex; flex-direction: column; gap: 8px; }
+.sum-sec h4 { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-3); letter-spacing: 0.02em; }
+.sum-sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; color: var(--ink); word-break: keep-all; overflow-wrap: anywhere; }
+.sum-sec ul.todo { list-style: none; padding-left: 0; }
+.sum-sec ul.todo li { position: relative; padding-left: 24px; }
+.sum-sec ul.todo li::before { content: ""; position: absolute; left: 2px; top: 3px; width: 13px; height: 13px; border: 2px solid var(--line); border-radius: 4px; }
+.flag { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.flag:first-of-type { border-top: 0; padding-top: 2px; }
+.flag b { font-size: 15px; }
+.flag .val { font-weight: 700; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.flag .rng { font-size: 12.5px; color: var(--ink-3); margin-left: 4px; white-space: nowrap; }
+.flag p { margin: 3px 0 0; font-size: 13.5px; color: var(--ink-2); word-break: keep-all; overflow-wrap: anywhere; }
+.lv { display: inline-block; min-width: 38px; text-align: center; font-size: 12px; font-weight: 800; padding: 3px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.lv-심각 { background: var(--danger); color: #fff; }
+.lv-경계 { background: var(--accent); color: var(--accent-ink); }
+.lv-주의 { background: var(--butter); color: var(--butter-ink); }
+.lv-관찰 { background: color-mix(in srgb, var(--f-pre) 22%, transparent); color: var(--f-pre); }
+.sum-nums summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--accent); padding: 4px 0; }
+.ntbl { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.ntbl th, .ntbl td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+.ntbl th[scope="rowgroup"] { font-size: 12px; color: var(--ink-3); font-weight: 700; padding-top: 12px; border-top: 0; }
+.ntbl td.v { font-weight: 700; white-space: nowrap; }
+.ntbl td.r { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.ntbl tr.low td.v, .ntbl tr.high td.v { color: var(--accent); }
+.ntbl tr.low td.v::after { content: " ↓"; } .ntbl tr.high td.v::after { content: " ↑"; }
+.sum-src { font-size: 12.5px; color: var(--ink-3); }
+.doc-pages { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.doc-pages::-webkit-scrollbar { display: none; }
+.doc-pages .pg { flex: none; width: 74px; aspect-ratio: 0.74; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); padding: 0; position: relative; }
+.doc-pages .pg img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.doc-pages .pg span { position: absolute; right: 4px; bottom: 4px; font-size: 10.5px; font-weight: 700; color: #fff; background: rgba(0, 0, 0, 0.55); border-radius: 999px; padding: 0 6px; line-height: 16px; }
+.up-steps { display: flex; flex-direction: column; gap: 10px; }
+.up-step { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 15px; color: var(--ink-3); }
+.up-step .ck { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; }
+.up-step .ck .ic { width: 14px; height: 14px; stroke-width: 3; }
+.up-step.now { color: var(--ink); font-weight: 700; }
+.up-step.now .ck { border-color: var(--accent); border-top-color: transparent; animation: spin 0.9s linear infinite; }
+.up-step.done { color: var(--ink-2); }
+.up-step.done .ck { background: var(--f-pre); border-color: var(--f-pre); color: #fff; }
+.up-step.fail { color: var(--danger); }
+.up-step .pc { font-variant-numeric: tabular-nums; font-size: 13px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .up-step.now .ck { animation: none; border-top-color: var(--accent); } }
+.bar { height: 6px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.25s ease; }
+.fld select { background-image: none; }
+.mini-note { font-size: 12.5px; color: var(--ink-3); }
+
+/* 건강 체크 · 호흡수 */
+.fam-hl { background: var(--f-hl); } .u-hl { background: color-mix(in srgb, var(--f-hl) 22%, transparent); } .u-dot-hl { background: var(--f-hl); }
+.srr-pad { width: 100%; min-height: 220px; border-radius: 24px; border: 0; background: var(--accent-soft); color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.srr-pad b { font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--accent); }
+.srr-pad span { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+.srr-pad.done { background: var(--surface-2); }
+.srr-res { text-align: center; font-size: 17px; font-weight: 700; }
+.warn-box { background: var(--accent-soft); border-radius: var(--r-sm); padding: 12px 14px; font-size: 14px; color: var(--ink); display: flex; flex-direction: column; gap: 6px; }
+.warn-box b { color: var(--accent); }
+.warn-box ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.report { white-space: pre-wrap; font-size: 14px; line-height: 1.55; background: var(--surface-2); border-radius: var(--r-sm); padding: 12px 14px; overflow-wrap: anywhere; word-break: keep-all; }
+.cyc-row { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.cyc-row:first-child { border-top: 0; padding-top: 0; }
+.cyc-row .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
+.cyc-row .head b { font-size: 16px; white-space: nowrap; }
+.cyc-row .head .s { margin-left: auto; text-align: right; }
+.cyc-row .s { font-size: 13.5px; color: var(--ink-2); }
+.cyc-row .pick button { padding: 6px 11px; }
+.cyc-row.focus { background: var(--surface-2); border-radius: 12px; padding: 12px; margin: 0 -12px; border-top-color: transparent; }
 </style>
 </head>
 <body>
@@ -550,7 +649,7 @@ button.amore { color: var(--accent); }
   <section class="view" id="v-cal" aria-label="달력" hidden></section>
   <section class="view" id="v-diary" aria-label="오늘의 또롱이" hidden></section>
   <section class="view" id="v-meds" aria-label="약 체크리스트" hidden></section>
-  <section class="view" id="v-snacks" aria-label="간식 체크리스트" hidden></section>
+  <section class="view" id="v-snacks" aria-label="밥·간식 체크리스트" hidden></section>
   <section class="view" id="v-records" aria-label="기록" hidden>
     <div class="view-head"><h1>기록</h1><span class="muted" id="rec-count"></span></div>
     <label class="search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span class="sr">기록 검색</span><input id="rec-q" type="search" placeholder="심장사상충, 병원 이름, 메모…" autocomplete="off"></label>
@@ -569,7 +668,7 @@ button.amore { color: var(--accent); }
     <button class="tab" data-act="tab" data-tab="cal" aria-label="달력"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M8 13.5h2M14 13.5h2M8 16.5h2"/></svg>달력</button>
     <button class="tab" data-act="tab" data-tab="diary" aria-label="오늘의 또롱이"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m4.5 17.6 4.9-4.5 3.4 3 2.7-2.4 4 3.7"/></svg>오늘</button>
     <button class="tab" data-act="tab" data-tab="meds" aria-label="약 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="8.6" width="18.4" height="6.8" rx="3.4" transform="rotate(-45 12 12)"/><path d="m9.6 9.6 4.8 4.8"/></svg>약</button>
-    <button class="tab" data-act="tab" data-tab="snacks" aria-label="간식 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12c2-3.3 4.8-5 7.9-5 2.8 0 4.9 1.7 6.6 5-1.7 3.3-3.8 5-6.6 5-3.1 0-5.9-1.7-7.9-5z"/><path d="M7 12 2.8 8.6v6.8z"/><circle cx="17.2" cy="11.1" r="1" fill="currentColor" stroke="none"/></svg>간식</button>
+    <button class="tab" data-act="tab" data-tab="snacks" aria-label="밥·간식 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12c2-3.3 4.8-5 7.9-5 2.8 0 4.9 1.7 6.6 5-1.7 3.3-3.8 5-6.6 5-3.1 0-5.9-1.7-7.9-5z"/><path d="M7 12 2.8 8.6v6.8z"/><circle cx="17.2" cy="11.1" r="1" fill="currentColor" stroke="none"/></svg>밥·간식</button>
     <button class="tab" data-act="tab" data-tab="records"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg>기록</button>
     <button class="tab" data-act="tab" data-tab="money"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8V7.2A2.2 2.2 0 0 1 7.2 5H17v3"/><rect x="4" y="8" width="16" height="11.5" rx="2.5"/><path d="M15.5 13.7h2"/></svg>지출</button>
     <button class="tab" data-act="tab" data-tab="info"><svg class="ic ic-fill" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="6.8" cy="10" rx="1.8" ry="2.3"/><ellipse cx="10.3" cy="6.4" rx="1.8" ry="2.3"/><ellipse cx="13.9" cy="6.4" rx="1.8" ry="2.3"/><ellipse cx="17.3" cy="10" rx="1.8" ry="2.3"/><path d="M12.1 11.6c-2.8 0-5.1 2.9-5.1 5.3 0 1.6 1.2 2.6 2.7 2.6 1 0 1.6-.5 2.4-.5s1.4.5 2.4.5c1.5 0 2.7-1 2.7-2.6 0-2.4-2.3-5.3-5.1-5.3z"/></svg>정보</button>
@@ -587,6 +686,7 @@ button.amore { color: var(--accent); }
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <input type="file" id="file-in" accept="image/*" multiple hidden>
+<input type="file" id="doc-in" accept="application/pdf,.pdf,image/*" multiple hidden>
 
 <script>
 (() => {
@@ -631,13 +731,37 @@ const TYPES = {
   care: { label: '돌봄', fam: 'care' }, outing: { label: '나들이', fam: 'out' }, milestone: { label: '기념일', fam: 'out' },
   insurance: { label: '보험', fam: 'out' },
 };
-const FILTERS = [['all', '전체'], ['med', '병원·검사'], ['pre', '접종·예방'], ['wt', '몸무게'], ['care', '돌봄'], ['out', '나들이·기념']];
+const FILTERS = [['all', '전체'], ['med', '병원·검사'], ['doc', '병원 문서'], ['pre', '접종·예방'], ['wt', '몸무게'], ['care', '돌봄'], ['out', '나들이·기념']];
 const ADD_TILES = [
   ['weight', '몸무게', '잰 숫자 그대로'], ['expense', '지출', '무엇을, 얼마에, 어디서, 왜'],
   ['vet', '병원', '진료, 수술, 면회'], ['test', '검사·결과', '건강검진, 항체검사'],
-  ['vaccine', '접종', '종합백신, 광견병'], ['prevent', '예방약', '심장사상충, 구충'], ['symptom', '증상', '토, 설사, 이상 행동'],
+  ['doc', '병원 문서', '결과지·진료비 내역 올리면 요약'], ['vaccine', '접종', '종합백신, 광견병'],
+  ['prevent', '예방약', '심장사상충, 구충'], ['symptom', '증상', '토, 설사, 이상 행동'],
   ['care', '돌봄', '모래, 목욕, 발톱, 펫시터'], ['outing', '나들이', '캣페어, 캣쇼'], ['milestone', '기념일', '생일, 온 날'],
 ];
+/* 병원 문서 종류 */
+const DOC_KINDS = { checkup: '건강검진 결과지', lab: '검사 결과지', surgery: '수술·처치 기록', bill: '진료비 내역', rx: '처방전', vaccine: '접종 기록', other: '병원 문서' };
+const DOC_KIND_ORDER = ['checkup', 'lab', 'surgery', 'bill', 'rx', 'vaccine', 'other'];
+const DOC_SHORT = { checkup: '결과지', lab: '결과지', surgery: '수술기록', bill: '진료비', rx: '처방전', vaccine: '접종기록', other: '문서' };
+const DOC_REC_TYPE = { checkup: 'test', lab: 'test', surgery: 'vet', bill: 'vet', rx: 'vet', vaccine: 'vaccine', other: 'vet' };
+const DOC_MAX_PAGES = 30;
+/* 문서를 고르면 이 폰에서 PDF를 페이지 그림으로 바꾸고 글자를 읽어요 (pdf.js, 받을 때만 불러와요) */
+const PDFJS = { base: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/', lib: 'legacy/build/pdf.min.js', worker: 'legacy/build/pdf.worker.min.js',
+  libSri: 'sha384-OemFRmhjDZwhIKuUld0HJozkF2YErsgDaCL41trxGQZt4/WgnopJQqQl2DvDZ07Z', workerSri: 'sha384-sS8B4COeBqzQV9DaPpp5cbpF+xz2jPcFbN3L8FL3/dx0RMC6WLUwTUOFm0iFb1lw' };
+/* 반복해서 챙기는 일: 마지막 기록에서 주기만큼 지나면 '다가오는 일'과 달력에 예상으로 떠요 (0 = 안 띄움) */
+const HW_RE = /심장사상충|레볼루션|애드보킷|넥스가드|브라벡토|하트가드|프로하트|셀라멕틴|밀베마이신/;
+const WORM_RE = /기생충|구충|드론탈|밀베맥스|파나쿠르/;
+const CYCLES = [
+  { key: 'checkup', label: '건강검진', short: '검진', fam: 'med', def: 12, type: 'test', title: '건강검진' },
+  { key: 'hw', label: '심장사상충 예방약', short: '예방약', fam: 'pre', def: 1, type: 'prevent', title: '심장사상충' },
+  { key: 'worm', label: '구충(기생충)', short: '구충', fam: 'pre', def: 0, type: 'prevent', title: '기생충' },
+  { key: 'vac', label: '추가 접종', short: '접종', fam: 'pre', def: 12, type: 'vaccine', title: '종합백신' },
+];
+const CYCLE_OPTS = { checkup: [3, 6, 12], hw: [1, 2, 3], worm: [0, 3, 6, 12], vac: [0, 12, 36] };
+/* 건강검진은 다음 날짜를 공유 캘린더에 하루 종일 일정으로 자동으로 넣어 둬요 (서버가 하나만 만들고, 주기를 바꾸면 옮겨요) */
+const CAL_CYCLES = ['checkup'];
+const CYC_AUTO_TITLE = '건강검진 시기';
+const isAutoRec = (r) => !!r && r.auto === 'cycle';
 const SUGGEST = {
   prevent: ['심장사상충', '레볼루션 (심장사상충)', '애드보킷', '넥스가드', '기생충'],
   care: ['모래 교체', '모래갈이', '목욕', '발톱 깎음', '유치 빠짐', '펫시터', '고양이호텔', '영양제'],
@@ -645,11 +769,13 @@ const SUGGEST = {
   vet: ['병원 방문', '진료', '수술'], symptom: ['토', '설사', '기침', '밥을 안 먹음'], outing: ['캣페어', '캣쇼'], milestone: [],
 };
 const CATS = ['사료', '간식', '모래', '병원비', '접종·예방약', '영양제', '용품·장난감', '미용·목욕', '보험', '펫시터·호텔', '기타'];
-const PREVENT_RE = /심장사상충|레볼루션|애드보킷|넥스가드|브라벡토|기생충|구충/;
 const PUSH_TYPES = ['vet', 'test', 'vaccine', 'prevent', 'outing', 'milestone'];
-/* 날짜별 탭: 오늘의 또롱이(diary) · 약 체크리스트(meds) · 간식 체크리스트(snacks) */
-const DAY_COLS = ['diary', 'meds', 'snacks'];
-const DAY_TABS = { diary: '오늘의 또롱이', meds: '약 체크리스트', snacks: '간식 체크리스트' };
+/* 날짜별 탭: 오늘의 또롱이(diary) · 약 체크리스트(meds) · 밥·간식 체크리스트(snacks) · 건강 체크(health) */
+const DAY_COLS = ['diary', 'meds', 'snacks', 'health'];
+const DAY_TABS = { diary: '오늘의 또롱이', meds: '약 체크리스트', snacks: '밥·간식 체크리스트' };
+/* 건강 체크: 화장실(소변 덩어리·대변)·토 개수, 물 마신 양, 호흡수(잘 때 1분에 숨 쉰 횟수) */
+const HEALTH = [['pee', '소변 덩어리', '개'], ['poop', '대변', '번'], ['vomit', '토', '번']];
+const SRR_SEC = 30;
 const MED_SLOTS = [['morning', '아침', '08:00'], ['lunch', '점심', '13:00'], ['evening', '저녁', '19:00']];
 const MEDS_DAYS = 5; /* 약 지난 기록을 처음에 보여 주는 날 수 (오늘 포함) */
 const SNACKS = [['treat', '트릿', '트릿'], ['churu', '츄르', '츄르'], ['dental', '덴탈과자', '덴탈'], ['food', '사료', '사료'], ['etc', '기타', '기타']];
@@ -663,7 +789,9 @@ const IC = {
   right: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>',
   cal: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
   photo: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m4.5 17.6 4.9-4.5 3.4 3 2.7-2.4 4 3.7"/></svg>',
+  doc: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4.5 4.5v11a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M13.5 3.5V8.5h5M8.5 12.5h7M8.5 16h5"/></svg>',
 };
+const DOC_IC = `<span class="doc-ic" aria-hidden="true">${IC.doc}</span>`;
 
 /* ───────── 서버 연결 (구글 앱스 스크립트, 캘린더 주인 계정으로 실행) ───────── */
 const API_URL = ((window.DDORONG_CONFIG || {}).API_URL || '').trim();
@@ -689,6 +817,7 @@ async function gsrCall(keep, fn, args) {
   try { j = await res.json(); } catch { throw codeErr('NET', 'BAD_JSON'); }
   if (!j || !j.ok) {
     const e = codeErr((j && j.code) || 'ERROR', (j && j.error) || (j && j.code) || 'ERROR');
+    if (j && j.cur !== undefined) e.cur = j.cur;
     if (AUTH_CODES.includes(e.code)) onAuthFail(e.code);
     throw e;
   }
@@ -784,13 +913,13 @@ function deriveFromEvent(ev, ctx, rec) {
 /* ───────── state ───────── */
 const S = {
   phase: 'loading', readOnly: false, me: '', owner: '', appUrl: '', since: '2024-12-01',
-  raw: null, records: [], expenses: [], pets: {}, info: {},
+  raw: null, records: [], expenses: [], pets: {}, info: {}, docs: [], ai: { on: false }, srv: 0,
   events: null, uids: {}, calError: '', calPartial: false,
   loading: false, loadedAt: 0, lastWriteAt: 0, reloadPending: false, fromCache: false, loadError: '', fatalMsg: '',
   tab: 'home', back: 'home', filter: 'all', q: '', month: null, recLimit: 10, recJump: null, calMonth: '', calSel: '', addDate: '',
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
-  dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {} }, histLoading: new Set(), uploading: {}, medsDays: MEDS_DAYS, medHist: '',
+  dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {}, health: {} }, histLoading: new Set(), uploading: {}, medsDays: MEDS_DAYS, medHist: '',
   diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
 };
 
@@ -855,6 +984,42 @@ function nextAnnual(dateStr, T) {
   return { date: d, n: y - p.y };
 }
 const DAY_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000];
+/* ───────── 병원 문서 · 반복해서 챙기는 일 ───────── */
+const docTitle = (d) => (d && (d.title || (d.sum && d.sum.title) || DOC_KINDS[d.kind])) || '병원 문서';
+const docsOfRec = (rid) => (rid ? S.docs.filter((d) => d.rec === rid) : []);
+const docFlags = (d) => (d && d.sum && Array.isArray(d.sum.flags) ? d.sum.flags.filter((f) => f && f.item && f.lv && f.lv !== '참고') : []);
+const isCheckupRec = (r) => !!r && (r.checkup === true || (['test', 'vet'].includes(r.type) && /검진/.test(r.title || '')));
+function cycleHit(key, r) {
+  if (key === 'checkup') return isCheckupRec(r);
+  if (key === 'hw') return r.type === 'prevent' && HW_RE.test(r.title || '');
+  if (key === 'worm') return r.type === 'prevent' && WORM_RE.test(r.title || '');
+  if (key === 'vac') return r.type === 'vaccine';
+  return false;
+}
+const monthsKo = (n) => (n >= 12 && n % 12 === 0 ? `${n / 12}년` : `${n}개월`);
+function cycleMonths(pid, c) {
+  const v = ((S.pets[pid] || {}).cycles || {})[c.key];
+  if (v === undefined || v === null || v === '') return c.def;
+  const n = Math.round(Number(v));
+  return isFinite(n) ? Math.max(0, Math.min(60, n)) : c.def;
+}
+/* 마지막으로 한 날(기록·결과지), 앞으로 잡아 둔 날, 주기로 계산한 다음 날 */
+function cycleState(pid, c) {
+  const T = todayStr();
+  const months = cycleMonths(pid, c);
+  const recs = recsOf(pid).filter((r) => isDate(r.date) && cycleHit(c.key, r));
+  /* 자동으로 넣은 ‘건강검진 시기’ 일정은 다녀온 기록이 아니라서 마지막 검진으로 세지 않아요 */
+  const past = recs.filter((r) => r.date <= T && !isAutoRec(r)).map((r) => ({ date: r.date, title: r.title || (TYPES[r.type] || {}).label || '', id: r.id }));
+  if (c.key === 'checkup') for (const d of S.docs) if (d.kind === 'checkup' && (!d.pet || d.pet === pid) && isDate(d.date) && d.date <= T) past.push({ date: d.date, title: docTitle(d), doc: d.id });
+  past.sort((a, b) => b.date.localeCompare(a.date));
+  const fut = recs.filter((r) => r.date > T || (r.date === T && isAutoRec(r))).sort(byDateAsc);
+  const booked = fut.find((r) => !isAutoRec(r)) || null;
+  const planned = booked || fut[0] || null;
+  const last = past[0] || null;
+  const due = last && months > 0 ? addMonths(last.date, months) : '';
+  return { ...c, pid, months, last, planned, booked, auto: planned && isAutoRec(planned) ? planned : null, due };
+}
+const cyclesOf = (pid) => CYCLES.map((c) => cycleState(pid, c));
 function upcoming() {
   const T = todayStr(); const items = [];
   const name = (pid) => S.pets[pid]?.name || '';
@@ -869,7 +1034,9 @@ function upcoming() {
     return r.time ? r.time >= nowHm : ['vet', 'test', 'vaccine', 'prevent', 'outing', 'milestone', 'insurance'].includes(r.type);
   };
   for (const r of S.records) {
-    if (isUpcoming(r)) items.push({ date: r.date, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title, sub: [TYPES[r.type]?.label, timeKo(r.time), r.place].filter(Boolean).join(' · '), fam: TYPES[r.type]?.fam || 'out', act: 'open-record', id: r.id });
+    if (!isUpcoming(r)) continue;
+    if (isAutoRec(r)) { items.push({ date: r.date, title: r.title, sub: `${monthsKo(Number(r.months) || 12)}마다 돌아오는 검진`, fam: TYPES[r.type]?.fam || 'med', act: 'open-record', id: r.id, auto: true }); continue; }
+    items.push({ date: r.date, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title, sub: [TYPES[r.type]?.label, timeKo(r.time), r.place].filter(Boolean).join(' · '), fam: TYPES[r.type]?.fam || 'out', act: 'open-record', id: r.id });
   }
   for (const r of S.records) {
     if (r.type !== 'milestone' || !r.yearly || !isDate(r.date)) continue;
@@ -885,10 +1052,11 @@ function upcoming() {
     const N = diffDays(p.home, T) + 1;
     const M = DAY_STEPS.find((x) => x >= N);
     if (M) items.push({ date: addDays(p.home, M - 1), title: `함께한 ${M.toLocaleString('ko-KR')}일`, sub: p.name, fam: 'out' });
-    const prev = recsOf(p.id).filter((r) => r.type === 'prevent' && PREVENT_RE.test(r.title || '')).sort(byDateDesc);
-    if (prev.length && !prev.some((r) => r.date >= T)) {
-      const last = prev[0]; const due = addMonths(last.date, 1);
-      items.push({ date: due < T ? T : due, title: '예방약 (예상)', sub: `지난번 ${last.title} ${md(last.date)}`, fam: 'pre', guess: true, overdue: due < T });
+    /* 건강검진·심장사상충·구충·접종: 마지막 기록 + 주기 (앞으로 잡아 둔 기록이 있으면 그 기록이 대신 떠요) */
+    const many = homePets().length > 1;
+    for (const c of cyclesOf(p.id)) {
+      if (!c.months || !c.last || c.planned || !c.due) continue;
+      items.push({ date: c.due < T ? T : c.due, title: `${many ? `${p.name} ` : ''}${c.label} (예상)`, sub: `지난번 ${c.last.title} ${md(c.last.date)} · ${monthsKo(c.months)}마다`, fam: c.fam, guess: true, overdue: c.due < T, act: 'cycle', pet: p.id, cyc: c.key, short: c.short });
     }
   }
   const ins = S.info.insurance; const np = nextPay(ins, T);
@@ -900,7 +1068,25 @@ function upcoming() {
 const famDot = (fam) => `<i class="dot fam-${esc(fam)}" aria-hidden="true"></i>`;
 const whoLabel = (k) => famName(k);
 function dateCell(d) { return `<span class="row-date"><b>${esc(md(d))}</b><small>${esc(wd(d))}</small></span>`; }
+/* 병원 문서 한 줄 (기록 탭 · 홈 최근 기록 · 기록 안) */
+function docRow(d) {
+  const T = todayStr();
+  const bits = [DOC_KINDS[d.kind] || '병원 문서']; if (d.hospital) bits.push(d.hospital);
+  const fl = docFlags(d).length;
+  const tags = [!d.sum ? '<span class="tag warn">요약 전</span>' : fl ? `<span class="tag warn">살펴볼 것 ${fl}</span>` : '<span class="tag">요약</span>'];
+  if ((d.pages || []).length) tags.push(`<span class="tag">${d.pages.length}쪽</span>`);
+  return `<button class="row" data-act="open-doc" data-id="${esc(d.id)}">${dateCell(d.date)}<span class="row-main"><span class="row-title">${DOC_IC}${esc(docTitle(d))}</span><span class="row-sub">${famDot('med')}${esc(bits.join(' · '))}${tags.join('')}</span></span>${d.date > T ? `<span class="dchip">${esc(dday(diffDays(T, d.date)))}</span>` : ''}</button>`;
+}
+/* 검사 기록에 결과지가 붙어 있으면 '결과 미기록' 대신 '결과지'. 아직 안 온 검사·자동으로 넣은 검진 시기에는 붙이지 않아요 */
+function recTags(r) {
+  const tags = []; const ds = docsOfRec(r.id);
+  if (ds.length) tags.push(`<span class="tag">${ds.length > 1 ? `문서 ${ds.length}` : esc(DOC_SHORT[ds[0].kind] || '문서')}</span>`);
+  else if (isAutoRec(r)) tags.push('<span class="tag">자동</span>');
+  else if (r.type === 'test' && !r.result && !(isDate(r.date) && r.date > todayStr())) tags.push('<span class="tag warn">결과 미기록</span>');
+  return tags;
+}
 function recordRow(r, opts = {}) {
+  if (r.type === 'doc' && r.doc) return docRow(r.doc);
   const T = todayStr(); const t = TYPES[r.type] || { label: '기록', fam: 'out' };
   const title = r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title || t.label;
   const bits = [t.label];
@@ -908,8 +1094,7 @@ function recordRow(r, opts = {}) {
   if (r.place) bits.push(r.place);
   if (r.type === 'test' && r.result) bits.push(`결과: ${r.result}`);
   if (opts.who !== false && r.who && whoLabel(r.who)) bits.push(whoLabel(r.who));
-  const tags = [];
-  if (r.type === 'test' && !r.result) tags.push('<span class="tag warn">결과 미기록</span>');
+  const tags = recTags(r);
   if ((r.photos || []).length) tags.push(`<span class="tag">사진 ${r.photos.length}</span>`);
   if (r.src === 'gcal') tags.push('<span class="tag gc">캘린더</span>');
   let end = '';
@@ -1044,7 +1229,9 @@ function renderHome() {
   const monthTotal = monthRows.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const byCat = {}; monthRows.forEach((e) => { byCat[e.category || '기타'] = (byCat[e.category || '기타'] || 0) + (Number(e.amount) || 0); });
   const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 3); const maxCat = cats.length ? cats[0][1] : 1;
-  const recent = recsOf(p.id).filter((r) => r.date <= T && r.type !== 'weight').sort(byDateDesc).slice(0, 5);
+  const recent = recsOf(p.id).filter((r) => r.date <= T && r.type !== 'weight')
+    .concat(S.docs.filter((d) => (!d.pet || d.pet === p.id) && isDate(d.date) && d.date <= T).map((d) => ({ id: d.id, date: d.date, time: '', type: 'doc', doc: d })))
+    .sort(byDateDesc).slice(0, 5);
   const feedHit = last && p.feedingNote && p.feedingNoteKg && Number(last.kg) >= Number(p.feedingNoteKg);
 
   el.innerHTML = `
@@ -1062,8 +1249,8 @@ function renderHome() {
       <div class="card-head"><h2>다가오는 일</h2><span class="sub">${esc(mdKo(T))} ${esc(wd(T))}요일</span></div>
       ${up.length ? `<div class="list">${up.map((u) => {
         const n = diffDays(T, u.date); const cls = n === 0 ? ' today' : n <= 7 ? ' soon' : '';
-        const attrs = u.act === 'open-record' ? `data-act="open-record" data-id="${esc(u.id)}"` : u.act === 'tab' ? `data-act="tab" data-tab="${esc(u.tabTo)}"` : 'data-act="noop"';
-        return `<button class="row" ${attrs}>${dateCell(u.date)}<span class="row-main"><span class="row-title">${esc(u.title)}</span><span class="row-sub">${famDot(u.fam)}${esc(u.sub || '')}${u.guess ? '<span class="tag">예상</span>' : ''}</span></span><span class="dchip${cls}">${u.overdue ? '지났어요' : esc(dday(n))}</span></button>`;
+        const attrs = u.act === 'open-record' ? `data-act="open-record" data-id="${esc(u.id)}"` : u.act === 'tab' ? `data-act="tab" data-tab="${esc(u.tabTo)}"` : u.act === 'cycle' ? `data-act="cycle" data-pet="${esc(u.pet)}" data-cyc="${esc(u.cyc)}"` : 'data-act="noop"';
+        return `<button class="row" ${attrs}>${dateCell(u.date)}<span class="row-main"><span class="row-title">${esc(u.title)}</span><span class="row-sub">${famDot(u.fam)}${esc(u.sub || '')}${u.guess ? '<span class="tag">예상</span>' : u.auto ? '<span class="tag">자동</span>' : ''}</span></span><span class="dchip${cls}">${u.overdue ? '지났어요' : esc(dday(n))}</span></button>`;
       }).join('')}</div>` : '<div class="empty">예정된 일이 없어요. + 버튼으로 다음 병원 예약이나 예방약 날짜를 넣어 두세요.</div>'}
     </div>
 
@@ -1071,7 +1258,8 @@ function renderHome() {
       <div class="card-head"><h2>몸무게</h2>${last ? `<span class="sub">${esc(dot(last.date))}</span>` : ''}</div>
       ${last ? `<div class="stat-line"><span class="big">${esc(wt(last.kg).replace(/(kg|g)$/, ''))}<small>${Number(last.kg) < 1 ? 'g' : 'kg'}</small></span><span class="delta">${prev ? `지난 기록(${esc(md(prev.date))})보다 ${esc(wtDelta(Number(last.kg) - Number(prev.kg)))}` : '첫 기록'}</span></div>
       <div class="chart" data-chart="${esc(p.id)}" role="img" aria-label="${esc(p.name)} 몸무게 그래프: ${esc(dot(ws[0].date))} ${esc(wt(ws[0].kg))}에서 ${esc(dot(last.date))} ${esc(wt(last.kg))}까지 ${ws.length}번 기록"></div>
-      ${feedHit ? `<div class="note"><span>급여 메모</span><b>${esc(p.feedingNote)}</b></div>` : ''}` : '<div class="empty">아직 몸무게 기록이 없어요.</div>'}
+      ${feedHit ? `<div class="note"><span>급여 메모</span><b>${esc(p.feedingNote)}</b></div>` : ''}
+      ${bodyNote(p, ws, T)}` : '<div class="empty">아직 몸무게 기록이 없어요.</div>'}
       ${S.readOnly ? '' : `<div class="btn-row"><button class="btn ghost sm" data-act="add" data-kind="weight" data-pet="${esc(p.id)}">몸무게 기록</button><button class="btn ghost sm" data-act="filter-go" data-filter="wt">전체 기록 보기</button></div>`}
     </div>
 
@@ -1096,12 +1284,15 @@ function renderHome() {
 const REC_FIRST = 10, REC_STEP = 20;
 function recSets(p) {
   const T = todayStr(); const q = S.q.trim().toLowerCase();
-  const rs = recsOf(p.id).filter((r) => {
+  const hit = (arr) => !q || arr.some((x) => String(x || '').toLowerCase().includes(q));
+  const recs = S.filter === 'doc' ? [] : recsOf(p.id).filter((r) => {
     const fam = TYPES[r.type]?.fam || 'out';
     if (S.filter !== 'all' && fam !== S.filter) return false;
-    if (!q) return true;
-    return [r.title, r.place, r.memo, r.result, TYPES[r.type]?.label, r.type === 'weight' ? wt(r.kg) : ''].some((x) => String(x || '').toLowerCase().includes(q));
+    return hit([r.title, r.place, r.memo, r.result, TYPES[r.type]?.label, r.type === 'weight' ? wt(r.kg) : '']);
   });
+  /* 병원 문서는 전체 · 병원·검사 · 병원 문서에서 기록과 같이 날짜 순으로 */
+  const docs = ['all', 'med', 'doc'].includes(S.filter) ? S.docs.filter((d) => (!d.pet || d.pet === p.id) && isDate(d.date) && hit([docTitle(d), d.hospital, DOC_KINDS[d.kind], d.sum && d.sum.oneLine, ...((d.sum && d.sum.points) || []), ...((d.sum && d.sum.flags) || []).map((f) => f.item)])).map((d) => ({ id: d.id, date: d.date, time: '', type: 'doc', doc: d })) : [];
+  const rs = recs.concat(docs);
   return { q, rs, future: rs.filter((r) => r.date > T).sort(byDateAsc), past: rs.filter((r) => r.date <= T).sort(byDateDesc) };
 }
 /* 날짜로 찾기: 그날 기록(없으면 가장 가까운 날 기록)까지 펼치고 그 줄로 내려가요 */
@@ -1121,7 +1312,7 @@ function recJump(D) {
 }
 function renderRecords() {
   const p = mainPet(); const T = todayStr();
-  $('#rec-filters').innerHTML = FILTERS.map(([k, l]) => `<button class="fchip" data-act="filter" data-filter="${k}" aria-pressed="${S.filter === k}">${k !== 'all' ? famDot(k) : ''}${esc(l)}</button>`).join('');
+  $('#rec-filters').innerHTML = FILTERS.map(([k, l]) => `<button class="fchip" data-act="filter" data-filter="${k}" aria-pressed="${S.filter === k}">${k === 'doc' ? DOC_IC : k !== 'all' ? famDot(k) : ''}${esc(l)}</button>`).join('');
   const list = $('#rec-list');
   if (!ready() || !p) { list.innerHTML = loadingOr(ready() ? '아직 등록된 아이가 없어요.' : ''); $('#rec-count').textContent = ''; return; }
   const { q, rs, future, past } = recSets(p);
@@ -1133,6 +1324,11 @@ function renderRecords() {
     fd.max = T; fd.min = oldest; fd.value = S.recJump ? S.recJump.date : T;
   }
   let html = '';
+  if (S.filter === 'doc' && !q && !S.readOnly && docsReady()) {
+    html += `<div class="card"><div class="card-head"><h2>병원 문서</h2><span class="sub">${S.docs.length}개</span></div>
+      <span class="muted" style="font-size:14px">건강검진 결과지, 수술 기록, 진료비 내역을 PDF나 사진으로 올리면 그날 기록에 붙고, ${S.ai && S.ai.on ? 'AI가 읽고 요약해 줘요.' : '요약을 적어 둘 수 있어요. 정보 탭에서 AI 요약을 켜면 올릴 때 자동으로 요약해요.'}</span>
+      <div class="btn-row"><button class="btn sm" type="button" data-act="doc-add">병원 문서 올리기</button></div></div>`;
+  }
   if (S.filter === 'wt' && !q) {
     const ws = weightsOf(p.id);
     if (ws.length > 1) html += `<div class="card"><div class="card-head"><h2>${esc(p.name)}가 자라온 길</h2><span class="sub">${esc(wt(ws[0].kg))} → ${esc(wt(ws[ws.length - 1].kg))}</span></div><div class="chart" data-chart="${esc(p.id)}" role="img" aria-label="몸무게 그래프"></div></div>`;
@@ -1145,11 +1341,11 @@ function renderRecords() {
     const left = past.length - shown.length; const less = !q && S.recLimit > REC_FIRST;
     html += `<div class="card" id="rec-past"><div class="list">${body}</div>${left > 0 || less ? `<div class="btn-row">${left > 0 ? `<button class="btn ghost sm" type="button" data-act="rec-more">더 보기 · ${left}개 남음</button>` : ''}${less ? '<button class="btn ghost sm" type="button" data-act="rec-less">접기</button>' : ''}</div>` : ''}</div>`;
   }
-  if (!future.length && !past.length) html += `<div class="card"><div class="empty">${q ? '찾는 기록이 없어요.' : '이 종류의 기록은 아직 없어요.'}</div></div>`;
+  if (!future.length && !past.length) html += `<div class="card"><div class="empty">${q ? '찾는 기록이 없어요.' : S.filter === 'doc' ? '아직 올린 병원 문서가 없어요.' : '이 종류의 기록은 아직 없어요.'}</div></div>`;
   list.innerHTML = html;
   if (S.recJump && S.recJump.scroll) {
     S.recJump.scroll = false;
-    const el = [...list.querySelectorAll('.row[data-act="open-record"]')].find((x) => x.dataset.id === S.recJump.id);
+    const el = [...list.querySelectorAll('.row[data-id]')].find((x) => x.dataset.id === S.recJump.id);
     if (el) { el.classList.add('jump'); requestAnimationFrame(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' })); setTimeout(() => el.classList.remove('jump'), 2600); }
   }
 }
@@ -1157,8 +1353,8 @@ function renderRecords() {
 /* ───────── 달력: 기록·일정·간식·지출을 한 달에 모아 보기 ─────────
  * 칸에는 기록(예정 포함), 생일·온 날·함께한 N일, 보험료, 예방약 예상, 간식 개수(사료 빼고), 지출을 보여 줘요.
  * 날을 누르면 아래에 그날 것을 모두(약 체크·사진·한 줄 기록 포함) 보여 줘요. */
-const CAL_CATS = [['med', '병원·검사'], ['pre', '접종·예방'], ['wt', '몸무게'], ['out', '나들이·기념'], ['care', '돌봄'], ['snack', '간식'], ['money', '지출']];
-const CAL_ORDER = ['med', 'pre', 'out', 'wt', 'care', 'money', 'snack'];
+const CAL_CATS = [['med', '병원·검사'], ['pre', '접종·예방'], ['wt', '몸무게'], ['out', '나들이·기념'], ['care', '돌봄'], ['hl', '건강 체크'], ['snack', '간식'], ['money', '지출']];
+const CAL_ORDER = ['med', 'pre', 'out', 'hl', 'wt', 'care', 'money', 'snack'];
 const CAL_HIDE = 'ddorong-cal-hide';
 function calHidden() { try { const a = JSON.parse(store.get(CAL_HIDE) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch { return new Set(); } }
 const manwon = (n) => { const v = Math.round(Number(n) || 0); return v >= 10000 ? `${Math.round(v / 1000) / 10}만` : `${v.toLocaleString('ko-KR')}원`; };
@@ -1192,7 +1388,25 @@ function calEvents(from, to, hide) {
     if (!isDate(p.home)) continue;
     for (const M of DAY_STEPS) add(addDays(p.home, M - 1), { fam: 'out', label: `${M.toLocaleString('ko-KR')}일`, title: `함께한 ${M.toLocaleString('ko-KR')}일`, sub: p.name });
   }
-  for (const u of upcoming()) if (u.guess) add(u.date, { fam: u.fam, label: '예방약?', title: u.title, sub: u.sub });
+  for (const u of upcoming()) if (u.guess) add(u.date, { fam: u.fam, label: `${u.short || '예정'}?`, title: u.title, sub: u.sub, act: u.act === 'cycle' ? `data-act="cycle" data-pet="${esc(u.pet)}" data-cyc="${esc(u.cyc)}"` : '' });
+  /* 병원 문서: 문서에 적힌 날(검진일·진료일)에 */
+  for (const d of S.docs) if (isDate(d.date) && (!d.pet || home.has(d.pet))) add(d.date, { fam: 'med', label: DOC_SHORT[d.kind] || '문서', doc: d });
+  /* 건강 체크: 토한 날, 호흡수 잰 날, 밥을 안 먹은 끼니 */
+  if (!hide.has('hl') || !hide.has('care')) {
+    for (let d = from; d <= to && d <= T; d = addDays(d, 1)) {
+      const h = dayDoc('health', d);
+      if (!hide.has('hl')) {
+        if (Number(h.vomit) > 0) add(d, { fam: 'hl', label: `토 ${Number(h.vomit)}`, health: d });
+        const sr = Array.isArray(h.srr) ? h.srr.filter((x) => x && Number(x.bpm) > 0) : [];
+        if (sr.length) add(d, { fam: 'hl', label: `호흡 ${sr[sr.length - 1].bpm}`, health: d });
+      }
+      if (!hide.has('care')) {
+        const meals = mealsDoc(dayDoc('snacks', d));
+        const none = Object.values(meals).filter((v) => v && v.ate === 'none').length;
+        if (none) add(d, { fam: 'care', label: '밥 안 먹음', title: `밥 안 먹은 끼니 ${none}번`, sub: '밥·간식 체크리스트에서 남긴 기록', act: `data-act="cal-go" data-tab="snacks" data-date="${d}"` });
+      }
+    }
+  }
   const ins = S.info.insurance;
   if (ins && ins.active && ins.payDay) {
     for (let k = ym(from); k <= ym(to); k = addMonths(`${k}-01`, 1).slice(0, 7)) {
@@ -1219,11 +1433,15 @@ function calDayHtml(d, hide) {
     if (e.rec) {
       const r = e.rec; const t = TYPES[r.type] || { label: '기록', fam: 'out' };
       const bits = [t.label]; if (r.place) bits.push(r.place); if (r.type === 'test' && r.result) bits.push(`결과: ${r.result}`); if (r.who && whoLabel(r.who)) bits.push(whoLabel(r.who));
-      const tags = [];
-      if (r.type === 'test' && !r.result) tags.push('<span class="tag warn">결과 미기록</span>');
+      const tags = recTags(r);
       if ((r.photos || []).length) tags.push(`<span class="tag">사진 ${r.photos.length}</span>`);
       if (r.src === 'gcal') tags.push('<span class="tag gc">캘린더</span>');
       rows.push(calRow({ time: r.type === 'weight' ? '' : r.time, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title || t.label, sub: bits.join(' · '), dot: famDot(t.fam), tags: tags.join(''), attrs: `data-act="open-record" data-id="${esc(r.id)}"`, end: r.date > T ? `<span class="dchip${diffDays(T, r.date) <= 7 ? ' soon' : ''}">${dday(diffDays(T, r.date))}</span>` : '' }));
+    } else if (e.doc) {
+      const x = e.doc; const fl = docFlags(x).length;
+      rows.push(calRow({ left: '문서', title: docTitle(x), sub: [DOC_KINDS[x.kind] || '병원 문서', x.hospital].filter(Boolean).join(' · '), dot: famDot('med'), tags: !x.sum ? '<span class="tag warn">요약 전</span>' : fl ? `<span class="tag warn">살펴볼 것 ${fl}</span>` : '<span class="tag">요약</span>', attrs: `data-act="open-doc" data-id="${esc(x.id)}"` }));
+    } else if (e.health) {
+      continue; /* 아래 '건강 체크' 한 줄에 같이 보여요 */
     } else if (e.exp) {
       const x = e.exp;
       rows.push(calRow({ left: '지출', title: `${x.item || x.category || '지출'} ${won(x.amount)}`, sub: [x.category, x.place, whoLabel(x.payer)].filter(Boolean).join(' · '), dot: '<i class="dot u-dot-money" aria-hidden="true"></i>', attrs: `data-act="open-expense" data-id="${esc(x.id)}"` }));
@@ -1241,6 +1459,8 @@ function calDayHtml(d, hide) {
     }
     const dd = dayDoc('diary', d); const ps = dayPhotos(dd);
     if (ps.length || dd.note) rows.push(calRow({ left: '사진', title: ps.length ? `사진 ${ps.length}장` : '한 줄 기록', sub: dd.note || '', attrs: `data-act="cal-go" data-tab="diary" data-date="${d}"`, end: ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((p) => photoImg(p.id, 'thumb')).join('')}</span>` : '' }));
+    const hs = healthLine(dayDoc('health', d));
+    if (hs && !hide.has('hl')) rows.push(calRow({ left: '건강', title: '건강 체크', sub: hs, dot: '<i class="dot u-dot-hl" aria-hidden="true"></i>', attrs: `data-act="health" data-date="${d}"` }));
   }
   const when = d === T ? '오늘' : d < T ? `${diffDays(d, T)}일 전` : dday(diffDays(T, d));
   return `<div class="card" id="cal-day">
@@ -1260,7 +1480,7 @@ function renderCal() {
   const k = S.calMonth; const [y, m] = k.split('-').map(Number);
   const startDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
   const from = addDays(`${k}-01`, -startDow); const weeks = Math.ceil((startDow + dim(y, m)) / 7); const to = addDays(from, weeks * 7 - 1);
-  for (const mk of new Set([ym(from), k, ym(to)])) if (mk <= ym(T) && mk >= minMonth()) { needMonth('snacks', mk); needMonth('diary', mk); needMonth('meds', mk); }
+  for (const mk of new Set([ym(from), k, ym(to)])) if (mk <= ym(T) && mk >= minMonth()) { needMonth('snacks', mk); needMonth('diary', mk); needMonth('meds', mk); needMonth('health', mk); }
   const hide = calHidden(); const evs = calEvents(from, to, hide);
   let cells = '';
   for (let i = 0; i < weeks * 7; i++) {
@@ -1351,6 +1571,8 @@ function renderInfo() {
       </dl>
     </div>
 
+    ${medicalCard(p)}
+
     <div class="card">
       <div class="card-head"><h2>밥 먹는 시간</h2>${S.readOnly ? '' : `<button class="link" data-act="edit-feed" data-pet="${esc(p.id)}">고치기</button>`}</div>
       ${feed.length ? `<div class="feed">${feed.map((f) => `<div class="feed-row"><span class="t">${esc(f.time)}</span><span>${esc(f.what)}</span><span class="tag">${esc(f.how)}</span></div>`).join('')}</div>` : '<div class="empty">급여 시간과 양을 적어 두면 둘이 헷갈리지 않아요.</div>'}
@@ -1387,6 +1609,8 @@ function renderInfo() {
     </div>
 
     ${gcCard()}
+
+    ${aiCard()}
 
     ${starPets().map(starCard).join('')}
 
@@ -1452,7 +1676,7 @@ function baseDay(col, date) {
 function dayDoc(col, date) {
   const d = clone(baseDay(col, date));
   const q = Q[qKey(col, date)];
-  if (q) { if (q.flying) applyOps(d, q.flying); applyOps(d, q.ops); }
+  if (q) { if (q.flying) applyOps(d, q.flying); for (const b of q.pend || []) applyOps(d, b.ops); applyOps(d, q.ops); }
   return d;
 }
 function setBase(col, date, doc) {
@@ -1465,6 +1689,7 @@ function setBase(col, date, doc) {
 const monthReady = (col, k) => (!!S.dayFrom && `${k}-01` >= S.dayFrom) || !!(S.hist[col] && S.hist[col][k]);
 function needMonth(col, k) {
   if (!ready() || monthReady(col, k)) return;
+  if (col === 'health' && !docsReady()) return; /* 예전 서버에는 건강 체크 탭이 없어요 */
   const key = `${col}|${k}`; if (S.histLoading.has(key)) return;
   S.histLoading.add(key);
   gsr('getMonth', col, k).then((txt) => {
@@ -1484,41 +1709,90 @@ function monthDocs(col, k) {
   for (const d of dates) out[d] = dayDoc(col, d);
   return out;
 }
+const newQ = (col, date) => ({ col, date, ops: [], cbs: [], flying: null, flyingCbs: [], flyBid: '', timer: 0, pend: [], nextBid: '' });
 function mut(col, date, ops, onDone) {
   if (!canEdit()) { toast('기록을 다 불러온 뒤에 눌러 주세요.'); return false; }
   const k = qKey(col, date);
-  const q = Q[k] || (Q[k] = { col, date, ops: [], cbs: [], flying: null, flyingCbs: [], timer: 0 });
+  const q = Q[k] || (Q[k] = newQ(col, date));
   q.ops.push(...ops);
   if (onDone) q.cbs.push(onDone);
   S.lastWriteAt = Date.now();
   clearTimeout(q.timer);
   q.timer = setTimeout(() => flush(k), 450);
+  savePending();
   render();
   return true;
+}
+/* 보내는 중이거나 인터넷이 끊겨 못 보낸 체크는 이 폰에 적어 두었다가(앱을 닫아도 남아요), 연결되면 같은 묶음 번호로 다시 보내요.
+ * 서버는 같은 번호를 한 번만 적용하니 두 번 세지 않아요. */
+const PEND_KEY = 'ddorong-pending-v1';
+const NET = { timer: 0, delay: 0, told: false, failing: false };
+function savePending() {
+  const list = [];
+  for (const q of Object.values(Q)) {
+    if (q.flying && q.flyBid) list.push({ col: q.col, date: q.date, bid: q.flyBid, ops: q.flying });
+    for (const b of q.pend || []) list.push({ col: q.col, date: q.date, bid: b.bid, ops: b.ops });
+    if (q.ops.length) { if (!q.nextBid) q.nextBid = newId('b'); list.push({ col: q.col, date: q.date, bid: q.nextBid, ops: q.ops }); }
+  }
+  if (list.length) store.set(PEND_KEY, JSON.stringify(list)); else store.del(PEND_KEY);
+}
+function loadPending() {
+  let list = [];
+  try { list = JSON.parse(store.get(PEND_KEY) || '[]'); } catch { list = []; }
+  if (!Array.isArray(list)) return 0;
+  let n = 0;
+  for (const x of list) {
+    if (!x || !DAY_COLS.includes(x.col) || !isDate(x.date) || !Array.isArray(x.ops) || !x.ops.length || !/^[A-Za-z0-9_-]{4,40}$/.test(String(x.bid || ''))) continue;
+    const k = qKey(x.col, x.date);
+    const q = Q[k] || (Q[k] = newQ(x.col, x.date));
+    if (!q.pend.some((b) => b.bid === x.bid)) { q.pend.push({ bid: x.bid, ops: x.ops, cbs: [] }); n++; }
+  }
+  return n;
+}
+const pendingCount = () => Object.values(Q).reduce((s, q) => s + (q.pend || []).length + (q.flying ? 1 : 0) + (q.ops.length ? 1 : 0), 0);
+function retryLater() {
+  if (NET.timer) return;
+  NET.delay = Math.min(60000, NET.delay ? NET.delay * 2 : 5000);
+  NET.timer = setTimeout(() => { NET.timer = 0; flushAll(); }, NET.delay);
 }
 async function flush(k, closing) {
   const q = Q[k];
   if (!q || q.flying) return;
   clearTimeout(q.timer);
-  if (!q.ops.length) { if (Q[k] === q) delete Q[k]; return; }
-  q.flying = q.ops; q.flyingCbs = q.cbs; q.ops = []; q.cbs = [];
-  const bid = newId('b');
+  let batch;
+  if (q.pend && q.pend.length) batch = q.pend.shift();
+  else if (q.ops.length) { batch = { ops: q.ops, cbs: q.cbs, bid: q.nextBid || newId('b') }; q.ops = []; q.cbs = []; q.nextBid = ''; }
+  else { if (Q[k] === q) delete Q[k]; savePending(); return; }
+  q.flying = batch.ops; q.flyingCbs = batch.cbs || []; q.flyBid = batch.bid;
+  savePending();
   const call = closing ? gsrKeep : gsr;
   S.lastWriteAt = Date.now();
-  let doc = null;
+  let doc = null, keep = false;
   try {
-    doc = JSON.parse(await retry(() => call('mutateDoc', q.col, q.date, JSON.stringify(q.flying), bid)));
+    doc = JSON.parse(await retry(() => call('mutateDoc', q.col, q.date, JSON.stringify(batch.ops), batch.bid)));
     setBase(q.col, q.date, doc);
-  } catch (e) { writeError(e); }
+  } catch (e) {
+    if (e && e.code === 'NET') {
+      keep = true; q.pend = [{ bid: batch.bid, ops: batch.ops, cbs: q.flyingCbs }, ...(q.pend || [])];
+      NET.failing = true;
+      if (!NET.told) { NET.told = true; toast('인터넷이 안 돼서 이 폰에 보관했어요. 연결되면 자동으로 보낼게요.'); }
+    } else writeError(e);
+  }
   const cbs = q.flyingCbs;
-  q.flying = null; q.flyingCbs = [];
+  q.flying = null; q.flyingCbs = []; q.flyBid = '';
   S.lastWriteAt = Date.now();
-  if (q.ops.length) q.timer = setTimeout(() => flush(k), 60);
-  else if (Q[k] === q) delete Q[k];
+  if (keep) retryLater();
+  else {
+    if (doc) { NET.delay = 0; if (NET.failing) { NET.failing = false; NET.told = false; } }
+    if ((q.pend && q.pend.length) || q.ops.length) q.timer = setTimeout(() => flush(k), 60);
+    else if (Q[k] === q) delete Q[k];
+  }
+  savePending();
   if (doc) { saveCache(); for (const f of cbs) { try { f(doc); } catch { /* 넘어감 */ } } }
   render();
 }
-function flushAll() { for (const k of Object.keys(Q)) flush(k, true); }
+function flushAll(closing) { for (const k of Object.keys(Q)) flush(k, closing); }
+window.addEventListener('online', () => { clearTimeout(NET.timer); NET.timer = 0; NET.delay = 0; if (liveKey()) flushAll(); });
 
 /* 고른 날짜: 따로 고르지 않았으면 늘 오늘 (자정이 지나면 저절로 다음 날) */
 function curDay(tab) {
@@ -1593,7 +1867,7 @@ function medItems() {
   /* 예전 화면을 쓰던 집: 정해 둔 때나 체크한 적 있는 때를 약 하나로 이어서 보여 줘요 */
   const keys = MED_SLOTS.map((s) => s[0]); const want = new Set();
   for (const [, doc] of medDays()) for (const k of keys) if (doc[k] && typeof doc[k] === 'object') want.add(k);
-  for (const q of Object.values(Q)) if (q.col === 'meds') for (const op of [...(q.flying || []), ...q.ops]) if (keys.includes(op[1])) want.add(op[1]);
+  for (const q of Object.values(Q)) if (q.col === 'meds') for (const op of [...(q.flying || []), ...(q.pend || []).flatMap((x) => x.ops), ...q.ops]) if (keys.includes(op[1])) want.add(op[1]);
   if (c.name || c.dose) { const on = Array.isArray(c.slots) && c.slots.length ? c.slots : keys; on.forEach((k) => want.add(k)); }
   if (!want.size) return [];
   return [{ id: 'L', kind: 'oral', name: c.name || '', dose: c.dose || '', times: MED_SLOTS.filter(([k]) => want.has(k)).map(([id, label, time]) => ({ id, label, time })), from: '', off: '', legacy: true, virtual: true }];
@@ -1680,7 +1954,30 @@ function renderMeds() {
       ${on.length ? `${groups}<div class="med-sum">${done === n ? `<b>${date === T ? '오늘' : esc(mdKo(date))} 약을 다 챙겼어요</b>` : `${done} / ${n} 챙겼어요`}</div>` : `<div class="empty">${date === T ? '오늘 챙길 약이 없어요.' : '이날은 챙길 약이 없었어요.'}</div>`}
       ${laterHtml}
     </div>
+    ${medTrendCard(T, all)}
     ${hist}`;
+}
+/* 최근 4주(오늘까지 28일) 약: 날마다 다 챙김·일부·못 챙김·약 없는 날 */
+function medTrendCard(T, all) {
+  const days = []; for (let i = 27; i >= 0; i--) days.push(addDays(T, -i));
+  [...new Set(days.map(ym))].forEach((k) => needMonth('meds', k));
+  let full = 0, had = 0;
+  const cells = days.map((d) => {
+    const on = all.filter((m) => medOn(m, d));
+    if (!on.length) return `<i title="${esc(md(d))} 약 없음"></i>`;
+    if (!monthReady('meds', ym(d))) return `<i class="wait${d === T ? ' t' : ''}"></i>`;
+    const doc = dayDoc('meds', d); let n = 0, done = 0;
+    for (const m of on) for (const t of m.times) { n++; if (medVal(doc, m, t.id)) done++; }
+    if (d !== T) { had++; if (done === n) full++; }
+    const cls = done === n ? 'full' : done ? 'part' : d === T ? '' : 'miss';
+    return `<i class="${cls}${d === T ? ' t' : ''}" title="${esc(md(d))} ${done}/${n}"></i>`;
+  }).join('');
+  if (!had) return '';
+  return `<div class="card"><div class="card-head"><h2>최근 4주 약</h2><span class="sub">어제까지 ${had}일 중 ${full}일 다 챙김</span></div><div class="trend">
+    <div class="trend-dots" role="img" aria-label="최근 4주 약: 어제까지 ${had}일 중 ${full}일 다 챙겼어요">${cells}</div>
+    <div class="trend-ax"><span>${esc(md(days[0]))}</span><span>오늘</span></div>
+    <div class="trend-key"><span><i style="background:var(--f-pre)"></i>다 챙김</span><span><i class="pk"></i>일부</span><span><i style="background:var(--accent-soft)"></i>못 챙김</span><span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>약 없는 날</span></div>
+  </div></div>`;
 }
 function medCheck(date, m, t, time) {
   const v = { time, who: meKey(), at: new Date().toISOString() };
@@ -1767,8 +2064,156 @@ async function medSave() {
   if (await patch('info', 'meds', { items: list })) { await closeSheet(); toast(i >= 0 ? '저장했어요' : `추가했어요 · ${medName(item)}`); }
 }
 
+/* ───────── 밥 (끼니 체크) ─────────
+ * 끼니는 정보 탭 '밥 먹는 시간'의 줄마다 하나. 체크는 그날 간식 문서의 meals.<끼니 번호> 자리에 남아요.
+ * 먼저 누른 사람이 남고(setnx), 늦게 누른 사람에게는 '이미 챙겼어요'가 떠서 두 번 주지 않게 해요. */
+const ATE = [['all', '다 먹음'], ['some', '조금 남김'], ['none', '안 먹음']];
+const ateName = (k) => (ATE.find((a) => a[0] === k) || [k, ''])[1];
+function mealRows(p) {
+  return (Array.isArray(p && p.feeding) ? p.feeding : []).map((x, i) => ({
+    id: /^[A-Za-z0-9_]{1,40}$/.test(String(x.id || '')) ? String(x.id) : `f${i}`,
+    label: String(x.time || '').trim() || `${i + 1}번째`, what: String(x.what || ''), how: String(x.how || ''), auto: /자동/.test(String(x.how || '')),
+  }));
+}
+const mealsDoc = (doc) => (doc && doc.meals && typeof doc.meals === 'object' && !Array.isArray(doc.meals) ? doc.meals : {});
+const mealVal = (doc, id) => { const v = mealsDoc(doc)[id]; return v && typeof v === 'object' ? v : null; };
+function mealChip(m, v) {
+  const cls = v ? (v.ate === 'none' ? ' on ate-none' : v.ate === 'some' ? ' on ate-some' : ' on') : m.auto ? ' auto' : '';
+  const said = v ? `${m.auto ? '확인' : '챙김'} ${timeKo(v.time)}${v.ate ? ` · ${ateName(v.ate)}` : ''}` : '체크하기';
+  return `<button class="mchip${cls}" type="button" data-act="home-meal" data-id="${esc(m.id)}" aria-label="${esc(m.label)} 밥 ${esc(said)}">${v ? IC.check : ''}${esc(m.label)}${v ? `<small>${esc(v.time || '')}</small>` : ''}</button>`;
+}
+function mealFind(id) { const p = mainPet(); return p ? mealRows(p).find((m) => m.id === id) || null : null; }
+function mealCheck(date, m, time) {
+  const v = { time, who: meKey(), at: new Date().toISOString() };
+  const done = mut('snacks', date, [['setnx', `meals.${m.id}`, v]], (doc) => {
+    const got = mealVal(doc, m.id);
+    if (got && got.at !== v.at) toast(`${iga(famName(got.who) || '다른 사람')} 이미 ${timeKo(got.time)}에 챙겼어요`);
+  });
+  if (done) toast(`${m.label} ${m.auto ? '자동급식기 확인했어요' : '밥 챙겼어요'} · ${timeKo(time)}`);
+}
+function mealSheet(date, m) {
+  const v = mealVal(dayDoc('snacks', date), m.id);
+  const who = v ? [famName(v.who), timeKo(v.time)].filter(Boolean).join(' · ') : '';
+  openSheet(`${m.label} 밥 · ${mdKo(date)}`, `<form class="form" id="meal-form" novalidate>
+      ${m.what ? `<div class="note"><span>${esc([m.what, m.how].filter(Boolean).join(' · '))}</span></div>` : ''}
+      ${v ? `<div class="note"><span>${esc(who)}에 체크했어요${v.by && v.by !== v.who && famName(v.by) ? ` · ${esc(famName(v.by))} 고침` : ''}</span></div>` : ''}
+      <div class="fld"><label for="ml-time">${m.auto ? '확인한 시간' : '챙긴 시간'}</label><input type="time" id="ml-time" value="${esc(v ? v.time : date === todayStr() ? hhmm() : '09:00')}"></div>
+      <div class="fld"><span class="lbl">얼마나 먹었나요 (선택)</span><div class="pick" role="group" data-pick="ate" data-toggle="1">${ATE.map(([k, l]) => `<button type="button" data-val="${k}" aria-pressed="${!!v && v.ate === k}">${esc(l)}</button>`).join('')}</div></div>
+      <button class="btn" type="submit">${v ? '고친 내용 저장' : '체크하기'}</button>
+      ${v ? '<button class="btn ghost" type="button" data-act="meal-undo">체크 취소</button>' : ''}
+    </form>`, (body) => {
+    F = { kind: 'meal', date, meal: m.id };
+    bindPicks(body);
+    body.querySelector('#meal-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const tm = $('#ml-time').value;
+      if (!/^\d{2}:\d{2}$/.test(tm)) { toast('시간을 골라 주세요.'); return; }
+      const ate = pickVal(body, 'ate') || '';
+      const nv = v ? { ...v, time: tm, ate, by: meKey(), edited: new Date().toISOString() } : { time: tm, who: meKey(), at: new Date().toISOString(), ate };
+      if (!ate) delete nv.ate;
+      if (mut('snacks', date, [[v ? 'set' : 'setnx', `meals.${m.id}`, nv]])) { await closeSheet(); toast(v ? '고쳤어요' : `${m.label} 밥 체크했어요 · ${timeKo(tm)}`); }
+    });
+  });
+}
+
+/* ───────── 건강 체크 (화장실·물·토·호흡수) ─────────
+ * 앱은 판정하지 않아요. 숫자를 남기고, 평소 값과 비교해 볼 수 있게만 보여 줘요. */
+function srrList(doc) { return (Array.isArray(doc && doc.srr) ? doc.srr : []).filter((x) => x && Number(x.bpm) > 0); }
+function healthLine(doc) {
+  if (!doc) return '';
+  const bits = HEALTH.filter(([k]) => doc[k] !== undefined && doc[k] !== null && doc[k] !== '').map(([k, l]) => `${l.replace(' 덩어리', '')} ${Number(doc[k]) || 0}`);
+  if (Number(doc.water) > 0) bits.push(`물 ${Number(doc.water)}ml`);
+  const sr = srrList(doc); if (sr.length) bits.push(`호흡 ${sr[sr.length - 1].bpm}회/분`);
+  if (doc.jump) bits.push('점프 힘들어함');
+  if (doc.note) bits.push(String(doc.note));
+  return bits.join(' · ');
+}
+/* 최근에 잰 호흡수 (불러와 있는 날짜에서, 최근 것부터) */
+function srrRecent(n) {
+  const days = new Map();
+  for (const [d, x] of Object.entries((S.raw && S.raw.health) || {})) days.set(d, x);
+  for (const m of Object.values(S.hist.health || {})) for (const [d, x] of Object.entries(m || {})) if (!days.has(d)) days.set(d, x);
+  for (const key of Object.keys(Q)) { const [c, d] = key.split('|'); if (c === 'health') days.set(d, dayDoc('health', d)); }
+  const out = [];
+  for (const d of [...days.keys()].filter(isDate).sort().reverse()) { const sr = srrList(dayDoc('health', d)).slice().reverse(); for (const x of sr) out.push({ ...x, date: d }); if (out.length >= n) break; }
+  return out.slice(0, n);
+}
+const median = (a) => { const s = a.slice().sort((x, y) => x - y); const n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : Math.round((s[n / 2 - 1] + s[n / 2]) / 2)) : 0; };
+function healthSheet(date) {
+  if (!docsReady()) { toast('서버를 새로 올린 뒤에 쓸 수 있어요.'); return; }
+  needMonth('health', ym(date));
+  const draw = () => {
+    const body = $('#sheet-body'); if (!body || !F || F.kind !== 'health') return;
+    const doc = dayDoc('health', date);
+    HEALTH.forEach(([k]) => { const inp = body.querySelector(`[data-hl="${k}"]`); if (inp && document.activeElement !== inp) inp.value = String(Number(doc[k]) || 0); const minus = body.querySelector(`[data-act="hl-step"][data-k="${k}"][data-d="-1"]`); if (minus) minus.disabled = !(Number(doc[k]) > 0); });
+    const w = body.querySelector('#hl-water'); if (w && document.activeElement !== w) w.value = Number(doc.water) > 0 ? String(Number(doc.water)) : '';
+    const j = body.querySelector('#hl-jump'); if (j) j.checked = !!doc.jump;
+    const sr = srrList(doc);
+    const box = body.querySelector('#hl-srr'); if (box) box.innerHTML = sr.length ? `<div class="slog">${sr.slice().reverse().map((x) => `<div><span class="t">${esc(timeKo(x.t))}</span><span>${esc(famName(x.who) || '')}</span><span class="dl">${esc(x.bpm)}회/분</span></div>`).join('')}</div>` : '<span class="mini-note">아직 안 쟀어요.</span>';
+  };
+  const p = mainPet(); const med = (p && p.medical) || {};
+  const rows = HEALTH.map(([k, l, u]) => `<div class="snack-row"><label class="nm" for="hl-${k}">${esc(l)} <span class="mini-note">(${u})</span></label><div class="stepper"><button class="icon-btn" type="button" data-act="hl-step" data-k="${k}" data-d="-1" aria-label="${esc(l)} 하나 빼기">${IC.minus}</button><input type="number" id="hl-${k}" data-hl="${k}" inputmode="numeric" pattern="[0-9]*" min="0" max="99" value="0" aria-label="${esc(l)} 개수"><button class="icon-btn plus" type="button" data-act="hl-step" data-k="${k}" data-d="1" aria-label="${esc(l)} 하나 더">${IC.plus}</button></div></div>`).join('');
+  openSheet(`건강 체크 · ${dayKo(date)}`, `<div class="form" id="health-form">
+      <span class="mini-note">화장실을 치울 때, 물을 갈 때 한 번씩 적어 두면 평소와 달라질 때 바로 알 수 있어요. 안 적은 칸은 비워 둬도 돼요.</span>
+      <div class="snack-list">${rows}</div>
+      <div class="fld"><label for="hl-water">물 마신 양 (ml)</label><div class="unit"><input type="number" id="hl-water" inputmode="numeric" min="0" max="2000" placeholder="예: 180"><span>ml</span></div><span class="hint">아침에 그릇에 넣은 물에서 다음 날 남은 물을 빼서 적어요.</span></div>
+      <div class="fld"><label for="hl-note">메모</label><input type="text" id="hl-note" maxlength="80" value="${esc(dayDoc('health', date).note || '')}" placeholder="예: 헤어볼, 소변 덩어리가 평소보다 큼"></div>
+      <label class="check"><input type="checkbox" id="hl-jump"${dayDoc('health', date).jump ? ' checked' : ''}><span>점프·높은 곳 오르기를 힘들어했어요</span></label>
+      <div class="fld"><span class="lbl">잘 때 호흡수</span><div id="hl-srr"></div><button class="btn ghost sm" type="button" data-act="srr-open" data-date="${date}" style="align-self:flex-start">호흡수 재기 (30초)</button></div>
+      <div class="warn-box"><b>이럴 땐 기다리지 말고 병원에 연락하세요</b><ul><li>화장실에 자주 가서 힘을 주는데 소변이 거의 안 나와요 (특히 수컷)</li><li>입을 벌리고 숨을 쉬거나 숨쉬기 힘들어해요</li></ul>${med.vetPhone ? `<a class="btn sm" href="tel:${esc(String(med.vetPhone).replace(/[^\d+]/g, ''))}" style="align-self:flex-start">${esc(med.vet || '병원')}에 전화하기</a>` : ''}<span class="mini-note">출처: 코넬대 고양이건강센터 하부요로질환 안내</span></div>
+    </div>`, () => { F = { kind: 'health', date, draw }; draw(); });
+}
+function healthStep(date, k, delta, setTo) {
+  const ops = [setTo === undefined ? ['inc', k, delta] : ['set', k, setTo]];
+  if (delta) ops.push(['log', 'log', [hhmm(), k, delta, meKey()]]);
+  const ok = mut('health', date, ops);
+  if (ok && F && F.kind === 'health' && F.draw) F.draw();
+  return ok;
+}
+/* 호흡수 재기: 숨 한 번(가슴이 한 번 오르내림)마다 누르면 30초 동안 세어서 1분 값으로 바꿔요 */
+const SR = { date: '', n: 0, t0: 0, timer: 0, done: false };
+function srrSheet(date) {
+  clearInterval(SR.timer); Object.assign(SR, { date, n: 0, t0: 0, timer: 0, done: false });
+  const recent = srrRecent(5); const base = recent.length >= 3 ? median(recent.map((x) => Number(x.bpm))) : 0;
+  openSheet('호흡수 재기', `<div class="form">
+      <span class="mini-note">고양이가 푹 잘 때 재요. 가슴이 한 번 오르내릴 때마다 아래를 한 번 눌러 주세요. 처음 누르면 ${SRR_SEC}초를 재요.</span>
+      <button class="srr-pad" type="button" id="srr-pad" data-act="srr-tap"><b id="srr-n">0</b><span id="srr-t">누르면 시작해요</span></button>
+      <div class="srr-res" id="srr-res" aria-live="polite"></div>
+      <div class="btn-row" id="srr-btns"><button class="btn ghost sm" type="button" data-act="srr-reset">처음부터</button></div>
+      ${recent.length ? `<div class="block"><span class="k">최근에 잰 값${base ? ` · 평소(가운데 값) ${base}회/분` : ''}</span><div class="slog">${recent.map((x) => `<div><span class="t">${esc(md(x.date))} ${esc(timeKo(x.t))}</span><span>${esc(famName(x.who) || '')}</span><span class="dl">${esc(x.bpm)}회/분</span></div>`).join('')}</div></div>` : ''}
+      <span class="mini-note">한 번 높게 나오면 조금 쉬었다가 다시 재 보세요. 평소 값과 비교해 보는 용도예요.</span>
+    </div>`, () => { F = { kind: 'srr', date }; });
+}
+function srrTick() {
+  const left = Math.max(0, SRR_SEC - Math.floor((performance.now() - SR.t0) / 1000));
+  const t = $('#srr-t'); if (t) t.textContent = left > 0 ? `${left}초 남았어요 · 숨 쉴 때마다 눌러요` : '다 쟀어요';
+  if (left <= 0) srrFinish();
+}
+function srrFinish() {
+  clearInterval(SR.timer); SR.timer = 0; SR.done = true;
+  const bpm = Math.round(SR.n * (60 / SRR_SEC));
+  const pad = $('#srr-pad'); if (pad) pad.classList.add('done');
+  const res = $('#srr-res'); if (res) res.textContent = `1분에 ${bpm}회 (${SRR_SEC}초에 ${SR.n}번)`;
+  const btns = $('#srr-btns'); if (btns) btns.innerHTML = `${SR.n ? '<button class="btn sm" type="button" data-act="srr-save">저장</button>' : ''}<button class="btn ghost sm" type="button" data-act="srr-reset">다시 재기</button>`;
+}
+
 /* ───────── 간식 체크리스트 ───────── */
 const snackName = (k) => (SNACKS.find((s) => s[0] === k) || [k, k])[1];
+/* 최근 30일 간식(사료 빼고) 막대 + 최근 7일과 그 전 7일 하루 평균. 판정 없이 숫자만 보여 줘요 */
+function snackTrendCard(T) {
+  const days = []; for (let i = 29; i >= 0; i--) days.push(addDays(T, -i));
+  [...new Set(days.map(ym))].forEach((k) => needMonth('snacks', k));
+  const vs = days.map((d) => SNACKS.reduce((s, [k]) => s + (k === 'food' ? 0 : Number(dayDoc('snacks', d)[k]) || 0), 0));
+  if (!vs.some(Boolean)) return '';
+  const max = Math.max(1, ...vs);
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+  const f1 = (x) => String(Math.round(x * 10) / 10);
+  return `<div class="card"><div class="card-head"><h2>최근 30일 간식</h2><span class="sub">사료 빼고</span></div><div class="trend">
+    <div class="trend-bars" role="img" aria-label="최근 30일 간식 하루 개수. 가장 많은 날 ${max}개, 최근 7일 하루 평균 ${f1(avg(vs.slice(-7)))}개">${vs.map((v, i) => `<i class="${v ? '' : 'z'}${days[i] === T ? ' t' : ''}" style="height:${v ? Math.max(8, Math.round((v / max) * 100)) : 4}%" title="${esc(md(days[i]))} ${v}개"></i>`).join('')}</div>
+    <div class="trend-ax"><span>${esc(md(days[0]))}</span><span>가장 많은 날 ${max}개</span><span>오늘</span></div>
+    <span class="mini-note">하루 평균 · 최근 7일 ${f1(avg(vs.slice(-7)))}개 · 그 전 7일 ${f1(avg(vs.slice(-14, -7)))}개</span>
+  </div></div>`;
+}
 function snackLogLine(e) {
   if (!Array.isArray(e)) return '';
   const n = Number(e[2]) || 0;
@@ -1781,7 +2226,7 @@ function snackChange(date, k, delta, setTo) {
 }
 function renderSnacks() {
   const el = $('#v-snacks');
-  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>간식 체크리스트</h1></div>${loadingOr('')}<div class="card"><div class="empty">트릿, 츄르, 덴탈과자, 사료, 기타를 하루에 몇 개 줬는지 적어요.</div></div>`; return; }
+  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>밥·간식 체크리스트</h1></div>${loadingOr('')}<div class="card"><div class="empty">끼니마다 밥을 챙겼는지, 트릿·츄르·덴탈과자를 몇 개 줬는지 적어요.</div></div>`; return; }
   const T = todayStr(); const date = curDay('snacks');
   needMonth('snacks', ym(date));
   const doc = dayDoc('snacks', date);
@@ -1805,15 +2250,25 @@ function renderSnacks() {
     grand += rowSum;
     body += `<tr class="${d === date ? 'sel' : ''}${d === T ? ' today' : ''}" data-act="day-set" data-tab="snacks" data-date="${d}"><td>${i}<small>${esc(wd(d))}</small></td>${cells}${rowSum ? `<td class="sum">${rowSum}</td>` : '<td class="sum z"><span>·</span></td>'}</tr>`;
   }
+  /* 밥: 끼니마다 한 칸 (지난날은 눌러서 시간을 넣어요) */
+  const p = mainPet(); const meals = p ? mealRows(p) : [];
+  const mealsHtml = meals.length ? `<div class="med-group"><div class="med-kind">밥</div><div class="med-list">${meals.map((m) => {
+    const v = mealVal(doc, m.id);
+    const sub = v ? [timeKo(v.time), famName(v.who), v.ate ? ateName(v.ate) : ''].filter(Boolean).join(' · ') : date === T ? [m.what, m.how].filter(Boolean).join(' · ') || '챙기면 눌러 주세요' : '체크 안 했어요';
+    return `<button class="med-slot${v ? ' on' : ''}" type="button" data-act="snack-meal" data-id="${esc(m.id)}" aria-pressed="${!!v}"><span class="ck">${IC.check}</span><span><b>${esc(m.label)}</b><span class="s">${esc(sub)}</span></span><span class="go">${v ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>`;
+  }).join('')}</div></div>` : (p && !S.readOnly ? `<div class="note"><span>정보 탭의 ‘밥 먹는 시간’을 정하면 끼니마다 체크할 수 있어요.</span><button class="link" type="button" data-act="edit-feed" data-pet="${esc(p.id)}" style="padding:0">정하기</button></div>` : '');
   el.innerHTML = `
-    <div class="view-head"><h1>간식 체크리스트</h1></div>
+    <div class="view-head"><h1>밥·간식 체크리스트</h1></div>
     <div class="card">
       ${dayNav('snacks', date)}
+      ${mealsHtml}
+      ${meals.length ? '<div class="med-kind" style="margin-top:4px">간식</div>' : ''}
       <div class="snack-list">${rows}</div>
       <div class="fld"><label for="sn-etc-note">기타는 무엇인가요</label><input type="text" id="sn-etc-note" maxlength="60" value="${esc(doc.etcNote || '')}" placeholder="예: 닭가슴살, 북어 트릿"></div>
       <div class="snack-total"><span>${date === T ? '오늘' : esc(mdKo(date))} 준 간식</span><span><b>${total}</b>개</span></div>
       ${log.length ? `<div class="slog" aria-label="준 기록">${log.slice(0, 8).map(snackLogLine).join('')}${log.length > 8 ? `<span class="muted" style="font-size:12.5px">그 전에 ${log.length - 8}번 더 있어요</span>` : ''}</div>` : ''}
     </div>
+    ${snackTrendCard(T)}
     <div class="card">
       ${monthNav('snacks', mk)}
       ${monthReady('snacks', mk) ? '' : '<div class="empty">이 달 기록을 불러오는 중이에요…</div>'}
@@ -1991,15 +2446,29 @@ function todayCard() {
     ? `<div class="t-row"><span class="t-lbl">약</span>${chips}<button class="t-end icon-btn" type="button" data-act="tab" data-tab="meds" aria-label="약 체크리스트 열기" style="width:32px;height:32px;background:none">${IC.right}</button></div>`
     : `<button class="t-row" type="button" data-act="tab" data-tab="meds"><span class="t-lbl">약</span><span class="t-val muted">${medItems().length ? '오늘 챙길 약이 없어요' : '챙길 약 추가하기'}</span><span class="t-end">${IC.right}</span></button>`;
   const sn = dayDoc('snacks', T);
-  const total = SNACKS.reduce((s, [k]) => s + (Number(sn[k]) || 0), 0);
-  const bits = SNACKS.filter(([k]) => Number(sn[k]) > 0).map(([k, l]) => `${l} ${Number(sn[k])}`);
+  const total = SNACKS.reduce((s, [k]) => s + (k === 'food' ? 0 : Number(sn[k]) || 0), 0);
+  const bits = SNACKS.filter(([k]) => k !== 'food' && Number(sn[k]) > 0).map(([k, l]) => `${l} ${Number(sn[k])}`);
   const ps = dayPhotos(dayDoc('diary', T));
+  const arrow = (tab, label) => `<button class="t-end icon-btn" type="button" data-act="tab" data-tab="${tab}" aria-label="${esc(label)}" style="width:32px;height:32px;background:none">${IC.right}</button>`;
+  /* 밥: 밥 먹는 시간마다 한 칩. 먼저 누른 사람이 남아서 둘이 두 번 주지 않게 */
+  const p = mainPet(); const meals = p ? mealRows(p) : [];
+  const md1 = mealsDoc(sn);
+  const mealRow = meals.length
+    ? `<div class="t-row"><span class="t-lbl">밥</span><div class="t-meds">${meals.map((m) => mealChip(m, md1[m.id])).join('')}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`
+    : (p && !S.readOnly ? `<button class="t-row" type="button" data-act="edit-feed" data-pet="${esc(p.id)}"><span class="t-lbl">밥</span><span class="t-val muted">밥 먹는 시간을 정하면 끼니마다 체크할 수 있어요</span><span class="t-end">${IC.right}</span></button>` : '');
+  /* 간식: 자주 주는 간식은 여기서 바로 +1 */
+  const quick = S.readOnly ? '' : `<span class="t-meds">${SNACKS.filter(([k]) => !['food', 'etc'].includes(k)).map(([k, , s]) => `<button class="mchip" type="button" data-act="home-snack" data-k="${k}" aria-label="${esc(snackName(k))} 하나 줬어요">+ ${esc(s)}</button>`).join('')}</span>`;
+  const snackRow = `<div class="t-row"><span class="t-lbl">간식</span><div class="t-two"><span class="t-val${total ? '' : ' muted'}">${total ? esc(`${total}개 · ${bits.join(', ')}`) : '오늘은 아직 안 줬어요'}</span>${quick}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`;
+  const hl = docsReady() ? healthLine(dayDoc('health', T)) : '';
+  const healthRow = docsReady() ? `<button class="t-row" type="button" data-act="health" data-date="${T}"><span class="t-lbl">건강</span><span class="t-val${hl ? '' : ' muted'}">${hl ? esc(hl) : '화장실·물·토·호흡수 적기'}</span><span class="t-end">${IC.right}</span></button>` : '';
   return `<div class="card">
       <div class="card-head"><h2>오늘 챙기기</h2><span class="sub">${esc(dayKo(T))}</span></div>
       <div class="tlist">
         ${medRow}
-        <button class="t-row" type="button" data-act="tab" data-tab="snacks"><span class="t-lbl">간식</span><span class="t-val${total ? '' : ' muted'}">${total ? esc(`${total}개 · ${bits.join(', ')}`) : '오늘은 아직 안 줬어요'}</span><span class="t-end">${IC.right}</span></button>
-        <button class="t-row" type="button" data-act="tab" data-tab="diary" data-dmode="day"><span class="t-lbl">사진</span><span class="t-val${ps.length ? '' : ' muted'}">${ps.length ? `${ps.length}장 올렸어요` : '오늘 사진 올리기'}</span><span class="t-end">${ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((p) => photoImg(p.id, 'thumb')).join('')}</span>` : ''}${IC.right}</span></button>
+        ${mealRow}
+        ${snackRow}
+        ${healthRow}
+        <button class="t-row" type="button" data-act="tab" data-tab="diary" data-dmode="day"><span class="t-lbl">사진</span><span class="t-val${ps.length ? '' : ' muted'}">${ps.length ? `${ps.length}장 올렸어요` : '오늘 사진 올리기'}</span><span class="t-end">${ps.length ? `<span class="t-thumbs">${ps.slice(0, 3).map((x) => photoImg(x.id, 'thumb')).join('')}</span>` : ''}${IC.right}</span></button>
       </div>
     </div>`;
 }
@@ -2023,6 +2492,7 @@ function lbShow() {
   $('#lb-prev').disabled = LB.i <= 0; $('#lb-next').disabled = LB.i >= LB.ids.length - 1;
   let top = '';
   if (date) { const p = dayPhotos(dayDoc('diary', date)).find((x) => x.id === id); top = [dayKo(date), parts(date).y !== parts(todayStr()).y ? `${parts(date).y}년` : '', p && famName(p.who) ? `${famName(p.who)} 올림` : ''].filter(Boolean).join(' · '); }
+  else if (LB.title) top = `${LB.title} · ${LB.i + 1}쪽`;
   $('#lb-top').textContent = top;
   const bar = [];
   if (many) bar.push(`<span>${LB.i + 1} / ${LB.ids.length}</span>`);
@@ -2031,15 +2501,26 @@ function lbShow() {
   $('#lb-bar').innerHTML = bar.join('');
   $('#lightbox').hidden = false;
 }
-function lbOpen(ids, i, dates, album) {
+function lbOpen(ids, i, dates, album, title) {
   LB.ids = ids.slice(); LB.i = Math.max(0, Math.min(ids.length - 1, i));
   LB.dates = Array.isArray(dates) ? dates.slice() : ids.map(() => dates || '');
-  LB.album = !!album; LB.confirm = false; lbShow();
+  LB.album = !!album; LB.confirm = false; LB.title = title || ''; lbShow();
 }
 function lbGo(dir) { const j = LB.i + dir; if ($('#lightbox').hidden || j < 0 || j >= LB.ids.length) return; LB.i = j; LB.confirm = false; lbShow(); }
 function lbClose() { $('#lightbox').hidden = true; LB.confirm = false; }
 
 /* ───────── chart ───────── */
+/* 몸무게 카드 아래 한 줄: 목표 몸무게, 마지막 체형 점수, 이번 달 체형 사진(위·옆) 남겼는지 */
+function bodyNote(p, ws, T) {
+  const tg = Number(p.targetKg) > 0 ? Number(p.targetKg) : 0;
+  const b = [...ws].reverse().find((w) => Number(w.bcs) >= 1 && Number(w.bcs) <= 9);
+  const photo = ws.some((w) => ym(w.date) === ym(T) && (w.photos || []).length);
+  const bits = [];
+  if (tg) bits.push(`목표 ${wt(tg)}`);
+  bits.push(b ? `체형 점수 ${b.bcs}/9 (${md(b.date)})` : '체형 점수는 아직 안 적었어요');
+  bits.push(photo ? '이번 달 체형 사진 있어요' : '이번 달 체형 사진(위·옆)을 아직 안 남겼어요');
+  return `<div class="note body-note"><span>${esc(bits.join(' · '))}</span>${!S.readOnly && !photo ? `<button class="link" type="button" data-act="add" data-kind="weight" data-pet="${esc(p.id)}" style="padding:0;white-space:nowrap">남기기</button>` : ''}</div>`;
+}
 function drawCharts() {
   document.querySelectorAll('[data-chart]').forEach((box) => {
     if (box.offsetParent === null) return;
@@ -2048,7 +2529,8 @@ function drawCharts() {
     const W = Math.max(260, Math.round(box.clientWidth)); const H = 176;
     const m = { l: 34, r: 46, t: 14, b: 24 };
     const x0 = utc(ws[0].date), x1 = utc(ws[ws.length - 1].date);
-    const maxKg = Math.max(...ws.map((w) => Number(w.kg)));
+    const tg = Number((S.pets[box.dataset.chart] || {}).targetKg) > 0 ? Number(S.pets[box.dataset.chart].targetKg) : 0;
+    const maxKg = Math.max(...ws.map((w) => Number(w.kg)), tg);
     const step = maxKg <= 3 ? 0.5 : 1;
     const yMax = Math.max(step, Math.ceil((maxKg + step * 0.15) / step) * step);
     const X = (d) => m.l + ((utc(d) - x0) / Math.max(1, x1 - x0)) * (W - m.l - m.r);
@@ -2074,7 +2556,8 @@ function drawCharts() {
     const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('');
     const area = `${line}L${pts[pts.length - 1][0].toFixed(1)} ${Y(0).toFixed(1)}L${pts[0][0].toFixed(1)} ${Y(0).toFixed(1)}Z`;
     const lp = pts[pts.length - 1];
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">${grid}${ticks}<path class="area" d="${area}"/><path class="ln" d="${line}"/><line class="cross" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/><circle class="hov" r="5" cx="0" cy="0" visibility="hidden"/><circle class="enddot" r="4.5" cx="${lp[0].toFixed(1)}" cy="${lp[1].toFixed(1)}"/><text class="endlbl" x="${(lp[0] + 8).toFixed(1)}" y="${(lp[1] + 4).toFixed(1)}">${esc(wt(ws[ws.length - 1].kg))}</text></svg><div class="tip" hidden></div>`;
+    const tgLine = tg ? `<line class="tgt" x1="${m.l}" x2="${W - m.r}" y1="${Y(tg).toFixed(1)}" y2="${Y(tg).toFixed(1)}"/><text class="tgtl" x="${m.l + 4}" y="${(Y(tg) - 5).toFixed(1)}">목표 ${esc(wt(tg))}</text>` : '';
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">${grid}${ticks}${tgLine}<path class="area" d="${area}"/><path class="ln" d="${line}"/><line class="cross" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/><circle class="hov" r="5" cx="0" cy="0" visibility="hidden"/><circle class="enddot" r="4.5" cx="${lp[0].toFixed(1)}" cy="${lp[1].toFixed(1)}"/><text class="endlbl" x="${(lp[0] + 8).toFixed(1)}" y="${(lp[1] + 4).toFixed(1)}">${esc(wt(ws[ws.length - 1].kg))}</text></svg><div class="tip" hidden></div>`;
     const svg = box.querySelector('svg'); const tip = box.querySelector('.tip'); const cross = svg.querySelector('.cross'); const hov = svg.querySelector('.hov');
     const show = (clientX) => {
       const r = svg.getBoundingClientRect(); const sx = ((clientX - r.left) / r.width) * W;
@@ -2097,10 +2580,15 @@ function drawCharts() {
 /* ───────── render loop ───────── */
 let raf = 0;
 const VIEWS = [...TABS, 'star'];
-function render() { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderNow(); }); }
-/* 30초마다 새로 불러올 때, 글자를 넣고 있는 중이면 다 넣을 때까지 화면을 다시 그리지 않아요 */
-const editing = () => { const a = document.activeElement; return !!(a && a.id !== 'rec-q' && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('#app').contains(a)); };
+/* 화면 안의 칸에 글자를 넣고 있거나 달력·시간 고르기 창이 열려 있으면(그 칸에 초점이 있으면) 다 쓸 때까지 화면을 다시 그리지 않아요.
+ * 다시 그리면 그 칸이 새로 바뀌면서 쓰던 글자가 사라지거나 아이폰 달력이 닫혀요. 칸에서 나오면 바로 그려요. */
+const editing = () => {
+  const a = document.activeElement;
+  if (!a || a.id === 'rec-q' || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || !$('#app').contains(a) || a.closest('#v-gate')) return false;
+  return !['button', 'submit', 'checkbox', 'radio', 'file', 'range', 'reset'].includes(String(a.type || '').toLowerCase());
+};
 let softWait = false;
+function render() { if (editing()) { softWait = true; return; } if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderNow(); }); }
 function softRender() { if (editing()) { softWait = true; return; } render(); }
 document.addEventListener('focusout', () => { if (softWait) setTimeout(() => { if (softWait && !editing()) { softWait = false; render(); } }, 0); });
 function renderNow() {
@@ -2155,15 +2643,39 @@ function writable() {
   if (S.fromCache) { toast('최신 기록을 불러오는 중이에요. 잠시 뒤 다시 눌러 주세요.'); load(); return false; }
   return true;
 }
-function afterWrite() { S.lastWriteAt = Date.now(); buildView(); saveCache(); render(); }
-async function put(col, id, data) {
+function afterWrite() { S.lastWriteAt = Date.now(); buildView(); saveCache(); render(); cycleCheckSoon(); }
+/* 둘이 같은 기록을 고쳤을 때: 서버가 돌려준 지금 내용을 받아 오고, 열린 폼은 그대로 둔 채 알려 줘요.
+ * 한 번 더 저장하면 그때는 내 내용으로 저장돼요. */
+function conflictLoad(col, id, curText) {
+  let cur = null;
+  try { cur = curText ? JSON.parse(curText) : null; } catch { cur = null; }
+  const c = { ...(S.raw[col] || {}) };
+  if (cur) c[id] = cur; else delete c[id];
+  S.raw[col] = c; S.lastWriteAt = Date.now(); buildView(); saveCache(); render();
+  const who = cur && famName(cur.who || cur.payer || '') ? famName(cur.who || cur.payer) : '';
+  if (F && (F.kind === 'record' || F.kind === 'expense') && F.id === id) {
+    if (cur) {
+      const fresh = (col === 'records' ? S.records : S.expenses).find((x) => x.id === id) || { ...cur, id };
+      F.orig = { ...fresh }; F.base = cur.updatedAt || '';
+      F.data = { ...F.data, updatedAt: cur.updatedAt, gsig: cur.gsig, gcal: cur.gcal };
+    } else { F.id = null; F.orig = null; F.base = ''; }
+    const form = $('#rec-form') || $('#exp-form');
+    if (form && !form.querySelector('.conflict-note')) form.insertAdjacentHTML('afterbegin', `<div class="warn-box conflict-note"><b>${cur ? '다른 사람이 먼저 이 기록을 고쳤어요' : '그사이 이 기록이 지워졌어요'}</b><span>${cur ? '새로 불러온 내용과 비교해 보고, 그래도 지금 내용으로 바꾸려면 한 번 더 저장해 주세요.' : '한 번 더 저장하면 새 기록으로 남아요.'}</span></div>`);
+    const sb = $('#sheet-body'); if (sb) sb.scrollTop = 0;
+  }
+  toast(cur ? `${who ? `${iga(who)} ` : '다른 사람이 '}먼저 고친 내용이 있어요. 확인하고 다시 저장해 주세요.` : '그사이 지워진 기록이에요.');
+}
+async function put(col, id, data, expect) {
   if (!writable()) return false;
   const doc = cleanDoc(data);
   try {
-    await retry(() => gsr('setDoc', col, id, JSON.stringify(doc)));
+    await retry(() => (expect ? gsr('setDoc', col, id, JSON.stringify(doc), expect) : gsr('setDoc', col, id, JSON.stringify(doc))));
     S.raw[col] = { ...(S.raw[col] || {}), [id]: doc };
     afterWrite(); return true;
-  } catch (e) { writeError(e); return false; }
+  } catch (e) {
+    if (e && e.code === 'CONFLICT') { conflictLoad(col, id, e.cur); return false; }
+    writeError(e); return false;
+  }
 }
 async function patch(col, id, data) {
   if (!writable()) return false;
@@ -2195,7 +2707,14 @@ async function saveRec(id, data, orig) {
   if (!writable()) return null;
   const doc = cleanDoc(data);
   const prev = orig ? cleanDoc(orig) : null;
-  const evId = (orig && orig._ev) || '';
+  /* 자동으로 넣은 ‘건강검진 시기’를 사람이 고치면 사람이 잡은(또는 다녀온) 검진이 돼요. 더는 주기에 따라 옮기지 않아요 */
+  const wasAuto = !!(orig && isAutoRec(orig) && isAutoRec(doc));
+  if (wasAuto) {
+    delete doc.auto;
+    if (doc.title === CYC_AUTO_TITLE && (doc.date !== orig.date || (doc.time || '') !== (orig.time || '') || doc.date <= todayStr() || doc.result)) doc.title = '건강검진';
+  }
+  /* 400일보다 먼 일정은 캘린더 목록에 안 들어와서, 기록에 적어 둔 일정 번호로 고쳐요 */
+  const evId = (orig && (orig._ev || (orig.gcal && isDate(orig.date) && orig.date > addDays(todayStr(), 390) ? orig.gcal : ''))) || '';
   try {
     const r = JSON.parse(await gsr('saveRecord', id || newId('r'), JSON.stringify(doc), prev ? JSON.stringify(prev) : '', evId));
     const recs = { ...(S.raw.records || {}) };
@@ -2204,8 +2723,16 @@ async function saveRec(id, data, orig) {
     S.raw.records = recs;
     putEvent(r.ev);
     afterWrite();
+    if (wasAuto) {
+      /* 이번 주기의 자동 일정은 사람 것이 됐어요: 나중에 그 예약을 지우면 다시 ‘검진 시기’를 넣을 수 있게 표시를 비워요 */
+      const sk = `${orig.pet}:${orig.cyc || 'checkup'}`; const cur = ((S.raw.info || {}).cycleAuto || {})[sk];
+      if (cur && cur.id === id) patch('info', 'cycleAuto', { [sk]: { ...cur, id: '', human: true } });
+    }
     return r;
-  } catch (e) { writeError(e); return null; }
+  } catch (e) {
+    if (e && e.code === 'CONFLICT' && id) { conflictLoad('records', id, e.cur); return null; }
+    writeError(e); return null;
+  }
 }
 async function removeRec(id, evId) {
   if (!writable()) return null;
@@ -2221,7 +2748,7 @@ async function removeRec(id, evId) {
 
 /* ───────── 구글 캘린더 + 데이터 시트 합치기 ───────── */
 const gcLinked = (r) => !!r && !!(r._ev || r.cal || r.src === 'gcal' || String(r.id || '').startsWith('g-'));
-const inWindow = (date) => isDate(date) && date >= (S.since || '2024-12-01');
+const inWindow = (date) => isDate(date) && date >= (S.since || '2024-12-01') && date <= addDays(todayStr(), 395);
 function applyEvent(r, ev, ctx, mapped, pre) {
   const d = pre || deriveFromEvent(ev, ctx, r);
   if (!d || !d.record) return;
@@ -2272,6 +2799,7 @@ function buildView() {
   }
   S.records = [...recs.values()].filter((r) => !r._gone && !excluded.has(r.id));
   S.expenses = [...exps.values()].filter((e) => !e._gone && !excluded.has(e.id));
+  S.docs = Object.entries(D.docs || {}).map(([id, d]) => ({ ...d, id })).filter((d) => isDate(d.date)).sort(byDateDesc);
   S.pets = D.pets || {};
   S.info = info;
 }
@@ -2280,7 +2808,7 @@ function buildView() {
 const CACHE_KEY = 'ddorong-cache-v1';
 function saveCache() {
   if (!S.raw || S.fromCache) return;
-  const text = JSON.stringify({ at: Date.now(), me: S.me, owner: S.owner, appUrl: S.appUrl, since: S.since, dayFrom: S.dayFrom, data: S.raw, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial });
+  const text = JSON.stringify({ at: Date.now(), v: S.srv, ai: S.ai, me: S.me, owner: S.owner, appUrl: S.appUrl, since: S.since, dayFrom: S.dayFrom, data: S.raw, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial });
   for (let t = 0; t < 3; t++) {
     try { localStorage.setItem(CACHE_KEY, text); return; } catch { tcEvict(30, ''); /* 작은 사진 몇 장을 비우고 다시 */ }
   }
@@ -2290,6 +2818,8 @@ function applyResult(r, fromCache) {
   if (r.fatal) { S.phase = 'nosheet'; S.fatalMsg = r.message || ''; S.raw = null; S.records = []; S.expenses = []; S.pets = {}; S.info = {}; return; }
   S.raw = r.data; S.events = Array.isArray(r.events) ? r.events : null; S.uids = r.uids || {};
   for (const c of DAY_COLS) if (!S.raw[c] || typeof S.raw[c] !== 'object') S.raw[c] = {};
+  if (!S.raw.docs || typeof S.raw.docs !== 'object') S.raw.docs = {};
+  S.srv = Number(r.v) || 0; S.ai = r.ai && typeof r.ai === 'object' ? r.ai : { on: false };
   S.calError = r.calError || ''; S.calPartial = !!r.calPartial;
   S.me = ''; S.owner = r.owner || S.owner; S.appUrl = r.appUrl || S.appUrl; S.since = r.since || S.since;
   S.dayFrom = r.dayFrom || S.dayFrom || '';
@@ -2306,7 +2836,9 @@ async function load(opts = {}) {
   try {
     const r = JSON.parse(await gsr('getAll'));
     if (started < S.lastWriteAt) S.reloadPending = true;
-    else { applyResult(r, false); saveCache(); }
+    else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); }
+    /* 지난번에 못 보낸 체크가 있으면 지금 보내요 */
+    if (Object.values(Q).some((q) => (q.pend || []).length && !q.flying)) setTimeout(() => flushAll(), 50);
     if (opts.manual) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : r.calError ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
   } catch (e) {
     const code = e && e.code;
@@ -2324,6 +2856,8 @@ async function load(opts = {}) {
 const clock = (ms) => { try { return new Date(ms).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
 function syncLine() {
   if (S.phase !== 'live') return '';
+  const pn = NET.failing ? pendingCount() : 0;
+  if (pn) return `<div class="sync-line"><i class="dot sync-warn"></i>보내지 못한 체크 ${pn}개를 이 폰에 보관 중이에요 · 인터넷이 연결되면 보낼게요</div>`;
   if (S.fromCache && S.loadError) return '<div class="sync-line"><i class="dot sync-warn"></i>인터넷이 안 돼서 마지막으로 불러온 기록을 보여 주고 있어요</div>';
   if (S.fromCache) return '<div class="sync-line"><i class="dot sync-off"></i>구글 캘린더에서 새 일정을 불러오는 중…</div>';
   if (S.calError) return '<button class="sync-line link" data-act="tab" data-tab="info" style="padding:0 4px"><i class="dot sync-warn"></i>구글 캘린더를 읽지 못했어요 · 확인하기 ›</button>';
@@ -2360,6 +2894,7 @@ function gcCard() {
       <li>금액을 <b>18,900원</b>처럼 적으면 지출에도 들어가요. 산 곳은 위치 칸, 이유는 설명 칸에 적어 주세요.</li>
       <li>캘린더에서 고치거나 지우면 앱에도 그대로 반영돼요. 앱에서 캘린더 일정을 고치면 캘린더도 같이 바뀌어요.</li>
       <li>사진과 검사 결과, 지출은 앱에만 저장돼요.</li>
+      <li><b>알림</b>: 폰의 구글 캘린더 앱 → 설정 → ‘${esc(name)}’ → 기본 알림(하루 종일 일정 알림 포함)을 켜 두면 병원·접종·예방약 일정 알림이 와요. 알림 설정은 사람마다 따로라서 두 폰에서 각자 켜야 해요.</li>
     </ul>
     <div class="fld"><span class="lbl">앱에서 새로 적은 기록을 캘린더에도 올리기</span>
       ${S.readOnly ? `<span class="v">${esc((pushOpts.find((o) => o[0] === push) || pushOpts[0])[1])}</span>` : `<div class="seg" role="group" aria-label="캘린더에 올리기">${pushOpts.map(([k, l]) => `<button type="button" data-act="push-mode" data-mode="${k}" aria-pressed="${push === k}">${l}</button>`).join('')}</div>`}
@@ -2547,6 +3082,726 @@ function photoGrid(ids, editable) {
   return tiles.length ? `<div class="photos" id="photo-grid" data-photos>${tiles.join('')}</div>` : '';
 }
 
+/* ───────── 병원 문서: 올리기 · 요약 보기 · 원본 보기 ─────────
+ * PDF는 이 폰에서 pdf.js로 페이지 그림과 글자를 만들어 올리고, 원본 파일은 3MB씩 나눠 따로 보관해요.
+ * 사진(영수증·종이 결과지를 찍은 것)은 사진 그대로 페이지가 돼요. AI 요약이 켜져 있으면 올린 뒤 바로 요약해요. */
+const docsReady = () => (S.srv || 0) >= 4;
+const isPdf = (f) => /pdf$/i.test(f.type || '') || /\.pdf$/i.test(f.name || '');
+const isImg = (f) => /^image\//i.test(f.type || '') || /\.(jpe?g|png|heic|heif|webp|gif)$/i.test(f.name || '');
+let docPick = null;
+$('#doc-in').addEventListener('change', (e) => {
+  const files = [...(e.target.files || [])]; e.target.value = '';
+  const cb = docPick; docPick = null;
+  if (cb && files.length) cb(files);
+});
+function pickDocFiles(cb) { docPick = cb; $('#doc-in').click(); }
+let pdfjsP = null;
+function loadPdfjs() {
+  if (window.pdfjsLib && window.pdfjsLib.getDocument) return Promise.resolve(window.pdfjsLib);
+  if (pdfjsP) return pdfjsP;
+  pdfjsP = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = PDFJS.base + PDFJS.lib; s.async = true; s.crossOrigin = 'anonymous';
+    if (PDFJS.libSri) s.integrity = PDFJS.libSri;
+    s.onload = async () => {
+      const lib = window.pdfjsLib;
+      if (!lib || !lib.getDocument) { pdfjsP = null; reject(codeErr('PDFJS')); return; }
+      /* 일꾼 파일은 같은 주소처럼 쓰려고 받아서 넣어요 (안 되면 pdf.js가 화면 쪽에서 직접 해요) */
+      try {
+        const r = await fetch(PDFJS.base + PDFJS.worker, PDFJS.workerSri ? { integrity: PDFJS.workerSri } : {});
+        if (!r.ok) throw new Error(`worker ${r.status}`);
+        lib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+      } catch { lib.GlobalWorkerOptions.workerSrc = PDFJS.base + PDFJS.worker; }
+      resolve(lib);
+    };
+    s.onerror = () => { pdfjsP = null; s.remove(); reject(codeErr('PDFJS')); };
+    document.head.appendChild(s);
+  });
+  return pdfjsP;
+}
+/* 페이지 글자: 같은 높이에 있는 조각을 한 줄로, 왼쪽부터 */
+function pageText(tc) {
+  const rows = [];
+  for (const it of (tc && tc.items) || []) {
+    if (!it || typeof it.str !== 'string' || !it.str.trim()) continue;
+    const x = it.transform[4], y = it.transform[5], h = Math.hypot(it.transform[2], it.transform[3]) || it.height || 10;
+    let row = null;
+    for (const r of rows) if (Math.abs(r.y - y) <= Math.max(2, h * 0.35)) { row = r; break; }
+    if (!row) { row = { y, items: [] }; rows.push(row); }
+    row.items.push({ x, w: it.width || 0, h, s: it.str });
+  }
+  rows.sort((a, b) => b.y - a.y);
+  return rows.map((r) => {
+    r.items.sort((a, b) => a.x - b.x);
+    let out = '', end = null;
+    for (const it of r.items) { if (end !== null && it.x - end > it.h * 0.25 && !/\s$/.test(out)) out += ' '; out += it.s; end = it.x + it.w; }
+    return out.replace(/\s+/g, ' ').trim();
+  }).filter(Boolean).join('\n');
+}
+function canvasJpeg(src, max, q) {
+  const sc = Math.min(1, max / Math.max(src.width, src.height));
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(src.width * sc)); c.height = Math.max(1, Math.round(src.height * sc));
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(src, 0, 0, c.width, c.height);
+  const out = c.toDataURL('image/jpeg', q); c.width = 1; c.height = 1;
+  return out;
+}
+async function pdfPages(file, onStep) {
+  const lib = await loadPdfjs();
+  const data = new Uint8Array(await file.arrayBuffer());
+  /* isEvalSupported: false — PDF 안의 글꼴 코드가 실행되지 않게 (pdf.js 보안 권고) */
+  const pdf = await lib.getDocument({ data, cMapUrl: PDFJS.base + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDFJS.base + 'standard_fonts/', isEvalSupported: false }).promise;
+  const total = pdf.numPages; const n = Math.min(total, DOC_MAX_PAGES);
+  const pages = []; const texts = [];
+  try {
+    for (let i = 1; i <= n; i++) {
+      onStep(i, n);
+      const page = await pdf.getPage(i);
+      try { texts.push(pageText(await page.getTextContent())); } catch { texts.push(''); }
+      const vp0 = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: Math.max(0.5, Math.min(2.5, 1240 / vp0.width)) });
+      const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvasContext: g, viewport: vp }).promise;
+      const full = c.toDataURL('image/jpeg', 0.8);
+      let thumb = canvasJpeg(c, 360, 0.7); if (thumb.length > 45000) thumb = canvasJpeg(c, 240, 0.6);
+      c.width = 1; c.height = 1; page.cleanup();
+      pages.push({ full, thumb });
+    }
+  } finally { try { await pdf.destroy(); } catch { /* 넘어감 */ } }
+  return { pages, total, text: texts.map((t, i) => (t ? `[${i + 1}쪽]\n${t}` : '')).filter(Boolean).join('\n\n') };
+}
+function pageBatches(pages) {
+  const out = []; let cur = [], size = 0;
+  for (const p of pages) {
+    const n = p.full.length + p.thumb.length;
+    if (cur.length && (cur.length >= 4 || size + n > 3500000)) { out.push(cur); cur = []; size = 0; }
+    cur.push(p); size += n;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+function fileB64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ''));
+    r.onerror = () => reject(r.error || new Error('READ'));
+    r.readAsDataURL(blob);
+  });
+}
+function b64Bytes(b64) { const bin = atob(b64); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+/* 원본 파일 올리기: 3MB씩, 끊기면 드라이브가 받은 곳부터 이어서 */
+async function uploadOriginal(file, onPct) {
+  const mime = String(file.type || (isPdf(file) ? 'application/pdf' : 'image/jpeg')).toLowerCase();
+  const st = JSON.parse(await retry(() => gsr('docUploadStart', JSON.stringify({ name: file.name || '병원 문서.pdf', mime, size: file.size }))));
+  let off = 0, fails = 0;
+  const guard = Math.ceil(file.size / st.chunk) * 3 + 10;
+  for (let g = 0; g < guard; g++) {
+    let r;
+    try {
+      r = JSON.parse(await gsr('docUploadChunk', st.up, off, await fileB64(file.slice(off, Math.min(file.size, off + st.chunk)))));
+      fails = 0;
+    } catch (e) {
+      if (AUTH_CODES.includes(e && e.code) || e.code === 'UPLOAD_GONE' || ++fails > 4) throw e;
+      await sleep(1200 * fails);
+      try { r = JSON.parse(await gsr('docUploadStatus', st.up)); } catch (e2) { if (e2 && e2.code === 'UPLOAD_GONE') throw e2; continue; }
+    }
+    if (r.done) return r.file;
+    off = Number(r.got) || 0; onPct(off / file.size);
+  }
+  throw codeErr('UPLOAD_STUCK');
+}
+function putDoc(id, text) {
+  const d = typeof text === 'string' ? JSON.parse(text) : text;
+  S.raw.docs = { ...(S.raw.docs || {}), [id]: d };
+  S.lastWriteAt = Date.now(); buildView(); saveCache(); render();
+  return d;
+}
+function docKindForRec(r) {
+  if (!r) return 'other';
+  if (isCheckupRec(r)) return 'checkup';
+  if (r.type === 'test') return 'lab';
+  if (r.type === 'vaccine') return 'vaccine';
+  if (/수술|중성화|발치|스케일링|시술/.test(r.title || '')) return 'surgery';
+  return 'other';
+}
+function docErr(e) {
+  const m = errText(e); const c = e && e.code;
+  if (c === 'PDFJS') return 'PDF를 여는 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 올려 주세요.';
+  if (/Password/i.test(m) || (e && e.name === 'PasswordException')) return '비밀번호가 걸린 PDF는 열 수 없어요.';
+  if (/Invalid PDF|InvalidPDF/i.test(m) || (e && e.name === 'InvalidPDFException')) return 'PDF 파일이 망가져서 열 수 없어요.';
+  if (c === 'NO_PAGES' || /BAD_IMAGE/.test(m)) return '문서를 읽지 못했어요. 다른 파일로 올려 주세요.';
+  if (c === 'NET') return '인터넷이 끊겨서 다 올리지 못했어요. 연결을 확인하고 다시 올려 주세요.';
+  if (/TOO_BIG/.test(m)) return '파일이 너무 커요.';
+  if (c === 'BAD_TYPE') return 'PDF나 사진(JPG·PNG)만 올릴 수 있어요.';
+  return '문서를 올리지 못했어요. 다시 해 주세요.';
+}
+function aiErr(e) {
+  const c = e && e.code;
+  return ({
+    AI_OFF: 'AI 요약이 꺼져 있어요. 정보 탭에서 켤 수 있어요.',
+    AI_KEY_BAD: 'AI 키가 맞지 않거나 쓸 수 없게 됐어요. 정보 탭에서 키를 다시 넣어 주세요.',
+    AI_BUSY: '지금 요청이 많아서 잠깐 쉬어야 해요. 조금 뒤에 다시 요약해 주세요.',
+    AI_TIMEOUT: '요약이 오래 걸려서 멈췄어요. 다시 요약해 볼까요?',
+    AI_TOO_BIG: '문서가 너무 커서 요약하지 못했어요.',
+    AI_EMPTY: '문서에서 읽을 글자가 없어요. 요약을 직접 적어 주세요.',
+    AI_DOWN: 'AI 서비스에 연결하지 못했어요. 조금 뒤에 다시 해 주세요.',
+    AI_NET: 'AI 서비스에 연결하지 못했어요. 조금 뒤에 다시 해 주세요.',
+    NET: '인터넷에 연결되지 않았어요.',
+  })[c] || 'AI가 요약하지 못했어요. 다시 요약해 볼까요?';
+}
+/* 올리는 중 화면 (닫아도 올리기는 계속돼요) */
+const UP = { on: false, id: '', steps: {}, i: 0, n: 0, pct: 0, pct2: 0, err: '', sumErr: '', origErr: false };
+const UP_STEPS = [['pages', '페이지 그림 만들기'], ['up', '올리기'], ['sum', 'AI가 읽고 요약하기'], ['orig', '원본 파일 보관하기']];
+function upHtml() {
+  return UP_STEPS.filter(([k]) => UP.steps[k] && UP.steps[k] !== 'skip').map(([k, l]) => {
+    const s = UP.steps[k];
+    let pc = '';
+    if (s === 'now' && k === 'pages' && UP.n) pc = `${UP.i} / ${UP.n}쪽`;
+    if (s === 'now' && k === 'up') pc = `${Math.round(UP.pct * 100)}%`;
+    if (s === 'now' && k === 'orig') pc = `${Math.round(UP.pct2 * 100)}%`;
+    if (s === 'fail') pc = k === 'sum' ? '못 했어요' : '못 했어요';
+    return `<div class="up-step ${s === 'now' ? 'now' : s === 'done' ? 'done' : s === 'fail' ? 'fail' : ''}"><span class="ck">${s === 'done' ? IC.check : ''}</span><span>${esc(l)}</span><span class="pc">${esc(pc)}</span></div>`;
+  }).join('');
+}
+function upDraw() {
+  const box = $('#up-steps'); if (!box) return;
+  box.innerHTML = upHtml();
+  const er = $('#up-err'); if (er) { er.textContent = UP.err || ''; er.hidden = !UP.err; }
+}
+function upOpen() {
+  F = { kind: 'docup' };
+  openSheet('병원 문서 올리기', `<div class="form"><div class="up-steps" id="up-steps">${upHtml()}</div><div class="warn-box" id="up-err" hidden></div><span class="mini-note">큰 PDF는 1~2분 걸릴 수 있어요. 이 창을 닫아도 앱을 켜 두면 계속 올려요.</span></div>`);
+}
+function docStart(opts = {}) {
+  if (!canEdit() || !docsReady()) { toast(docsReady() ? '기록을 다 불러온 뒤에 올려 주세요.' : '서버를 새로 올린 뒤에 쓸 수 있어요.'); return; }
+  if (UP.on) { toast('지금 올리는 문서가 끝나면 다시 올려 주세요.'); return; }
+  pickDocFiles((files) => docUploadFlow(files, opts));
+}
+async function docUploadFlow(files, opts = {}) {
+  if (!canEdit() || !docsReady()) return;
+  if (UP.on) { toast('지금 올리는 문서가 끝나면 다시 올려 주세요.'); return; }
+  const pdfs = files.filter(isPdf), imgs = files.filter((f) => !isPdf(f) && isImg(f));
+  if (!pdfs.length && !imgs.length) { toast('PDF 파일이나 사진만 올릴 수 있어요.'); return; }
+  if (pdfs.length > 1 || (pdfs.length && imgs.length)) { toast('PDF는 한 번에 하나씩 올려 주세요.'); return; }
+  const file = pdfs[0] || null;
+  if (file && file.size > 50 * 1024 * 1024) { toast('50MB보다 큰 파일은 올릴 수 없어요.'); return; }
+  const target = opts.doc ? S.docs.find((d) => d.id === opts.doc) || null : null;
+  const rec = !target && opts.rec ? S.records.find((r) => r.id === opts.rec) || null : null;
+  const id = target ? target.id : newId('doc');
+  const T = todayStr();
+  Object.assign(UP, { on: true, id, steps: { pages: 'now', up: 'wait', sum: !target && S.ai && S.ai.on ? 'wait' : 'skip', orig: file ? 'wait' : 'skip' }, i: 0, n: 0, pct: 0, pct2: 0, err: '', sumErr: '', origErr: false });
+  upOpen();
+  let ids = []; let saved = null;
+  try {
+    let pages = [], text = '', total = 0;
+    if (file) { const r = await pdfPages(file, (i, n) => { UP.i = i; UP.n = n; upDraw(); }); pages = r.pages; text = r.text; total = r.total; }
+    else {
+      const list = imgs.slice(0, 20); UP.n = list.length;
+      if (imgs.length > 20) toast('사진은 한 번에 20장까지 올릴 수 있어요. 앞의 20장만 올릴게요.');
+      for (let i = 0; i < list.length; i++) { UP.i = i + 1; upDraw(); pages.push(await compressImage(list[i])); }
+    }
+    if (!pages.length) throw codeErr('NO_PAGES');
+    if (total > DOC_MAX_PAGES) toast(`${total}쪽 중 앞의 ${DOC_MAX_PAGES}쪽만 그림으로 만들었어요. 원본은 전부 보관해요.`);
+    UP.steps.pages = 'done'; UP.steps.up = 'now'; upDraw();
+    const label = `${target ? docTitle(target) : rec ? rec.title || '병원 문서' : '병원 문서'} ${T}`;
+    const all = pages.reduce((s, p) => s + p.full.length, 0) || 1; let sent = 0;
+    for (const b of pageBatches(pages)) {
+      const got = JSON.parse(await retry(() => gsr('savePhotos', JSON.stringify(b), label, 'doc')));
+      got.forEach((pid, i) => { PH.thumb.set(pid, b[i].thumb); PH.full.set(pid, b[i].full); if (i === 0) tcPut(pid, b[i].thumb); });
+      ids.push(...got); sent += b.reduce((s, p) => s + p.full.length, 0); UP.pct = sent / all; upDraw();
+    }
+    const name = file ? file.name : `사진 ${pages.length}장`;
+    if (target) {
+      saved = putDoc(id, await retry(() => gsr('docPatch', id, JSON.stringify({ pages: ids, pagesTotal: total || ids.length, name }))));
+      for (const old of target.pages || []) if (!ids.includes(old)) dropPhoto(old);
+    } else {
+      const doc = { pet: (rec && rec.pet) || opts.pet || (mainPet() || {}).id || '', date: (rec && rec.date) || (isDate(opts.date) ? opts.date : T), rec: rec ? rec.id : '', kind: rec ? docKindForRec(rec) : 'other', title: '', hospital: (rec && rec.place) || '', pages: ids, pagesTotal: total || ids.length, file: null, sum: null, name, by: meKey(), fresh: true };
+      saved = putDoc(id, await retry(() => gsr('docSave', id, JSON.stringify(doc), text)));
+    }
+    ids = []; /* 이제 문서에 붙었으니 실패해도 지우지 않아요 */
+    UP.steps.up = 'done'; upDraw();
+    if (UP.steps.sum === 'wait') {
+      UP.steps.sum = 'now'; upDraw();
+      try { saved = putDoc(id, await gsr('docSummarize', id)); UP.steps.sum = 'done'; }
+      catch (e) { UP.steps.sum = 'fail'; UP.sumErr = aiErr(e); }
+      upDraw();
+    }
+    if (file) {
+      UP.steps.orig = 'now'; upDraw();
+      try {
+        const f = await uploadOriginal(file, (x) => { UP.pct2 = x; upDraw(); });
+        const old = target && target.file;
+        saved = putDoc(id, await retry(() => gsr('docPatch', id, JSON.stringify({ file: f }))));
+        if (old && old.id && old.id !== f.id) { /* 예전 원본은 지울 수 없어서(문서 파일만 지우는 함수가 없어요) 그대로 둬요 */ }
+        UP.steps.orig = 'done';
+      } catch (e) { UP.steps.orig = 'fail'; UP.origErr = true; }
+      upDraw();
+    }
+    UP.on = false;
+    if ($('#up-steps')) docDetail(id, { fresh: !target, sumErr: UP.sumErr, origErr: UP.origErr });
+    else toast(UP.origErr ? '문서는 올렸지만 원본 파일은 보관하지 못했어요' : target ? '원본을 붙였어요' : '문서를 올렸어요');
+  } catch (e) {
+    UP.on = false;
+    for (const x of ids) dropPhoto(x);
+    UP.err = docErr(e);
+    UP.steps = Object.fromEntries(Object.entries(UP.steps).map(([k, v]) => [k, v === 'now' ? 'fail' : v]));
+    upDraw();
+    if (!$('#up-steps')) toast(UP.err);
+  }
+}
+/* 문서와 이어 붙일 만한 기록: 같은 아이, 병원·검사·접종·예방약·증상, 앞뒤 3주 */
+function docRecChoices(d, date) {
+  const pid = d.pet || (mainPet() || {}).id;
+  const out = S.records.filter((r) => r.pet === pid && ['vet', 'test', 'vaccine', 'prevent', 'symptom'].includes(r.type) && isDate(r.date) && Math.abs(diffDays(r.date, date)) <= 21);
+  if (d.rec && !out.some((r) => r.id === d.rec)) { const r = S.records.find((x) => x.id === d.rec); if (r) out.push(r); }
+  return out.sort((a, b) => Math.abs(diffDays(a.date, date)) - Math.abs(diffDays(b.date, date)) || byDateDesc(a, b));
+}
+function bestRec(d, date, kind) {
+  const cs = docRecChoices(d, date);
+  if (kind === 'checkup') { const c = cs.find((r) => isCheckupRec(r) && Math.abs(diffDays(r.date, date)) <= 14); if (c) return c.id; }
+  const c2 = cs.find((r) => r.type === DOC_REC_TYPE[kind] && Math.abs(diffDays(r.date, date)) <= 3) || cs.find((r) => ['vet', 'test'].includes(r.type) && r.date === date);
+  return c2 ? c2.id : '';
+}
+const docLv = (lv) => `<span class="lv lv-${esc(lv || '참고')}">${esc(lv || '참고')}</span>`;
+function sumHtml(d) {
+  const s = d.sum; if (!s) return '';
+  const flags = (s.flags || []).filter((f) => f && f.item);
+  const nums = (s.numbers || []).filter((n) => n && n.name);
+  let numHtml = '';
+  if (nums.length) {
+    let cur = null, rows = '';
+    for (const n of nums) { if (n.g !== cur) { cur = n.g; if (cur) rows += `<tr><th scope="rowgroup" colspan="3">${esc(cur)}</th></tr>`; } rows += `<tr class="${n.flag === 'low' || n.flag === 'high' ? esc(n.flag) : ''}"><td>${esc(n.name)}</td><td class="v">${esc(n.value)}</td><td class="r">${n.range ? esc(n.range) : ''}</td></tr>`; }
+    numHtml = `<details class="sum-nums"><summary>검사 수치 전부 보기 (${nums.length}개)</summary><table class="ntbl"><thead><tr><th>항목</th><th>결과</th><th>정상 범위</th></tr></thead><tbody>${rows}</tbody></table></details>`;
+  }
+  const items = (s.items || []).filter((x) => x && x.name);
+  const src = s.src === 'ai' ? `AI(${s.provider === 'claude' ? 'Claude' : s.provider === 'gemini' ? 'Gemini' : 'AI'})가 문서를 읽고 정리했어요. 틀릴 수 있으니 중요한 건 원본과 수의사 설명으로 확인해 주세요.`
+    : s.src === 'ai-edited' ? `AI 요약을${s.editedBy && famName(s.editedBy) ? ` ${famName(s.editedBy)}가` : ''} 고쳤어요.`
+      : s.src === 'claude' ? 'Claude가 결과지를 읽고 정리했어요. 수치는 원본 그대로 옮겼어요.'
+        : `${s.editedBy && famName(s.editedBy) ? `${famName(s.editedBy)}가 ` : ''}직접 적은 요약이에요.`;
+  return `
+    ${s.oneLine ? `<div class="sum-one">${esc(s.oneLine)}</div>` : ''}
+    ${flags.length ? `<div class="sum-sec"><h4>살펴볼 것</h4><div>${flags.map((f) => `<div class="flag">${docLv(f.lv)}<div><b>${esc(f.item)}</b>${f.value ? `<span class="val">${esc(f.value)}</span>` : ''}${f.range ? `<span class="rng">정상 ${esc(f.range)}</span>` : ''}${f.note ? `<p>${esc(f.note)}</p>` : ''}</div></div>`).join('')}</div></div>` : ''}
+    ${(s.points || []).length ? `<div class="sum-sec"><h4>핵심 내용</h4><ul>${s.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${(s.todo || []).length ? `<div class="sum-sec"><h4>다음에 할 일</h4><ul class="todo">${s.todo.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${(s.meds || []).length ? `<div class="sum-sec"><h4>처방 약</h4><ul>${s.meds.map((x) => `<li><b>${esc(x.name)}</b>${x.how ? ` · ${esc(x.how)}` : ''}</li>`).join('')}</ul></div>` : ''}
+    ${s.total || items.length ? `<div class="sum-sec"><h4>진료비</h4>${items.length ? `<table class="ntbl"><tbody>${items.map((x) => `<tr><td>${esc(x.name)}</td><td class="v" style="text-align:right">${esc(won(x.amount))}</td></tr>`).join('')}</tbody></table>` : ''}${s.total ? `<div class="stat-line"><span class="muted">합계</span><b style="font-size:18px">${esc(won(s.total))}</b></div>` : ''}${S.readOnly ? '' : `<button class="btn ghost sm" type="button" data-act="doc-expense" data-id="${esc(d.id)}" style="align-self:flex-start">지출에 넣기</button>`}</div>` : ''}
+    ${isDate(s.next) ? `<div class="note"><span>다음 진료·재검 <b>${esc(dot(s.next))}</b></span>${S.readOnly ? '' : `<button class="link" type="button" data-act="doc-next" data-id="${esc(d.id)}" style="padding:0">일정 넣기</button>`}</div>` : ''}
+    ${numHtml}
+    <span class="sum-src">${esc(src)}</span>`;
+}
+function docMetaHtml(d, fresh) {
+  const s = d.sum || {};
+  const date = fresh && isDate(s.date) ? s.date : d.date;
+  const kind = fresh && DOC_KINDS[s.kind] && (!d.kind || d.kind === 'other' || d.kind === s.kind) ? s.kind : d.kind || 'other';
+  const title = d.title || (fresh ? s.title : '') || '';
+  const hosp = d.hospital || (fresh ? s.hospital : '') || '';
+  const rec = d.rec || (fresh ? bestRec(d, date, kind) : '');
+  const cs = docRecChoices(d, date);
+  const r0 = rec ? S.records.find((x) => x.id === rec) : null;
+  return `<form class="form" id="docmeta-form" novalidate>
+    ${fresh ? `<div class="note"><span>${s.date && s.date !== d.date ? `결과지에 적힌 날(${esc(mdKo(s.date))})로 넣었어요. ` : ''}날짜와 이어 붙일 기록을 확인하고 저장해 주세요.</span></div>` : ''}
+    <div class="two"><div class="fld"><label for="dm-date">문서 날짜</label><input type="date" id="dm-date" value="${esc(date)}"></div>
+    <div class="fld"><label for="dm-kind">종류</label><select id="dm-kind">${DOC_KIND_ORDER.map((k) => `<option value="${k}"${k === kind ? ' selected' : ''}>${esc(DOC_KINDS[k])}</option>`).join('')}</select></div></div>
+    <div class="fld"><label for="dm-title">제목</label><input type="text" id="dm-title" maxlength="60" value="${esc(title)}" placeholder="${esc(DOC_KINDS[kind])}"></div>
+    <div class="fld"><label for="dm-hosp">병원</label><input type="text" id="dm-hosp" maxlength="60" list="dl-dmh" value="${esc(hosp)}" placeholder="다니는 동물병원">${datalist('dl-dmh', S.records.map((x) => x.place))}</div>
+    <div class="fld"><label for="dm-rec">이어 붙일 기록</label><select id="dm-rec"><option value="">이어 붙이지 않기 (문서만 그날에)</option>${cs.map((r) => `<option value="${esc(r.id)}"${r.id === rec ? ' selected' : ''}>${esc(`${md(r.date)} ${(TYPES[r.type] || {}).label || ''} · ${r.title || ''}`)}</option>`).join('')}<option value="__new">새 기록 만들기 (${esc((TYPES[DOC_REC_TYPE[kind]] || {}).label || '병원')})</option></select>
+      <span class="hint">기록에 붙이면 그 기록을 열 때도 이 문서가 보여요.</span></div>
+    <label class="check" id="dm-move-box"${r0 && r0.date !== date ? '' : ' hidden'}><input type="checkbox" id="dm-move"${r0 && isAutoRec(r0) ? ' checked' : ''}><span>기록 날짜(<b id="dm-move-d">${r0 ? esc(mdKo(r0.date)) : ''}</b>)도 문서 날짜로 바꾸기</span></label>
+    <button class="btn" type="submit">저장</button>
+  </form>`;
+}
+function docDetail(id, opts = {}) {
+  const d = S.docs.find((x) => x.id === id); if (!d) return;
+  const rec = d.rec ? S.records.find((r) => r.id === d.rec) : null;
+  const fresh = !!(opts.fresh || d.fresh) && !S.readOnly;
+  const pages = (d.pages || []).filter(Boolean);
+  const edit = !S.readOnly;
+  const html = `<div class="detail" id="doc-detail">
+    <span class="row-sub">${famDot('med')}${esc(DOC_KINDS[d.kind] || '병원 문서')}${d.hospital ? ` · ${esc(d.hospital)}` : ''}</span>
+    <h3>${esc(docTitle(d))}</h3>
+    <div class="when">${esc(dot(d.date))} (${esc(wd(d.date))})${rec ? ` · <button class="link" type="button" data-act="open-record" data-id="${esc(rec.id)}" style="padding:0">${esc(rec.title || '기록')} 기록</button>` : ''}</div>
+    ${opts.sumErr ? `<div class="warn-box">${esc(opts.sumErr)}</div>` : ''}
+    ${opts.origErr ? '<div class="warn-box">원본 파일은 보관하지 못했어요. 페이지 그림과 요약은 저장됐어요. 아래 ‘원본 다시 붙이기’로 다시 올릴 수 있어요.</div>' : ''}
+    <div id="docmeta-slot">${fresh ? docMetaHtml(d, true) : ''}</div>
+    ${d.sum ? sumHtml(d) : `<div class="note"><span>${S.ai && S.ai.on ? '아직 요약이 없어요. AI로 요약하거나 직접 적어 주세요.' : '아직 요약이 없어요. 직접 적어 두거나, 정보 탭에서 AI 요약을 켜면 문서를 읽고 요약해 줘요.'}</span></div>`}
+    ${pages.length ? `<div class="sum-sec"><h4>원본 (${pages.length}쪽${d.pagesTotal > pages.length ? ` / 전체 ${d.pagesTotal}쪽` : ''})</h4><div class="doc-pages" data-doc="${esc(d.id)}">${pages.map((p, i) => `<button class="pg" type="button" data-act="doc-page" data-id="${esc(d.id)}" data-i="${i}" aria-label="${i + 1}쪽 크게 보기">${photoImg(p, 'thumb')}<span>${i + 1}</span></button>`).join('')}</div></div>` : ''}
+    <div class="btn-row">
+      ${pages.length ? `<button class="btn ghost sm" type="button" data-act="doc-page" data-id="${esc(d.id)}" data-i="0">원본 보기</button>` : ''}
+      ${d.file && d.file.id ? `<button class="btn ghost sm" type="button" data-act="doc-file" data-id="${esc(d.id)}">원본 파일 받기</button>` : ''}
+      ${edit && (!pages.length || !d.file) ? `<button class="btn ghost sm" type="button" data-act="doc-attach" data-id="${esc(d.id)}">${pages.length ? '원본 다시 붙이기' : '원본 파일 붙이기'}</button>` : ''}
+    </div>
+    ${edit ? `<div class="btn-row">
+      <button class="btn ghost sm" type="button" data-act="doc-sum-edit" data-id="${esc(d.id)}">${d.sum ? '요약 고치기' : '요약 직접 쓰기'}</button>
+      ${S.ai && S.ai.on && pages.length ? `<button class="btn ghost sm" type="button" data-act="doc-ai" data-id="${esc(d.id)}">${d.sum ? 'AI로 다시 요약' : 'AI로 요약하기'}</button>` : ''}
+      ${fresh ? '' : `<button class="btn ghost sm" type="button" data-act="doc-meta" data-id="${esc(d.id)}">날짜·종류 고치기</button>`}
+    </div>
+    <div class="btn-row"><button class="btn danger sm" type="button" data-act="doc-del-ask" data-id="${esc(d.id)}">문서 지우기</button></div><div id="docdel-slot"></div>` : ''}
+    <span class="muted" style="font-size:13px">${esc([d.by && famName(d.by) ? `${famName(d.by)} 올림` : '', d.name ? d.name : ''].filter(Boolean).join(' · '))}</span>
+  </div>`;
+  F = { kind: 'doc', id };
+  openSheet(DOC_KINDS[d.kind] || '병원 문서', html, (body) => { if (fresh) docMetaBind(body, d); });
+}
+function docMetaBind(body, d) {
+  const form = body.querySelector('#docmeta-form'); if (!form) return;
+  let lastDate = $('#dm-date').value, lastKind = $('#dm-kind').value;
+  const sync = (e) => {
+    if (e && e.target && e.target.id === 'dm-move') { e.target.dataset.touched = '1'; return; }
+    const date = $('#dm-date').value; const kind = $('#dm-kind').value; const sel = $('#dm-rec');
+    /* 날짜나 종류를 바꾸면 이어 붙일 기록 목록도 그 날짜 앞뒤로 다시 만들어요 */
+    if (isDate(date) && (date !== lastDate || kind !== lastKind)) {
+      const keep = sel.value; const cs = docRecChoices({ ...d, rec: keep && keep !== '__new' ? keep : '' }, date);
+      const pick = keep === '__new' || (keep && cs.some((r) => r.id === keep)) ? keep : bestRec(d, date, kind);
+      sel.innerHTML = `<option value="">이어 붙이지 않기 (문서만 그날에)</option>${cs.map((r) => `<option value="${esc(r.id)}"${r.id === pick ? ' selected' : ''}>${esc(`${md(r.date)} ${(TYPES[r.type] || {}).label || ''} · ${r.title || ''}`)}</option>`).join('')}<option value="__new"${pick === '__new' ? ' selected' : ''}>새 기록 만들기 (${esc((TYPES[DOC_REC_TYPE[kind]] || {}).label || '병원')})</option>`;
+      lastDate = date; lastKind = kind;
+    }
+    const rid = sel.value;
+    const r = rid && rid !== '__new' ? S.records.find((x) => x.id === rid) : null;
+    const box = $('#dm-move-box'); if (box) { box.hidden = !(r && isDate(date) && r.date !== date); const s = $('#dm-move-d'); if (s && r) s.textContent = mdKo(r.date); }
+    /* 자동으로 넣은 ‘건강검진 시기’에 붙이면 다녀온 날(문서 날짜)로 옮기는 게 기본이에요 */
+    const mv = $('#dm-move'); if (mv && !mv.dataset.touched) mv.checked = !!(r && isAutoRec(r));
+  };
+  form.addEventListener('change', sync);
+  form.addEventListener('submit', (e) => { e.preventDefault(); docMetaSave(d.id, e.submitter || form.querySelector('button[type=submit]')); });
+}
+async function docMetaSave(id, btn) {
+  const d = S.docs.find((x) => x.id === id); if (!d || !writable()) return;
+  const date = $('#dm-date').value;
+  if (!isDate(date)) { toast('날짜를 골라 주세요.'); return; }
+  const kind = DOC_KINDS[$('#dm-kind').value] ? $('#dm-kind').value : 'other';
+  const title = $('#dm-title').value.trim(); const hospital = $('#dm-hosp').value.trim();
+  let rec = $('#dm-rec').value;
+  const move = $('#dm-move') && $('#dm-move').checked && !$('#dm-move-box').hidden;
+  if (btn) btn.disabled = true;
+  try {
+    const now = new Date().toISOString();
+    if (rec === '__new') {
+      const type = DOC_REC_TYPE[kind] || 'vet';
+      const r = { type, pet: d.pet || (mainPet() || {}).id, date, time: '', title: title || (kind === 'checkup' ? '건강검진' : DOC_KINDS[kind]), place: hospital, memo: '', result: type === 'test' && d.sum && d.sum.oneLine ? d.sum.oneLine : '', kg: null, who: meKey(), photos: [], yearly: false, kind: '', src: 'app', ttPhotos: 0, updatedAt: now, createdAt: now };
+      if (kind === 'checkup') r.checkup = true;
+      const res = await saveRec(newId('r'), r, null);
+      if (!res) { if (btn) btn.disabled = false; return; }
+      rec = res.id;
+    } else if (rec) {
+      /* 기록 날짜도 옮기거나, 자동으로 넣은 ‘건강검진 시기’에 붙이면(다녀온 기록이 돼요) 그 기록도 저장해요 */
+      const r = S.records.find((x) => x.id === rec);
+      const moveIt = !!(move && r && r.date !== date);
+      if (r && (moveIt || isAutoRec(r))) {
+        const res = await saveRec(r.id, { ...r, date: moveIt ? date : r.date, updatedAt: now }, r);
+        if (!res) { if (btn) btn.disabled = false; return; }
+        rec = res.id;
+      }
+    }
+    putDoc(id, await retry(() => gsr('docPatch', id, JSON.stringify({ date, kind, title, hospital, rec, fresh: false }))));
+    toast('저장했어요');
+    docDetail(id);
+  } catch (e) { if (btn) btn.disabled = false; writeError(e); }
+}
+/* 요약 직접 쓰기·고치기: 한 줄에 하나씩. 살펴볼 것은 앞에 ‘주의:’ ‘관찰:’처럼 붙이면 표시가 달라져요 */
+const flagLine = (f) => [f.lv && f.lv !== '참고' ? `${f.lv}:` : '', f.item, f.value, f.range ? `(정상 ${f.range})` : '', f.note ? `— ${f.note}` : ''].filter(Boolean).join(' ');
+function docSumForm(id) {
+  const d = S.docs.find((x) => x.id === id); if (!d) return;
+  const s = d.sum || {};
+  const flagsText = (s.flags || []).map(flagLine).join('\n');
+  const html = `<form class="form" id="docsum-form" novalidate>
+    <div class="fld"><label for="ds-one">한 줄 요약</label><input type="text" id="ds-one" maxlength="160" value="${esc(s.oneLine || '')}" placeholder="예: 대부분 정상, 잇몸만 지켜보기"></div>
+    <div class="fld"><label for="ds-flags">살펴볼 것 (한 줄에 하나)</label><textarea id="ds-flags" placeholder="주의: 총단백 5.0 g/L (정상 5.7–8.9)&#10;관찰: 잇몸 치은염">${esc(flagsText)}</textarea><span class="hint">앞에 심각·경계·주의·관찰을 붙이면 색이 달라져요.</span></div>
+    <div class="fld"><label for="ds-points">핵심 내용 (한 줄에 하나)</label><textarea id="ds-points">${esc((s.points || []).join('\n'))}</textarea></div>
+    <div class="fld"><label for="ds-todo">다음에 할 일 (한 줄에 하나)</label><textarea id="ds-todo" style="min-height:64px">${esc((s.todo || []).join('\n'))}</textarea></div>
+    <div class="two"><div class="fld"><label for="ds-next">다음 진료·재검 (선택)</label><input type="date" id="ds-next" value="${esc(isDate(s.next) ? s.next : '')}"></div>
+    <div class="fld"><label for="ds-total">진료비 합계 (선택)</label><div class="unit"><input type="number" id="ds-total" inputmode="numeric" min="0" value="${s.total ? esc(s.total) : ''}"><span>원</span></div></div></div>
+    <button class="btn" type="submit">저장</button>
+  </form>`;
+  F = { kind: 'docsum', id };
+  openSheet(`${docTitle(d)} 요약`, html, (body) => {
+    body.querySelector('#docsum-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const lines = (sel) => $(sel).value.split('\n').map((x) => x.trim()).filter(Boolean);
+      const ft = $('#ds-flags').value;
+      const flags = ft.trim() === flagsText.trim() ? (s.flags || []) : lines('#ds-flags').slice(0, 12).map((x) => {
+        const m = /^(심각|경계|주의|관찰|참고)\s*[:：]?\s*(.+)$/.exec(x);
+        return { lv: m ? m[1] : '참고', item: (m ? m[2] : x).slice(0, 120), value: '', range: '', note: '' };
+      });
+      const total = parseInt(String($('#ds-total').value).replace(/[^\d]/g, ''), 10) || 0;
+      const sum = { ...s, v: 1, oneLine: $('#ds-one').value.trim(), flags, points: lines('#ds-points').slice(0, 10), todo: lines('#ds-todo').slice(0, 8), next: isDate($('#ds-next').value) ? $('#ds-next').value : '', total, src: s.src === 'ai' || s.src === 'ai-edited' ? 'ai-edited' : s.src === 'claude' ? 'claude' : 'manual', editedBy: meKey(), editedAt: new Date().toISOString() };
+      if (!sum.oneLine && !sum.flags.length && !sum.points.length && !sum.todo.length) { toast('한 줄이라도 적어 주세요.'); return; }
+      const btn = e.submitter || body.querySelector('button[type=submit]'); btn.disabled = true;
+      try { putDoc(id, await retry(() => gsr('docPatch', id, JSON.stringify({ sum })))); toast('요약을 저장했어요'); docDetail(id); }
+      catch (err) { btn.disabled = false; writeError(err); }
+    });
+  });
+}
+/* 원본 파일: 먼저 받아 두고(진행률), 다 받으면 그 버튼으로 공유·저장 (아이폰은 누른 순간에만 공유 창을 열 수 있어요) */
+const DF = { id: '', file: null, busy: false };
+async function docFileGet(id, btn) {
+  const d = S.docs.find((x) => x.id === id); if (!d || !d.file || DF.busy) return;
+  if (DF.id === id && DF.file) { docFileShare(); return; }
+  DF.busy = true; btn.disabled = true; btn.textContent = '원본 받는 중… 0%';
+  try {
+    const parts = []; let off = 0, total = Number(d.file.size) || 0;
+    for (let g = 0; g < 60; g++) {
+      const r = JSON.parse(await retry(() => gsr('docFileChunk', d.file.id, off, 0)));
+      if (!r.n) break;
+      parts.push(b64Bytes(r.b64)); off += r.n; total = Number(r.total) || total;
+      btn.textContent = `원본 받는 중… ${Math.min(99, Math.round((off / Math.max(1, total)) * 100))}%`;
+      if (off >= total) break;
+    }
+    DF.id = id; DF.file = new File(parts, d.file.name || '병원 문서.pdf', { type: d.file.mime || 'application/pdf' });
+    btn.textContent = navigator.canShare && navigator.canShare({ files: [DF.file] }) ? '다 받았어요 · 공유·저장하기' : '다 받았어요 · 파일로 저장하기';
+  } catch (e) { btn.textContent = '원본 파일 받기'; toast('원본을 받지 못했어요. 다시 눌러 주세요.'); }
+  DF.busy = false; btn.disabled = false;
+}
+function docFileShare() {
+  const file = DF.file; if (!file) return;
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: file.name }).catch(() => { /* 닫았어요 */ }); return; }
+  const url = URL.createObjectURL(file); const a = document.createElement('a');
+  a.href = url; a.download = file.name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 8000);
+}
+
+/* ───────── AI 요약 켜기 (정보 탭) ───────── */
+function aiCard() {
+  if (!docsReady()) return '';
+  const a = S.ai || {};
+  const prov = a.provider === 'claude' ? 'Claude (Anthropic)' : a.provider === 'gemini' ? 'Gemini (Google)' : '';
+  return `<div class="card" id="ai-card">
+    <div class="card-head"><h2>병원 문서 AI 요약</h2></div>
+    ${a.on ? `<div class="status-box"><span class="head"><i class="dot sync-ok"></i>켜져 있어요 · ${esc(prov)}</span><span class="muted">${esc(a.model || '')}${a.by && famName(a.by) ? ` · ${esc(famName(a.by))}가 켰어요` : ''}. 문서를 올리면 바로 읽고 요약해요.</span></div>`
+      : '<div class="status-box"><span class="head"><i class="dot sync-off"></i>꺼져 있어요</span><span class="muted">켜면 결과지·진료비 내역을 올릴 때 AI가 읽고 요약해요. 꺼져 있어도 문서는 올릴 수 있고 요약은 직접 적을 수 있어요.</span></div>'}
+    <ul class="rules">
+      <li><b>Claude</b>(Anthropic): 쓴 만큼만 내요. 글자로 된 PDF는 한 건에 몇십 원, 사진으로 찍은 문서는 100~200원쯤이에요. 보낸 문서를 AI 학습에 쓰지 않아요.</li>
+      <li><b>Gemini</b>(Google): 무료로 쓸 수 있어요. 다만 무료로 쓰면 보낸 문서를 구글이 서비스 개선에 쓰고 사람이 읽을 수도 있어요. 결과지에는 보호자 이름 같은 개인정보가 들어 있어요.</li>
+      <li>넣은 키는 서버에만 저장되고, 앱 화면이나 다른 폰에서는 다시 보이지 않아요.</li>
+    </ul>
+    ${S.readOnly ? '' : `<div class="btn-row"><button class="btn ghost sm" type="button" data-act="ai-key" data-p="claude">${a.on && a.provider === 'claude' ? 'Claude 키 바꾸기' : 'Claude 키 넣기'}</button><button class="btn ghost sm" type="button" data-act="ai-key" data-p="gemini">${a.on && a.provider === 'gemini' ? 'Gemini 키 바꾸기' : 'Gemini 키 넣기'}</button>${a.on ? '<button class="btn danger sm" type="button" data-act="ai-off">AI 요약 끄기</button>' : ''}</div><div id="ai-off-slot"></div>`}
+  </div>`;
+}
+const AI_KEY_MSG = { AI_KEY_FORMAT: '키 모양이 달라요. 처음부터 끝까지 빠짐없이 복사했는지 확인해 주세요.', AI_KEY_BAD: '키가 맞지 않거나 아직 쓸 수 없는 키예요. Claude는 크레딧을 충전했는지도 확인해 주세요.', AI_BUSY: '요청이 많아서 확인하지 못했어요. 조금 뒤에 다시 눌러 주세요.', NET: '인터넷에 연결되지 않았어요.' };
+function aiKeyForm(p) {
+  const C = p === 'claude';
+  openSheet(C ? 'Claude 키 넣기' : 'Gemini 키 넣기', `<form class="form" id="ai-form" novalidate>
+    <ol class="steps">
+      ${C ? '<li>브라우저에서 <b>platform.claude.com</b>에 가입하고 로그인해요.</li><li><b>Settings → Billing</b>에서 <b>Buy credits</b>로 크레딧을 충전해요. 5달러(약 7천 원)만 넣어도 문서 수십 건은 넉넉해요.</li><li><b>Settings → API keys</b> → <b>Create key</b>로 키를 만들고 복사해요. <b>sk-ant-</b>로 시작하고, 만들 때 한 번만 보여요.</li>'
+        : '<li>브라우저에서 <b>aistudio.google.com</b>에 구글 계정으로 로그인해요.</li><li><b>Get API key</b> → <b>Create API key</b>로 키를 만들고 복사해요. 보통 <b>AIza</b>로 시작해요.</li><li>개인정보가 걱정되면 그 키의 구글 클라우드 프로젝트에서 결제를 켜 두세요. 결제를 켜면 보낸 문서를 서비스 개선에 쓰지 않아요.</li>'}
+      <li>아래 칸에 붙여 넣고 <b>확인하고 켜기</b>를 눌러요. 서버가 키가 맞는지 먼저 확인해요.</li>
+    </ol>
+    <div class="fld"><label for="ai-key-in">${C ? 'Claude' : 'Gemini'} API 키</label><input type="password" id="ai-key-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${C ? 'sk-ant-…' : 'AIza…'}"></div>
+    <div class="warn-box" id="ai-err" hidden></div>
+    <button class="btn" type="submit">확인하고 켜기</button>
+  </form>`, (body) => {
+    F = { kind: 'ai' };
+    body.querySelector('#ai-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const key = String($('#ai-key-in').value || '').trim();
+      const er = $('#ai-err');
+      if (!key) { er.hidden = false; er.textContent = '키를 붙여 넣어 주세요.'; return; }
+      const btn = e.submitter || body.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = '확인하는 중…';
+      try {
+        S.ai = JSON.parse(await gsr('aiSetKey', key));
+        $('#ai-key-in').value = '';
+        await closeSheet(); render();
+        toast(`AI 요약을 켰어요 · ${S.ai.provider === 'claude' ? 'Claude' : 'Gemini'}`);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = '확인하고 켜기';
+        er.hidden = false; er.textContent = AI_KEY_MSG[err && err.code] || '키를 확인하지 못했어요. 잠시 뒤에 다시 눌러 주세요.';
+      }
+    });
+  });
+}
+
+/* ───────── 건강 수첩 · 병원에 보여 줄 요약 · 챙기는 주기 ───────── */
+const SURG_RE = /수술|중성화|발치|스케일링|시술|봉합/;
+const SURG_NOT = /경과|면회|면담|상담|실밥|재진|소독|예약|문의/;
+function surgeryRecs(pid) { const T = todayStr(); return recsOf(pid).filter((r) => ['vet', 'test'].includes(r.type) && SURG_RE.test(r.title || '') && !SURG_NOT.test(r.title || '') && isDate(r.date) && r.date <= T).sort(byDateDesc); }
+const telOf = (s) => String(s || '').replace(/[^\d+]/g, '');
+function medicalCard(p) {
+  const m = p.medical || {}; const T = todayStr();
+  const surg = surgeryRecs(p.id);
+  const cyc = cycleState(p.id, CYCLES[0]);
+  const none = '아직 안 적었어요';
+  const rows = [['알레르기·약 반응', m.allergy || none], ['앓은 병·지병', m.conditions || none], ['수술·시술', [m.surgery, ...surg.slice(0, 4).map((r) => `${dot(r.date)} ${r.title}`)].filter(Boolean).join('\n') || none], ['다니는 병원', [m.vet, m.vetPhone].filter(Boolean).join(' · ')], ['메모', m.note || '']];
+  const chk = !cyc.months ? '알림 꺼짐' : cyc.auto ? `다음 ${dot(cyc.auto.date)} (${dday(diffDays(T, cyc.auto.date))}) · 캘린더에 넣어 둠` : cyc.planned ? `예약 ${dot(cyc.planned.date)}` : cyc.due ? `다음 ${dot(cyc.due)} (${cyc.due < T ? '지났어요' : dday(diffDays(T, cyc.due))})` : '아직 검진 기록이 없어요';
+  return `<div class="card">
+    <div class="card-head"><h2>${esc(p.name)} 건강 수첩</h2>${S.readOnly ? '' : `<button class="link" type="button" data-act="edit-medical" data-pet="${esc(p.id)}">고치기</button>`}</div>
+    <dl class="kv" style="grid-template-columns:112px minmax(0,1fr)">${rows.filter(([, v]) => v).map(([k, v]) => `<dt>${esc(k)}</dt><dd style="white-space:pre-line">${esc(v)}</dd>`).join('')}</dl>
+    <div class="note"><span>건강검진 · ${cyc.months ? `${esc(monthsKo(cyc.months))}마다 · ` : ''}${esc(chk)}</span>${S.readOnly ? '' : `<button class="link" type="button" data-act="cycle" data-pet="${esc(p.id)}" data-cyc="checkup" style="padding:0;white-space:nowrap">주기 바꾸기</button>`}</div>
+    <div class="btn-row"><button class="btn ghost sm" type="button" data-act="vet-report" data-pet="${esc(p.id)}">병원에 보여 줄 요약</button>${telOf(m.vetPhone) ? `<a class="btn ghost sm" href="tel:${esc(telOf(m.vetPhone))}">병원에 전화</a>` : ''}<button class="btn ghost sm" type="button" data-act="cycle" data-pet="${esc(p.id)}" data-cyc="">챙기는 주기</button></div>
+  </div>`;
+}
+function medicalForm(pid) {
+  const p = S.pets[pid]; if (!p) return;
+  const m = p.medical || {};
+  const surg = surgeryRecs(pid);
+  const ta = (id, label, val, ph, hint = '') => `<div class="fld"><label for="${id}">${label}</label><textarea id="${id}" style="min-height:56px" placeholder="${esc(ph)}">${esc(val || '')}</textarea>${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+  openSheet(`${p.name} 건강 수첩`, `<form class="form" id="medical-form" novalidate>
+    ${ta('md-allergy', '알레르기·약 반응', m.allergy, '예: 항생제 OO에 구토, 닭고기 알레르기', '병원을 옮기거나 응급실에 갈 때 꼭 필요한 정보예요.')}
+    ${ta('md-cond', '앓은 병·지병', m.conditions, '예: 2025.11 범백 항체 안 생김')}
+    ${ta('md-surg', '수술·시술 (기록에 없는 것)', m.surgery, '예: 2026.03 발치 1개', surg.length ? `기록에서 찾은 것: ${esc(surg.slice(0, 4).map((r) => `${dot(r.date)} ${r.title}`).join(', '))}` : '')}
+    <div class="two"><div class="fld"><label for="md-vet">다니는 병원</label><input type="text" id="md-vet" maxlength="40" list="dl-mdv" value="${esc(m.vet || '')}">${datalist('dl-mdv', S.records.map((x) => x.place))}</div>
+    <div class="fld"><label for="md-tel">병원 전화</label><input type="tel" id="md-tel" maxlength="20" value="${esc(m.vetPhone || '')}" placeholder="02-000-0000"></div></div>
+    ${ta('md-note', '메모', m.note, '예: 약은 츄르에 섞어야 먹어요')}
+    <button class="btn" type="submit">저장</button></form>`, (body) => {
+    F = { kind: 'medical', pid };
+    body.querySelector('#medical-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const v = (id) => $(`#${id}`).value.trim();
+      const medical = { allergy: v('md-allergy'), conditions: v('md-cond'), surgery: v('md-surg'), vet: v('md-vet'), vetPhone: v('md-tel'), note: v('md-note'), updatedAt: new Date().toISOString() };
+      if (await patch('pets', pid, { medical })) { await closeSheet(); toast('저장했어요'); }
+    });
+  });
+}
+function vetReportText(pid) {
+  const p = S.pets[pid] ? { id: pid, ...S.pets[pid] } : null; if (!p) return '';
+  const T = todayStr(); const L = [];
+  L.push(`${p.name} 건강 요약 (${dot(T)} 기준)`);
+  L.push([p.breed, p.sex, isDate(p.birth) ? `${ageText(p.birth, T)} (${dot(p.birth)}생)` : '', isDate(p.neutered) ? `중성화 ${dot(p.neutered)}` : ''].filter(Boolean).join(' · '));
+  const ws = weightsOf(pid);
+  if (ws.length) { const last = ws[ws.length - 1]; L.push(`몸무게 ${wt(last.kg)} (${dot(last.date)})${ws.length > 1 ? ` · 그 전: ${ws.slice(-5, -1).reverse().map((w) => `${wt(w.kg)} (${md(w.date)})`).join(', ')}` : ''}`); }
+  const bcs = [...ws].reverse().find((w) => Number(w.bcs) >= 1 && Number(w.bcs) <= 9);
+  if (bcs || Number(p.targetKg) > 0) L.push([bcs ? `체형 점수 ${bcs.bcs}/9 (${dot(bcs.date)}, 9점 척도)` : '', Number(p.targetKg) > 0 ? `목표 몸무게 ${wt(p.targetKg)}` : ''].filter(Boolean).join(' · '));
+  const m = p.medical || {};
+  L.push('');
+  L.push(`알레르기·약 반응: ${m.allergy || '기록 없음'}`);
+  if (m.conditions) L.push(`앓은 병·지병: ${m.conditions}`);
+  const surg = [m.surgery, ...surgeryRecs(pid).map((r) => `${dot(r.date)} ${r.title}`)].filter(Boolean);
+  if (surg.length) L.push(`수술·시술: ${surg.join(', ')}`);
+  const meds = medItems().filter((x) => medOn(x, T));
+  if (meds.length) L.push(`지금 챙기는 약: ${meds.map((x) => `${medName(x)}${x.dose ? ` (${x.dose})` : ''} ${x.times.map(tLabel).join('·')}`).join(' / ')}`);
+  for (const c of cyclesOf(pid)) if (c.last) L.push(`${c.label}: 마지막 ${dot(c.last.date)} ${c.last.title}${c.booked ? ` · 예약 ${dot(c.booked.date)}` : c.auto ? ` · 다음 ${dot(c.auto.date)}` : ''}`);
+  const chk = S.docs.filter((d) => d.kind === 'checkup' && (!d.pet || d.pet === pid) && d.sum).sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (chk) {
+    L.push('');
+    L.push(`최근 건강검진 ${dot(chk.date)}${chk.hospital ? ` (${chk.hospital})` : ''}: ${chk.sum.oneLine || ''}`);
+    for (const f of docFlags(chk)) L.push(`  · ${f.lv} ${f.item}${f.value ? ` ${f.value}` : ''}${f.range ? ` (정상 ${f.range})` : ''}`);
+  }
+  const syms = recsOf(pid).filter((r) => r.type === 'symptom' && isDate(r.date) && r.date >= addDays(T, -30) && r.date <= T).sort(byDateDesc);
+  if (syms.length) { L.push(''); L.push(`최근 30일 증상: ${syms.map((r) => `${md(r.date)} ${r.title}${r.memo ? ` (${String(r.memo).slice(0, 40)})` : ''}`).join(', ')}`); }
+  const days = []; for (let i = 0; i < 7; i++) days.push(addDays(T, -i));
+  const hs = days.map((d) => [d, healthLine(dayDoc('health', d))]).filter(([, h]) => h);
+  if (hs.length) { L.push(''); L.push('최근 7일 건강 체크'); for (const [d, h] of hs) L.push(`  · ${md(d)} ${h}`); }
+  const refused = days.map((d) => [d, Object.values(mealsDoc(dayDoc('snacks', d))).filter((v) => v && v.ate === 'none').length]).filter(([, n]) => n);
+  if (refused.length) L.push(`최근 7일 밥 안 먹은 끼니: ${refused.map(([d, n]) => `${md(d)} ${n}번`).join(', ')}`);
+  if (m.vet || m.vetPhone) { L.push(''); L.push(`다니는 병원: ${[m.vet, m.vetPhone].filter(Boolean).join(' ')}`); }
+  return L.join('\n');
+}
+function vetReport(pid) {
+  const text = vetReportText(pid); if (!text) return;
+  openSheet('병원에 보여 줄 요약', `<div class="form"><span class="mini-note">진료 볼 때 이 화면을 보여 주거나, 공유해서 병원에 보내세요.</span><div class="report" id="vet-report">${esc(text)}</div>
+    <div class="btn-row"><button class="btn" type="button" data-act="report-share">공유하기</button><button class="btn ghost" type="button" data-act="report-copy">복사하기</button></div></div>`, () => { F = { kind: 'report', text }; });
+}
+/* 건강검진 주기 칸 아래: 공유 캘린더에 넣어 둔 상태를 알려 줘요 */
+function cycCalNote(c) {
+  if (!CAL_CYCLES.includes(c.key) || !c.months) return '';
+  const st = ((S.info || {}).cycleAuto || {})[`${c.pid}:${c.key}`] || null;
+  if (c.auto) return '다음 날짜를 공유 캘린더에 하루 종일 일정으로 넣어 뒀어요. 주기를 바꾸면 그 일정도 옮겨져요.';
+  if (c.booked) return '잡아 둔 검진이 지나면 그다음 날짜를 공유 캘린더에 자동으로 넣어 둬요.';
+  if (!c.last) return '검진 기록이나 결과지가 생기면 다음 날짜를 공유 캘린더에 자동으로 넣어 둬요.';
+  if (c.due < todayStr()) return '다음 날짜가 지났어요. 병원 날짜를 잡아 기록해 두면 그 날짜가 떠요.';
+  if (st && st.id && st.for === c.last.date && st.months === c.months) return '캘린더에 넣어 둔 일정을 지워서 다시 넣지 않았어요. 주기를 바꾸거나 새 검진을 기록하면 다시 넣어 줘요.';
+  return '다음 날짜를 공유 캘린더에 넣는 중이에요.';
+}
+function cycleSheet(pid, focus) {
+  const p = pid && S.pets[pid] ? { id: pid, ...S.pets[pid] } : mainPet(); if (!p) return;
+  const draw = () => {
+    const box = $('#cyc-list'); if (!box || !F || F.kind !== 'cycle') return;
+    const T = todayStr();
+    box.innerHTML = cyclesOf(p.id).map((c) => {
+      const opts = CYCLE_OPTS[c.key] || [1, 3, 6, 12];
+      const custom = !!c.months && !opts.includes(c.months);
+      const status = !c.months ? '띄우지 않아요' : c.auto ? `캘린더에 넣어 둔 날 ${dot(c.auto.date)} · ${dday(diffDays(T, c.auto.date))}` : c.planned ? `잡아 둔 날 ${dot(c.planned.date)}` : c.due ? `다음 ${dot(c.due)} · ${c.due < T ? '지났어요' : dday(diffDays(T, c.due))}` : '아직 기록이 없어요';
+      const editing = F.custom === c.key;
+      return `<div class="cyc-row${c.key === focus ? ' focus' : ''}" id="cyc-${c.key}">
+        <div class="head"><b>${esc(c.label)}</b><span class="s">${esc(status)}</span></div>
+        <span class="s">${c.last ? `마지막 ${esc(dot(c.last.date))} · ${esc(c.last.title)}` : '마지막 기록이 없어요'}</span>
+        ${S.readOnly ? '' : `<div class="pick" role="group" aria-label="${esc(c.label)} 주기">${opts.map((n) => `<button type="button" data-act="cyc-set" data-cyc="${c.key}" data-n="${n}" aria-pressed="${c.months === n && !editing}">${n ? `${esc(monthsKo(n))}마다` : '안 띄움'}</button>`).join('')}<button type="button" data-act="cyc-custom" data-cyc="${c.key}" aria-pressed="${custom || editing}">${custom ? `${esc(monthsKo(c.months))}마다` : '직접'}</button></div>`}
+        ${editing ? `<div class="inline"><input type="number" id="cyc-n" inputmode="numeric" min="1" max="60" value="${esc(c.months || '')}" aria-label="몇 개월마다"><button class="btn sm" type="button" data-act="cyc-custom-save" data-cyc="${c.key}">개월마다</button></div>` : ''}
+        ${c.key === 'checkup' ? '<span class="mini-note">나이가 많거나(보통 10살 넘으면) 지병이 있으면 6개월마다처럼 더 자주 권하는 경우가 많아요. 다니는 병원 안내를 따라 주세요.</span>' : ''}
+        ${cycCalNote(c) ? `<span class="mini-note">${esc(cycCalNote(c))}</span>` : ''}
+        ${!S.readOnly && c.auto ? `<div class="btn-row"><button class="btn ghost sm" type="button" data-act="edit-record" data-id="${esc(c.auto.id)}">예약한 날로 고치기</button></div>` : ''}
+        ${!S.readOnly && c.months && !c.planned ? `<div class="btn-row"><button class="btn ghost sm" type="button" data-act="cyc-book" data-cyc="${c.key}">${c.key === 'checkup' ? '검진 날짜 잡기' : '다음 날짜 넣기'}</button></div>` : ''}
+      </div>`;
+    }).join('');
+  };
+  openSheet(`${p.name} 챙기는 주기`, `<div class="form"><span class="mini-note">마지막 기록에서 이만큼 지나면 홈의 ‘다가오는 일’과 달력에 ‘예상’으로 떠요. 날짜를 잡아 기록해 두면 그 날짜가 대신 떠요. 건강검진은 다음 날짜를 공유 캘린더에도 자동으로 넣어 둬요.</span><div id="cyc-list"></div></div>`, () => {
+    F = { kind: 'cycle', pid: p.id, draw, custom: '' }; draw();
+    if (focus) requestAnimationFrame(() => { const el = $(`#cyc-${focus}`); if (el) el.scrollIntoView({ block: 'nearest' }); });
+  });
+}
+async function cycleSave(pid, key, n) {
+  const p = S.pets[pid]; if (!p) return false;
+  const cycles = { ...(p.cycles || {}), [key]: Math.max(0, Math.min(60, Math.round(Number(n) || 0))) };
+  const ok = await patch('pets', pid, { cycles });
+  if (ok && F && F.kind === 'cycle') { F.custom = ''; F.draw(); }
+  if (ok && CAL_CYCLES.includes(key)) cycleCheckSoon(200, true);
+  return ok;
+}
+/* ───────── 건강검진 주기 → 공유 캘린더 ─────────
+ * 다음 검진 날짜(마지막 검진 + 주기)를 공유 캘린더에 하루 종일 일정으로 넣어 두게 서버에 부탁해요.
+ * 서버가 잠금 안에서 다시 확인하니까 두 폰이 같이 열어도 하나만 생겨요. 이 폰은 필요할 때만 불러요. */
+const CYC = { busy: false, timer: 0, loud: false, tried: {}, sent: new Set() };
+const cycMemo = (c) => `${monthsKo(c.months)}마다 받는 건강검진 시기예요 (지난번 검진 ${dot(c.last.date)}). 병원을 예약하면 이 일정의 날짜·시간을 예약한 날로 고쳐 주세요. - 또롱이 수첩`;
+function cycWant(pid, key) {
+  const def = CYCLES.find((x) => x.key === key); if (!def || !S.raw) return null;
+  const c = cycleState(pid, def); const T = todayStr();
+  const L = c.last ? c.last.date : '';
+  const rows = Object.entries(S.raw.records || {}).filter(([, r]) => r && r.pet === pid && isAutoRec(r) && r.cyc === key && isDate(r.date));
+  const fut = rows.filter(([, r]) => r.date >= T);
+  const stale = rows.filter(([, r]) => r.date < T && r.cycFor !== L);
+  const st = ((S.info || {}).cycleAuto || {})[`${pid}:${key}`] || null;
+  /* booked: 사람이 잡아 둔 검진(캘린더에만 있는 일정 포함)이 있으면 서버가 자동 일정을 빼요 */
+  const pay = { pet: pid, key, months: c.months, last: L, due: c.due || '', title: CYC_AUTO_TITLE, memo: L ? cycMemo(c) : '', booked: !!c.booked };
+  /* 지금 이 폰이 보고 있는 상태: 같은 부탁을 같은 상태에서 두 번 보내지 않게 */
+  const fp = JSON.stringify([pay, rows.map(([k, r]) => [k, r.date, r.title, r.memo || '', r.cycFor || '', r.months || 0]).sort(), st, c.booked ? c.booked.id : '']);
+  const want = (yes) => (yes ? { pay, fp } : null);
+  const extra = fut.length > 0 || stale.length > 0;
+  if (!c.months || !L || c.booked) return want(extra);
+  const same = !!(st && st.for === L && st.months === c.months);
+  if (c.due < T) return want(extra || !(same && st.overdue));
+  if (same && st.id) {
+    const mine = fut.find(([k]) => k === st.id);
+    if (!mine) return want(extra); /* 지운 일정은 다시 넣지 않아요 */
+    const r = mine[1];
+    return want(fut.length > 1 || stale.length > 0 || r.date !== c.due || r.title !== pay.title || (r.memo || '') !== pay.memo);
+  }
+  return want(true);
+}
+function cycleCheckSoon(ms = 900, loud = false) {
+  if (loud) CYC.loud = true;
+  clearTimeout(CYC.timer); CYC.timer = setTimeout(() => { cycleCheck(); }, ms);
+}
+async function cycleCheck() {
+  if (CYC.busy) { cycleCheckSoon(700); return; }
+  if (!docsReady() || S.readOnly || S.phase !== 'live' || S.fromCache || !S.raw || NET.failing) { CYC.loud = false; return; }
+  CYC.busy = true;
+  const loud = CYC.loud; CYC.loud = false;
+  try {
+    for (const p of homePets()) {
+      for (const key of CAL_CYCLES) {
+        const w = cycWant(p.id, key); if (!w) continue;
+        /* 같은 상태에서 이미 보낸 부탁은 다시 안 보내요. 실패한 것은 10분 뒤에 다시 */
+        if (CYC.sent.has(w.fp) || (CYC.tried[w.fp] && Date.now() - CYC.tried[w.fp] < 10 * 60e3)) continue;
+        CYC.tried[w.fp] = Date.now();
+        try { const r = JSON.parse(await gsr('cycleEnsure', JSON.stringify(w.pay))); CYC.sent.add(w.fp); delete CYC.tried[w.fp]; cycApply(r, loud); } catch (e) { /* 다음에 다시 해 봐요 */ }
+      }
+    }
+  } finally { CYC.busy = false; }
+}
+function cycApply(r, loud) {
+  if (!r || !S.raw) return;
+  const recs = { ...(S.raw.records || {}) };
+  for (const k of r.removed || []) delete recs[k];
+  for (const [k, v] of Object.entries(r.put || {})) recs[k] = v;
+  S.raw.records = recs;
+  if (r.ev) putEvent(r.ev);
+  if ((r.removedEv || []).length && Array.isArray(S.events)) S.events = S.events.filter((x) => !r.removedEv.includes(x.id));
+  if (r.cycleAuto) S.raw.info = { ...(S.raw.info || {}), cycleAuto: r.cycleAuto };
+  afterWrite();
+  if (F && F.kind === 'cycle' && F.draw) F.draw();
+  if (loud && isDate(r.date)) {
+    if (r.state === 'created') toast(`다음 건강검진 시기(${dot(r.date)})를 공유 캘린더에 넣어 뒀어요`);
+    else if (r.state === 'moved') toast(`캘린더의 건강검진 시기를 ${dot(r.date)}로 옮겼어요`);
+  }
+}
+
 /* ───────── sheets ───────── */
 let F = null; // 열려 있는 폼 상태
 function openSheet(title, html, onMount) {
@@ -2555,9 +3810,27 @@ function openSheet(title, html, onMount) {
 }
 async function closeSheet() {
   if (F && F.fresh && F.fresh.length) { for (const id of F.fresh) dropPhoto(id); }
-  F = null; S.addDate = ''; $('#sheet').hidden = true; $('#sheet-body').innerHTML = '';
+  if (F && F.kind === 'srr') { clearInterval(SR.timer); SR.timer = 0; }
+  F = null; S.addDate = ''; $('#sheet').hidden = true; $('#sheet-body').innerHTML = ''; $('#sheet').style.height = ''; $('#sheet').style.top = '';
 }
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
+/* 아이폰 키보드가 올라오면 보이는 높이만큼 시트를 줄이고, 누른 칸이 키보드에 가려지지 않게 올려요 */
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const fit = () => {
+    const w = $('#sheet');
+    if (w.hidden) { w.style.height = ''; w.style.top = ''; return; }
+    const kb = window.innerHeight - vv.height > 80;
+    w.style.height = kb ? `${Math.round(vv.height)}px` : '';
+    w.style.top = kb ? `${Math.round(vv.offsetTop)}px` : '';
+  };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
+}
+$('#sheet').addEventListener('focusin', (e) => {
+  const t = e.target;
+  if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+  setTimeout(() => { try { t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* 넘어감 */ } }, 320);
+});
 document.addEventListener('keydown', (e) => {
   const lb = !$('#lightbox').hidden;
   if (e.key === 'Escape') { if (lb) lbClose(); else if (!$('#sheet').hidden) closeSheet(); }
@@ -2569,13 +3842,13 @@ const whoPicker = (name, val) => `<div class="pick" role="group" data-pick="${na
 
 function addMenu(petId) {
   const p = petId ? S.pets[petId] : null; const star = !!(p && p.status === 'star');
-  const tiles = ADD_TILES.filter(([k]) => !star || (k !== 'weight' && k !== 'expense'));
-  openSheet(star ? `${p.name} 기록 남기기` : '무엇을 남길까요?', `<div class="tiles">${tiles.map(([k, l, d]) => `<button class="tile${k === 'expense' ? ' money' : ''}" data-act="add" data-kind="${k}"${petId ? ` data-pet="${esc(petId)}"` : ''}><b>${famDot(k === 'expense' ? 'money' : TYPES[k].fam)}${esc(l)}</b><span>${esc(d)}</span></button>`).join('')}</div>`);
+  const tiles = ADD_TILES.filter(([k]) => (!star || (k !== 'weight' && k !== 'expense' && k !== 'doc')) && (k !== 'doc' || docsReady()));
+  openSheet(star ? `${p.name} 기록 남기기` : '무엇을 남길까요?', `<div class="tiles">${tiles.map(([k, l, d]) => `<button class="tile${k === 'expense' ? ' money' : ''}" data-act="add" data-kind="${k}"${petId ? ` data-pet="${esc(petId)}"` : ''}><b>${k === 'doc' ? DOC_IC : famDot(k === 'expense' ? 'money' : TYPES[k].fam)}${esc(l)}</b><span>${esc(d)}</span></button>`).join('')}</div>`);
 }
 
-function recordForm(rec, kind, petId) {
+function recordForm(rec, kind, petId, preset) {
   const T = todayStr(); const isNew = !rec;
-  const r = rec ? { ...rec } : { type: kind, pet: petId || mainPet()?.id, date: S.addDate || T, time: '', title: '', place: '', memo: '', result: '', kg: null, who: meKey(), photos: [], yearly: false, kind: '' };
+  const r = rec ? { ...rec } : { type: kind, pet: petId || mainPet()?.id, date: S.addDate || T, time: '', title: '', place: '', memo: '', result: '', kg: null, who: meKey(), photos: [], yearly: false, kind: '', ...(preset || {}) };
   const type = r.type; const t = TYPES[type];
   const pet = S.pets[r.pet];
   F = { kind: 'record', id: rec ? rec.id : null, data: r, orig: rec ? { ...rec } : null, photos: [...(r.photos || [])], fresh: [], dropped: [] };
@@ -2584,11 +3857,14 @@ function recordForm(rec, kind, petId) {
   const places = S.records.map((x) => x.place);
   const titles = [...(SUGGEST[type] || []), ...S.records.filter((x) => x.type === type).map((x) => x.title)];
   const showPlace = !['weight', 'milestone'].includes(type);
+  const autoHint = rec && isAutoRec(rec) ? `<div class="note"><span>${rec.date > T ? '자동으로 넣은 건강검진 시기예요. 병원을 예약했다면 예약한 날짜·시간으로 바꿔 주세요.' : '자동으로 넣은 건강검진 시기예요. 다녀온 날짜와 결과를 적어 주세요.'} 저장하면 이 일정은 주기에 따라 옮겨지지 않아요.</span></div>` : '';
   const html = `<form class="form" id="rec-form" novalidate>
+    ${autoHint}
     ${homePets().length > 1 || (pet && pet.status === 'star') ? `<div class="fld"><span class="lbl">누구</span><div class="pick" role="group" data-pick="pet">${petList().map((x) => `<button type="button" data-val="${esc(x.id)}" aria-pressed="${x.id === r.pet}">${esc(x.name)}</button>`).join('')}</div></div>` : ''}
     <div class="two"><div class="fld"><label for="f-date">날짜</label><input type="date" id="f-date" value="${esc(r.date)}" required></div>
     ${type === 'weight' || type === 'milestone' ? '<div></div>' : `<div class="fld"><label for="f-time">시간 (선택)</label><input type="time" id="f-time" value="${esc(r.time || '')}"></div>`}</div>
     ${type === 'weight' ? `<div class="fld"><label for="f-kg">몸무게</label><div class="unit"><input type="number" id="f-kg" inputmode="decimal" step="0.01" min="0" max="30" value="${r.kg ?? ''}" placeholder="4.5" required><span>kg</span></div><span class="hint">520g이면 0.52처럼 kg으로 적어 주세요.</span></div>` : `<div class="fld"><label for="f-title">${type === 'milestone' ? '어떤 날' : '무엇을'}</label><input type="text" id="f-title" list="dl-title" value="${esc(r.title)}" placeholder="${esc((SUGGEST[type] || [])[0] || '')}" required>${datalist('dl-title', titles)}</div>`}
+    ${type === 'weight' ? `<div class="fld"><span class="lbl">체형 점수 (선택)</span><div class="pick bcs" role="group" aria-label="체형 점수 1부터 9" data-pick="bcs" data-toggle="1">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button type="button" data-val="${n}" aria-pressed="${Number(r.bcs) === n}">${n}</button>`).join('')}</div><span class="hint">9점 척도예요. 5점은 얇은 지방 아래로 갈비뼈가 만져지고, 위에서 보면 갈비뼈 뒤로 허리가 들어가 보여요. 한 달에 한 번 위·옆에서 찍은 사진을 아래에 같이 올려 두면 체형 변화를 보기 쉬워요.</span></div>` : ''}
     ${showPlace ? `<div class="fld"><label for="f-place">어디서 (선택)</label><input type="text" id="f-place" list="dl-place" value="${esc(r.place)}" placeholder="다니는 동물병원">${datalist('dl-place', places)}</div>` : ''}
     ${type === 'test' ? `<div class="fld"><label for="f-result">결과</label><textarea id="f-result" placeholder="수치나 의사 선생님 말씀을 그대로 적어 두세요">${esc(r.result)}</textarea></div>` : ''}
     <div class="fld"><label for="f-memo">메모 (선택)</label><textarea id="f-memo" placeholder="${type === 'symptom' ? '언제, 어떻게, 몇 번' : '다음에 기억할 것'}">${esc(r.memo)}</textarea></div>
@@ -2607,7 +3883,11 @@ function recordForm(rec, kind, petId) {
       d.date = $('#f-date').value || T;
       if (!isDate(d.date)) { toast('날짜를 골라 주세요.'); return; }
       d.time = $('#f-time') ? $('#f-time').value : '';
-      if (type === 'weight') { const v = parseFloat(String($('#f-kg').value).replace(',', '.')); if (!(v > 0)) { toast('몸무게를 kg으로 적어 주세요.'); return; } d.kg = Math.round(v * 1000) / 1000; d.title = '몸무게'; }
+      if (type === 'weight') {
+        const v = parseFloat(String($('#f-kg').value).replace(',', '.')); if (!(v > 0)) { toast('몸무게를 kg으로 적어 주세요.'); return; }
+        d.kg = Math.round(v * 1000) / 1000; d.title = '몸무게';
+        const bv = Number(pickVal(body, 'bcs')); if (bv >= 1 && bv <= 9) d.bcs = bv; else delete d.bcs;
+      }
       else { d.title = $('#f-title').value.trim(); if (!d.title) { toast('무엇을 했는지 적어 주세요.'); return; } }
       d.place = $('#f-place') ? $('#f-place').value.trim() : (d.place || '');
       d.result = $('#f-result') ? $('#f-result').value.trim() : (d.result || '');
@@ -2634,10 +3914,11 @@ function recordForm(rec, kind, petId) {
   });
 }
 
-function expenseForm(exp) {
+function expenseForm(exp, preset) {
   const T = todayStr(); const isNew = !exp;
-  const e0 = exp ? { ...exp } : { pet: mainPet()?.id || '', date: S.addDate || T, category: '', item: '', amount: '', place: '', reason: '', payer: meKey(), photos: [] };
-  F = { kind: 'expense', id: exp ? exp.id : null, data: e0, photos: [...(e0.photos || [])], fresh: [], dropped: [] };
+  const e0 = exp ? { ...exp } : { pet: mainPet()?.id || '', date: S.addDate || T, category: '', item: '', amount: '', place: '', reason: '', payer: meKey(), photos: [], ...(preset || {}) };
+  const stored = exp && !exp.virtual && S.raw.expenses ? S.raw.expenses[exp.id] : null;
+  F = { kind: 'expense', id: exp ? exp.id : null, data: e0, photos: [...(e0.photos || [])], fresh: [], dropped: [], base: (stored && stored.updatedAt) || '' };
   const all = allExpenses();
   const html = `<form class="form" id="exp-form" novalidate>
     <div class="two"><div class="fld"><label for="e-date">날짜</label><input type="date" id="e-date" value="${esc(e0.date)}"></div>
@@ -2670,7 +3951,7 @@ function expenseForm(exp) {
       const id = F.id || newId('x');
       const dropped = F.dropped.slice();
       const btn = ev.submitter || body.querySelector('button[type=submit]'); btn.disabled = true;
-      const ok = await put('expenses', id, d);
+      const ok = await put('expenses', F.id || id, d, F.id ? F.base : '');
       btn.disabled = false;
       if (!ok) return;
       F.fresh = [];
@@ -2686,7 +3967,7 @@ function bindPicks(body) {
     const b = e.target.closest('button[data-val]'); if (!b) return;
     const was = b.getAttribute('aria-pressed') === 'true';
     g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
-    if (!(was && g.dataset.pick === 'cat')) b.setAttribute('aria-pressed', 'true');
+    if (!(was && (g.dataset.pick === 'cat' || g.dataset.toggle))) b.setAttribute('aria-pressed', 'true');
   }));
 }
 const pickVal = (body, name) => { const g = body.querySelector(`[data-pick="${name}"]`); if (!g) return undefined; const b = g.querySelector('button[aria-pressed="true"]'); return b ? b.dataset.val : ''; };
@@ -2695,20 +3976,34 @@ function recordDetail(id) {
   const r = S.records.find((x) => x.id === id); if (!r) return;
   const t = TYPES[r.type] || { label: '기록', fam: 'out' }; const pet = S.pets[r.pet];
   const title = r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title;
+  const T = todayStr(); const auto = isAutoRec(r);
   const blocks = [];
+  const ds = docsOfRec(r.id);
   if (r.place) blocks.push(['어디서', r.place]);
-  if (r.type === 'test') blocks.push(['결과', r.result || '아직 적지 않았어요']);
-  if (r.memo) blocks.push(['메모', r.memo]);
+  if (r.type === 'weight' && Number(r.bcs) >= 1) blocks.push(['체형 점수', `${r.bcs} / 9`]);
+  if (r.type === 'test' && (r.result || (!ds.length && r.date <= T && !auto))) blocks.push(['결과', r.result || '아직 적지 않았어요']);
+  if (r.memo && !auto) blocks.push(['메모', r.memo]);
+  const docList = ds.length ? `<div class="block"><span class="k">붙인 병원 문서</span><div class="list">${ds.map((d) => docRow(d)).join('')}</div></div>` : '';
+  const canDoc = !S.readOnly && docsReady() && ['vet', 'test', 'vaccine', 'prevent', 'symptom'].includes(r.type) && !(auto && r.date > T);
+  /* 건강검진 주기로 자동으로 넣은 일정: 예약하면 날짜를 고치고, 다녀왔으면 다녀온 기록으로 바꿔요 */
+  const autoNote = auto ? `<div class="note"><span>${r.date > T
+    ? `${esc(monthsKo(Number(r.months) || 12))}마다 받는 건강검진이라, 지난번 검진${isDate(r.cycFor) ? `(${esc(dot(r.cycFor))})` : ''} 다음 날짜를 공유 캘린더에 자동으로 넣어 뒀어요. 병원을 예약하면 ‘예약한 날로 고치기’로 날짜·시간을 바꿔 주세요.`
+    : '건강검진 시기로 넣어 둔 날이에요. 다녀왔다면 ‘다녀온 기록으로 바꾸기’로 다녀온 날짜와 결과를 적거나, 결과지를 올려 주세요.'}</span>${S.readOnly ? '' : `<button class="link" type="button" data-act="cycle" data-pet="${esc(r.pet)}" data-cyc="checkup" style="padding:0;white-space:nowrap">주기 바꾸기</button>`}</div>` : '';
+  const editLabel = auto ? (r.date > T ? '예약한 날로 고치기' : '다녀온 기록으로 바꾸기') : r.type === 'test' && !r.result && r.date <= T ? '결과 적기' : '고치기';
   const html = `<div class="detail">
     <span class="row-sub">${famDot(t.fam)}${esc(t.label)}${pet ? ` · ${esc(pet.name)}` : ''}</span>
     <h3>${esc(title)}</h3>
     <div class="when">${esc(dot(r.date))} (${esc(wd(r.date))})${r.time ? ` · ${esc(timeKo(r.time))}` : ''}${r.date > todayStr() ? ` · ${esc(dday(diffDays(todayStr(), r.date)))}` : ''}</div>
     ${blocks.map(([k, v]) => `<div class="block"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('')}
+    ${autoNote}
+    ${ds.length && ds[0].sum && ds[0].sum.oneLine ? `<div class="sum-one">${esc(ds[0].sum.oneLine)}</div>` : ''}
+    ${docList}
+    ${canDoc ? `<button class="btn ghost sm" type="button" data-act="doc-add" data-rec="${esc(r.id)}" style="align-self:flex-start">${DOC_IC}${ds.length ? '문서 더 붙이기' : '결과지·진료비 내역 붙이기'}</button>` : ''}
     ${(r.photos || []).length ? photoGrid(r.photos, false) : ''}
     ${r.ttPhotos ? `<div class="note">이 기록의 사진 ${esc(r.ttPhotos)}장은 타임트리에 있어요.${canEdit() ? ' 고치기에서 사진을 올려 두면 여기서 바로 볼 수 있어요.' : ''}</div>` : ''}
     ${gcLinked(r) ? `<div class="note"><span>구글 캘린더 일정이에요. 캘린더에서 날짜나 제목을 고치면 앱에도 바뀌어요.${r._link ? ` <a href="${esc(r._link)}" target="_blank" rel="noopener">캘린더에서 보기</a>` : ''}</span></div>` : ''}
     <span class="muted" style="font-size:13px">${esc([whoLabel(r.who) ? `${whoLabel(r.who)} 기록` : '', r.src === 'timetree' ? '타임트리에서 옮김' : r.src === 'gcal' ? '구글 캘린더에서 들어옴' : ''].filter(Boolean).join(' · '))}</span>
-    ${S.readOnly ? '' : `<div class="btn-row"><button class="btn" data-act="edit-record" data-id="${esc(r.id)}">${r.type === 'test' && !r.result ? '결과 적기' : '고치기'}</button><button class="btn danger" data-act="ask-del" data-col="records" data-id="${esc(r.id)}">${gcLinked(r) ? '앱에서 지우기' : '지우기'}</button></div><div id="del-slot"></div>`}
+    ${S.readOnly ? '' : `<div class="btn-row"><button class="btn" data-act="edit-record" data-id="${esc(r.id)}">${esc(editLabel)}</button><button class="btn danger" data-act="ask-del" data-col="records" data-id="${esc(r.id)}">${gcLinked(r) ? '앱에서 지우기' : '지우기'}</button></div><div id="del-slot"></div>`}
   </div>`;
   F = null;
   openSheet(t.label, html);
@@ -2737,7 +4032,8 @@ function petForm(pid) {
     ${f('p-name', '이름', p.name)}
     <div class="two">${f('p-breed', '품종', p.breed, 'text', '먼치킨')}${f('p-sex', '성별', p.sex, 'text', '남아')}</div>
     <div class="two">${f('p-birth', '생일', p.birth, 'date')}${f('p-home', '우리 집에 온 날', p.home, 'date')}</div>
-    ${star ? `<div class="two">${f('p-farewell', '소풍 떠난 날', p.farewell, 'date')}${f('p-ashes', '산골한 날', p.ashes, 'date')}</div>` : `<div class="two">${f('p-neutered', '중성화', p.neutered, 'date')}${f('p-bplace', '태어난 곳', p.birthplace, 'text', '경기도')}</div>`}
+    ${star ? `<div class="two">${f('p-farewell', '소풍 떠난 날', p.farewell, 'date')}${f('p-ashes', '산골한 날', p.ashes, 'date')}</div>` : `<div class="two">${f('p-neutered', '중성화', p.neutered, 'date')}${f('p-bplace', '태어난 곳', p.birthplace, 'text', '경기도')}</div>
+    <div class="fld"><label for="p-target">목표 몸무게 (선택)</label><div class="unit"><input type="number" id="p-target" inputmode="decimal" step="0.01" min="0" max="30" value="${esc(p.targetKg ?? '')}" placeholder="4.5"><span>kg</span></div><span class="hint">병원과 이야기해 정한 몸무게를 적으면 몸무게 그래프에 점선으로 보여요.</span></div>`}
     <button class="btn" type="submit">저장</button></form>`;
   F = null;
   openSheet(`${p.name} 프로필`, html, (body) => {
@@ -2745,13 +4041,17 @@ function petForm(pid) {
       e.preventDefault();
       const v = (id) => ($(`#${id}`) ? $(`#${id}`).value.trim() : undefined);
       const d = { name: v('p-name') || p.name, breed: v('p-breed'), sex: v('p-sex'), birth: v('p-birth'), home: v('p-home') };
-      if (star) { d.farewell = v('p-farewell'); d.ashes = v('p-ashes'); } else { d.neutered = v('p-neutered'); d.birthplace = v('p-bplace'); }
+      if (star) { d.farewell = v('p-farewell'); d.ashes = v('p-ashes'); } else {
+        d.neutered = v('p-neutered'); d.birthplace = v('p-bplace');
+        const tk = parseFloat(String(v('p-target') || '').replace(',', '.')); d.targetKg = tk > 0 && tk < 30 ? Math.round(tk * 1000) / 1000 : null;
+      }
       if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); }
     });
   });
 }
 function feedForm(pid) {
-  const p = S.pets[pid]; const rows = (p.feeding || []).map((x) => ({ ...x }));
+  /* 줄마다 번호(id)를 붙여 둬요: 끼니 체크가 이 번호로 남아서, 순서를 바꾸거나 고쳐도 지난 체크가 이어져요 */
+  const p = S.pets[pid]; const rows = (p.feeding || []).map((x, i) => ({ ...x, id: /^[A-Za-z0-9_]{1,40}$/.test(String(x.id || '')) ? x.id : `f${i}` }));
   const rowHtml = (x, i) => `<div class="two" data-frow="${i}" style="grid-template-columns:minmax(0,0.9fr) minmax(0,1.3fr) minmax(0,0.9fr) auto;align-items:end">
     <div class="fld"><label for="fr-t-${i}">시간</label><input type="text" id="fr-t-${i}" value="${esc(x.time)}" placeholder="오전 9시"></div>
     <div class="fld"><label for="fr-w-${i}">무엇을·얼마나</label><input type="text" id="fr-w-${i}" value="${esc(x.what)}" placeholder="습식 1캔"></div>
@@ -2771,11 +4071,11 @@ function feedForm(pid) {
     <button class="btn" type="submit">저장</button></form>`;
   openSheet('밥 먹는 시간', html, (body) => {
     draw();
-    const sync = () => { F.rows = F.rows.map((x, i) => ({ time: ($(`#fr-t-${i}`) || {}).value ?? x.time, what: ($(`#fr-w-${i}`) || {}).value ?? x.what, how: ($(`#fr-h-${i}`) || {}).value ?? x.how })); };
+    const sync = () => { F.rows = F.rows.map((x, i) => ({ ...x, time: ($(`#fr-t-${i}`) || {}).value ?? x.time, what: ($(`#fr-w-${i}`) || {}).value ?? x.what, how: ($(`#fr-h-${i}`) || {}).value ?? x.how })); };
     F.sync = sync; F.draw = draw;
     body.querySelector('#feed-form').addEventListener('submit', async (e) => {
       e.preventDefault(); sync();
-      const feeding = F.rows.map((x) => ({ time: x.time.trim(), what: x.what.trim(), how: x.how.trim() })).filter((x) => x.time || x.what);
+      const feeding = F.rows.map((x) => ({ id: x.id || medUid('f'), time: String(x.time || '').trim(), what: String(x.what || '').trim(), how: String(x.how || '').trim() })).filter((x) => x.time || x.what);
       const kgv = parseFloat($('#fd-kg').value);
       const d = { feeding, supplement: $('#fd-sup').value.trim(), feedingNote: $('#fd-note').value.trim(), feedingNoteKg: kgv > 0 ? kgv : null, feedingUpdated: todayStr() };
       if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); }
@@ -2952,8 +4252,139 @@ const ACT = {
     if (!LB.ids.length) lbClose(); else { LB.i = Math.min(LB.i, LB.ids.length - 1); lbShow(); }
     toast('사진을 지웠어요');
   },
+  /* 밥 */
+  'home-meal'(b) {
+    const T = todayStr(); const m = mealFind(b.dataset.id); if (!m) return;
+    if (mealVal(dayDoc('snacks', T), m.id)) mealSheet(T, m); else mealCheck(T, m, hhmm());
+  },
+  'snack-meal'(b) {
+    const date = curDay('snacks'); const m = mealFind(b.dataset.id); if (!m) return;
+    if (mealVal(dayDoc('snacks', date), m.id) || date !== todayStr()) mealSheet(date, m); else mealCheck(date, m, hhmm());
+  },
+  'meal-undo'() {
+    if (!F || F.kind !== 'meal') return;
+    const { date } = F; const m = mealFind(F.meal); if (!m) return;
+    if (mut('snacks', date, [['unset', `meals.${m.id}`]])) { closeSheet(); toast(`${m.label} 밥 체크를 취소했어요`); }
+  },
+  'home-snack'(b) {
+    const T = todayStr(); const k = b.dataset.k;
+    if (snackChange(T, k, 1)) toast(`${snackName(k)} 1개 · 오늘 ${Number(dayDoc('snacks', T)[k]) || 0}개`);
+  },
+  /* 건강 체크 · 호흡수 */
+  health(b) { healthSheet(isDate(b.dataset.date) ? b.dataset.date : todayStr()); },
+  'hl-step'(b) {
+    if (!F || F.kind !== 'health') return;
+    const k = b.dataset.k; const d = Number(b.dataset.d); const cur = Number(dayDoc('health', F.date)[k]) || 0;
+    if (d < 0 && cur <= 0) return;
+    healthStep(F.date, k, d);
+  },
+  'srr-open'(b) { srrSheet(isDate(b.dataset.date) ? b.dataset.date : todayStr()); },
+  'srr-tap'() {
+    if (SR.done) return;
+    if (!SR.t0) { SR.t0 = performance.now(); SR.timer = setInterval(srrTick, 250); }
+    SR.n += 1; const n = $('#srr-n'); if (n) n.textContent = String(SR.n);
+    srrTick();
+  },
+  'srr-reset'() { clearInterval(SR.timer); Object.assign(SR, { n: 0, t0: 0, timer: 0, done: false }); const n = $('#srr-n'); if (n) n.textContent = '0'; const t = $('#srr-t'); if (t) t.textContent = '누르면 시작해요'; const pad = $('#srr-pad'); if (pad) pad.classList.remove('done'); const r = $('#srr-res'); if (r) r.textContent = ''; const bt = $('#srr-btns'); if (bt) bt.innerHTML = '<button class="btn ghost sm" type="button" data-act="srr-reset">처음부터</button>'; },
+  'srr-save'() {
+    if (!SR.done || !SR.n) return;
+    const date = SR.date || todayStr(); const bpm = Math.round(SR.n * (60 / SRR_SEC));
+    if (mut('health', date, [['log', 'srr', { t: hhmm(), n: SR.n, sec: SRR_SEC, bpm, who: meKey() }]])) { toast(`호흡수를 저장했어요 · 1분에 ${bpm}회`); healthSheet(date); }
+  },
+  /* 챙기는 주기 */
+  cycle(b) { cycleSheet(b.dataset.pet || (mainPet() || {}).id, b.dataset.cyc || ''); },
+  async 'cyc-set'(b) { if (!F || F.kind !== 'cycle' || S.readOnly) return; b.disabled = true; if (await cycleSave(F.pid, b.dataset.cyc, Number(b.dataset.n))) toast(Number(b.dataset.n) ? `${monthsKo(Number(b.dataset.n))}마다 띄울게요` : '예상 날짜를 띄우지 않을게요'); else b.disabled = false; },
+  'cyc-custom'(b) { if (!F || F.kind !== 'cycle') return; F.custom = F.custom === b.dataset.cyc ? '' : b.dataset.cyc; F.draw(); const i = $('#cyc-n'); if (i) i.focus(); },
+  async 'cyc-custom-save'(b) {
+    if (!F || F.kind !== 'cycle') return;
+    const n = Math.round(Number(($('#cyc-n') || {}).value));
+    if (!(n >= 1 && n <= 60)) { toast('1~60개월 사이로 적어 주세요.'); return; }
+    if (await cycleSave(F.pid, b.dataset.cyc, n)) toast(`${monthsKo(n)}마다 띄울게요`);
+  },
+  async 'cyc-book'(b) {
+    if (!F || F.kind !== 'cycle') return;
+    const c = cycleState(F.pid, CYCLES.find((x) => x.key === b.dataset.cyc) || CYCLES[0]);
+    const T = todayStr(); const date = c.due && c.due > T ? c.due : T;
+    const pid = F.pid; await closeSheet();
+    const preset = { date, title: c.last && c.key !== 'checkup' && c.key !== 'vac' ? c.last.title : c.title };
+    if (c.key === 'checkup') preset.checkup = true;
+    recordForm(null, c.type, pid, preset);
+  },
+  /* 건강 수첩 · 병원 요약 */
+  'edit-medical'(b) { medicalForm(b.dataset.pet); },
+  'vet-report'(b) { vetReport(b.dataset.pet || (mainPet() || {}).id); },
+  async 'report-share'() {
+    if (!F || F.kind !== 'report') return;
+    if (navigator.share) { try { await navigator.share({ title: '건강 요약', text: F.text }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    ACT['report-copy']();
+  },
+  async 'report-copy'() {
+    if (!F || F.kind !== 'report') return;
+    try { await navigator.clipboard.writeText(F.text); toast('요약을 복사했어요'); }
+    catch { const el = $('#vet-report'); if (el) { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } toast('글을 길게 눌러 복사해 주세요'); }
+  },
+  /* 병원 문서 */
+  'doc-add'(b) { docStart({ rec: b.dataset.rec || '', date: S.tab === 'cal' ? S.calSel : '' }); },
+  'open-doc'(b) { docDetail(b.dataset.id); },
+  'doc-page'(b) {
+    const d = S.docs.find((x) => x.id === b.dataset.id); if (!d || !(d.pages || []).length) return;
+    lbOpen(d.pages, Number(b.dataset.i) || 0, '', false, docTitle(d));
+  },
+  'doc-file'(b) { docFileGet(b.dataset.id, b); },
+  'doc-attach'(b) { const id = b.dataset.id; docStart({ doc: id }); },
+  'doc-sum-edit'(b) { docSumForm(b.dataset.id); },
+  'doc-meta'(b) {
+    const d = S.docs.find((x) => x.id === b.dataset.id); const slot = $('#docmeta-slot'); if (!d || !slot) return;
+    slot.innerHTML = docMetaHtml(d, false); docMetaBind($('#sheet-body'), d);
+    slot.scrollIntoView({ block: 'nearest' });
+  },
+  async 'doc-ai'(b) {
+    const id = b.dataset.id; b.disabled = true; const t0 = b.textContent; b.textContent = 'AI가 읽는 중…';
+    try { putDoc(id, await gsr('docSummarize', id)); toast('AI가 요약했어요'); docDetail(id); }
+    catch (e) { b.disabled = false; b.textContent = t0; toast(aiErr(e)); }
+  },
+  'doc-del-ask'(b) {
+    const slot = $('#docdel-slot'); if (!slot) return;
+    slot.innerHTML = `<div class="confirm"><span>이 문서를 지울까요? 원본 파일과 페이지 그림은 드라이브 휴지통으로 가요(30일 동안 되살릴 수 있어요).</span><button class="btn sm" type="button" data-act="doc-del-yes" data-id="${esc(b.dataset.id)}">지우기</button><button class="btn ghost sm" type="button" data-act="doc-del-no">그대로 두기</button></div>`;
+  },
+  'doc-del-no'() { const s = $('#docdel-slot'); if (s) s.innerHTML = ''; },
+  async 'doc-del-yes'(b) {
+    const id = b.dataset.id; if (!writable()) return; b.disabled = true;
+    try {
+      await retry(() => gsr('docRemove', id));
+      const c = { ...(S.raw.docs || {}) }; const d = c[id]; delete c[id]; S.raw.docs = c;
+      if (d) (d.pages || []).forEach((p) => { PH.thumb.delete(p); PH.full.delete(p); tcDel(p); });
+      afterWrite(); await closeSheet(); toast('문서를 지웠어요');
+    } catch (e) { b.disabled = false; writeError(e); }
+  },
+  'doc-expense'(b) {
+    const d = S.docs.find((x) => x.id === b.dataset.id); if (!d || !d.sum) return;
+    const s = d.sum;
+    expenseForm(null, { date: d.date, category: '병원비', item: docTitle(d), amount: s.total || '', place: d.hospital || s.hospital || '', reason: (s.items || []).slice(0, 4).map((x) => x.name).join(', ').slice(0, 120), photos: [] });
+  },
+  'doc-next'(b) {
+    const d = S.docs.find((x) => x.id === b.dataset.id); if (!d || !d.sum || !isDate(d.sum.next)) return;
+    recordForm(null, d.kind === 'checkup' || d.kind === 'lab' ? 'test' : 'vet', d.pet || undefined, { date: d.sum.next, title: d.kind === 'checkup' ? '재검' : '재진', place: d.hospital || '' });
+  },
+  /* AI 요약 켜기·끄기 */
+  'ai-key'(b) { aiKeyForm(b.dataset.p === 'gemini' ? 'gemini' : 'claude'); },
+  'ai-off'() {
+    const s = $('#ai-off-slot'); if (!s) return;
+    s.innerHTML = '<div class="confirm"><span>AI 요약을 끌까요? 넣어 둔 키도 서버에서 지워요. 이미 만든 요약은 그대로 남아요.</span><button class="btn sm" type="button" data-act="ai-off-yes">끄기</button><button class="btn ghost sm" type="button" data-act="ai-off-no">그대로 두기</button></div>';
+  },
+  'ai-off-no'() { const s = $('#ai-off-slot'); if (s) s.innerHTML = ''; },
+  async 'ai-off-yes'(b) {
+    b.disabled = true;
+    try { S.ai = JSON.parse(await gsr('aiClear')); saveCache(); render(); toast('AI 요약을 껐어요'); }
+    catch (e) { b.disabled = false; writeError(e); }
+  },
   'add-for'(b) { addMenu(b.dataset.pet); },
-  add(b) { const k = b.dataset.kind; if (k === 'expense') expenseForm(null); else recordForm(null, k, b.dataset.pet || (S.tab === 'star' ? S.starPet : undefined)); },
+  add(b) {
+    const k = b.dataset.kind;
+    if (k === 'expense') expenseForm(null);
+    else if (k === 'doc') docStart({ date: S.addDate || '', pet: b.dataset.pet || '' });
+    else recordForm(null, k, b.dataset.pet || (S.tab === 'star' ? S.starPet : undefined));
+  },
   'open-record'(b) { recordDetail(b.dataset.id); },
   'open-expense'(b) { expenseDetail(b.dataset.id); },
   'edit-record'(b) { const r = S.records.find((x) => x.id === b.dataset.id); if (r) recordForm(r); },
@@ -2966,7 +4397,7 @@ const ACT = {
     const linked = rec ? gcLinked(rec) : exp?.src === 'gcal';
     const attrs = `data-act="do-del" data-col="${esc(b.dataset.col)}" data-id="${esc(b.dataset.id)}"`;
     if (rec && rec._ev && !S.readOnly) {
-      slot.innerHTML = `<div class="confirm"><span>공유 캘린더 일정도 같이 지울까요?</span><button class="btn sm" ${attrs} data-cal="1">캘린더에서도 지우기</button><button class="btn ghost sm" ${attrs}>앱에서만 지우기</button><button class="btn ghost sm" data-act="cancel-del">그대로 두기</button></div>`;
+      slot.innerHTML = `<div class="confirm"><span>공유 캘린더 일정도 같이 지울까요?${isAutoRec(rec) ? ' 지우면 주기를 바꾸거나 새 검진을 기록할 때까지 다시 넣지 않아요.' : ''}</span><button class="btn sm" ${attrs} data-cal="1">캘린더에서도 지우기</button><button class="btn ghost sm" ${attrs}>앱에서만 지우기</button><button class="btn ghost sm" data-act="cancel-del">그대로 두기</button></div>`;
       return;
     }
     const q = ins ? '이 달 보험료를 지출에서 뺄까요?' : linked ? '구글 캘린더 일정은 그대로 두고 앱에서만 지울까요?' : '이 기록을 지울까요? 되돌릴 수 없어요.';
@@ -3002,7 +4433,7 @@ const ACT = {
   'close-sheet'() { closeSheet(); },
   'edit-pet'(b) { petForm(b.dataset.pet); },
   'edit-feed'(b) { feedForm(b.dataset.pet); },
-  'feed-add'() { if (!F || F.kind !== 'feed') return; F.sync(); F.rows.push({ time: '', what: '', how: '' }); F.draw(); },
+  'feed-add'() { if (!F || F.kind !== 'feed') return; F.sync(); F.rows.push({ id: medUid('f'), time: '', what: '', how: '' }); F.draw(); },
   'feed-del'(b) { if (!F || F.kind !== 'feed') return; F.sync(); F.rows.splice(Number(b.dataset.i), 1); F.draw(); },
   'edit-ins'() { insForm(); },
   'gc-sync'() { load({ manual: true }); },
@@ -3023,7 +4454,8 @@ const ACT = {
   'logout-yes'() {
     store.del(KEY_STORE); store.del(ME_STORE); store.del(CACHE_KEY);
     for (const k of Object.keys(Q)) { clearTimeout(Q[k].timer); delete Q[k]; }
-    S.hist = { diary: {}, meds: {}, snacks: {} }; S.dayFrom = '';
+    store.del(PEND_KEY);
+    S.hist = { diary: {}, meds: {}, snacks: {}, health: {} }; S.dayFrom = '';
     S.raw = null; S.records = []; S.expenses = []; S.pets = {}; S.info = {}; S.events = null;
     S.phase = 'needkey'; S.gateErr = ''; S.tab = 'home'; window.scrollTo(0, 0); render();
   },
@@ -3091,6 +4523,8 @@ document.addEventListener('change', (e) => {
   if (t.matches('[data-day-input]')) {
     /* 아이폰은 달력을 여는 순간에도 change 를 보낼 때가 있어요. 날짜가 그대로면 화면을 다시 그리지 않아야 달력이 안 닫혀요 */
     if (isDate(t.value) && t.value !== curDay(t.dataset.dayInput)) {
+      /* 고른 날로 바로 다시 그리려고 칸에서 나와요 (달력은 고르면 닫혀요) */
+      t.blur();
       setDay(t.dataset.dayInput, t.value); render();
       /* 지난 기록의 '날짜로 찾기': 고른 날을 위 카드에서 보여 줘요 */
       if (t.dataset.find) window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3111,11 +4545,35 @@ document.addEventListener('change', (e) => {
     if (v !== String(dayDoc('snacks', date).etcNote || '')) mut('snacks', date, [['set', 'etcNote', v]]);
     return;
   }
-  if (t.id === 'd-note') diaryNoteSave();
+  if (t.id === 'd-note') { diaryNoteSave(); return; }
+  /* 건강 체크 (시트 안): 개수 직접 넣기 · 물 마신 양 · 메모 */
+  if (F && F.kind === 'health') {
+    const date = F.date; const doc = dayDoc('health', date);
+    if (t.matches('[data-hl]')) {
+      const k = t.dataset.hl; const cur = Number(doc[k]) || 0;
+      let n = parseInt(String(t.value).replace(/[^\d]/g, ''), 10); if (!isFinite(n) || n < 0) n = 0; n = Math.min(99, n);
+      if (n !== cur || doc[k] === undefined) healthStep(date, k, n - cur, n); else t.value = String(cur);
+      return;
+    }
+    if (t.id === 'hl-water') {
+      const v = String(t.value).trim(); const n = v === '' ? null : Math.min(5000, Math.max(0, parseInt(v.replace(/[^\d]/g, ''), 10) || 0));
+      if (n === null ? doc.water !== undefined : n !== Number(doc.water)) { if (mut('health', date, [n === null ? ['unset', 'water'] : ['set', 'water', n]])) toast(n === null ? '물 마신 양을 지웠어요' : `물 ${n}ml 적었어요`); }
+      return;
+    }
+    if (t.id === 'hl-note') {
+      const v = t.value.trim();
+      if (v !== String(doc.note || '')) mut('health', date, [v ? ['set', 'note', v] : ['unset', 'note']]);
+      return;
+    }
+    if (t.id === 'hl-jump') {
+      if (mut('health', date, [t.checked ? ['set', 'jump', true] : ['unset', 'jump']])) toast(t.checked ? '점프를 힘들어했다고 적었어요' : '지웠어요');
+      return;
+    }
+  }
 });
 document.addEventListener('keydown', (e) => {
   const t = e.target;
-  if (e.key === 'Enter' && t && (t.id === 'd-note' || t.id === 'sn-etc-note' || (t.matches && t.matches('[data-snack]')))) { e.preventDefault(); t.blur(); }
+  if (e.key === 'Enter' && t && (t.id === 'd-note' || t.id === 'sn-etc-note' || t.id === 'hl-water' || t.id === 'hl-note' || (t.matches && t.matches('[data-snack], [data-hl]')))) { e.preventDefault(); t.blur(); }
 });
 document.addEventListener('click', (e) => {
   const t = e.target;
@@ -3138,15 +4596,15 @@ const h0 = (location.hash || '').slice(1); if (TABS.includes(h0)) { S.tab = h0; 
 const liveKey = () => !!store.get(KEY_STORE) && !gated();
 if (!API_URL) { S.phase = 'error'; S.loadError = 'NO_SERVER'; }
 else if (!store.get(KEY_STORE)) S.phase = 'needkey';
-else { const cached = loadCache(); if (cached) applyResult(cached, true); }
+else { const cached = loadCache(); if (cached) applyResult(cached, true); loadPending(); }
 renderNow();
 if (API_URL && store.get(KEY_STORE)) load();
 setInterval(() => { if (liveKey() && document.visibilityState === 'visible' && Date.now() - S.loadedAt >= POLL_MS - 1500) load({ soft: true }); }, POLL_MS);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') { flushAll(); return; }
+  if (document.visibilityState === 'hidden') { flushAll(true); return; }
   if (liveKey() && Date.now() - S.loadedAt > 8000) load({ soft: true });
 });
-window.addEventListener('pagehide', flushAll);
+window.addEventListener('pagehide', () => flushAll(true));
 window.addEventListener('pageshow', (e) => { if (e.persisted && liveKey()) load({ soft: true }); });
 window.addEventListener('focus', () => { if (liveKey() && Date.now() - S.loadedAt > 8000) load({ soft: true }); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
