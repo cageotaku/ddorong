@@ -858,8 +858,18 @@ const DAY_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000
 function upcoming() {
   const T = todayStr(); const items = [];
   const name = (pid) => S.pets[pid]?.name || '';
+  /* 다가오는 일에는 '할 일·갈 일'만: 몸무게·증상은 남긴 기록이라 빼고,
+   * 오늘 날짜 기록은 시간이 아직 안 지났거나 하루 종일 일정(병원·검사·접종·예방약·나들이·기념일·보험)일 때만 넣어요 */
+  const nowHm = hhmm();
+  const isUpcoming = (r) => {
+    if (r.type === 'weight' || r.type === 'symptom') return false;
+    if (r.type === 'milestone' && r.yearly) return false;
+    if (r.date > T) return true;
+    if (r.date !== T) return false;
+    return r.time ? r.time >= nowHm : ['vet', 'test', 'vaccine', 'prevent', 'outing', 'milestone', 'insurance'].includes(r.type);
+  };
   for (const r of S.records) {
-    if ((r.type !== 'milestone' || !r.yearly) && r.date >= T) items.push({ date: r.date, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title, sub: [TYPES[r.type]?.label, timeKo(r.time), r.place].filter(Boolean).join(' · '), fam: TYPES[r.type]?.fam || 'out', act: 'open-record', id: r.id });
+    if (isUpcoming(r)) items.push({ date: r.date, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title, sub: [TYPES[r.type]?.label, timeKo(r.time), r.place].filter(Boolean).join(' · '), fam: TYPES[r.type]?.fam || 'out', act: 'open-record', id: r.id });
   }
   for (const r of S.records) {
     if (r.type !== 'milestone' || !r.yearly || !isDate(r.date)) continue;
