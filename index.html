@@ -1450,7 +1450,7 @@ function renderMeds() {
     }).join('');
     hist = `<div class="card">
       <div class="card-head"><h2>지난 기록</h2><span class="sub">줄을 누르면 그날로 가요</span></div>
-      <label class="date-find">${IC.cal}<span>날짜로 찾기</span><span class="go">${IC.right}</span><input type="date" data-day-input="meds" data-find="1" value="" max="${esc(T)}" min="${esc(minMonth())}-01" aria-label="날짜로 찾기"></label>
+      <label class="date-find">${IC.cal}<span>날짜로 찾기</span><span class="go">${IC.right}</span><input type="date" data-day-input="meds" data-find="1" value="${esc(date)}" max="${esc(T)}" min="${esc(minMonth())}-01" aria-label="날짜로 찾기"></label>
       ${hm.length > 1 ? `<div class="pick" role="group" aria-label="볼 약 고르기">${hm.map((m) => `<button type="button" data-act="med-hist" data-id="${esc(m.id)}" aria-pressed="${m === sel}">${esc(medName(m))}</button>`).join('')}</div>` : ''}
       <div class="mtbl">${th}${rows}</div>
       ${more || less ? `<div class="btn-row">${more ? '<button class="btn ghost sm" type="button" data-act="meds-more">더 보기</button>' : ''}${less ? '<button class="btn ghost sm" type="button" data-act="meds-less">접기</button>' : ''}</div>` : ''}
@@ -2851,7 +2851,8 @@ document.addEventListener('change', (e) => {
   const t = e.target;
   if (!t || !t.matches) return;
   if (t.matches('[data-day-input]')) {
-    if (isDate(t.value)) {
+    /* 아이폰은 달력을 여는 순간에도 change 를 보낼 때가 있어요. 날짜가 그대로면 화면을 다시 그리지 않아야 달력이 안 닫혀요 */
+    if (isDate(t.value) && t.value !== curDay(t.dataset.dayInput)) {
       setDay(t.dataset.dayInput, t.value); render();
       /* 지난 기록의 '날짜로 찾기': 고른 날을 위 카드에서 보여 줘요 */
       if (t.dataset.find) window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2880,7 +2881,8 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('click', (e) => {
   const t = e.target;
-  if (t && t.matches && t.matches('[data-day-input]') && typeof t.showPicker === 'function') { try { t.showPicker(); } catch { /* 폰은 눌러서 바로 열려요 */ } }
+  /* 컴퓨터에서만 달력을 직접 열어요. 폰은 눌러서 바로 열리고, 여기서 한 번 더 열면 달력이 바로 닫힐 수 있어요 */
+  if (t && t.matches && t.matches('[data-day-input]') && typeof t.showPicker === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches) { try { t.showPicker(); } catch { /* 열 수 없으면 그대로 둬요 */ } }
 });
 {
   let sx = null, sy = 0;
