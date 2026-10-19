@@ -913,6 +913,9 @@ function parseKg(t) {
   if (m) { const v = parseFloat(m[1].replace(',', '.')); return v > 0 && v < 30 ? v : null; }
   return null;
 }
+/* 소수 칸 읽기: 지역 설정이 쉼표 소수점인 아이폰은 키패드에 '.' 대신 ','가 나와요 → 쉼표도 소수점으로 읽어요 */
+const DEC_SEP = /[,，٫]/g;
+const decVal = (s) => { const t = String(s ?? '').trim().replace(DEC_SEP, '.'); return /^(?:\d+\.?\d*|\.\d+)$/.test(t) ? parseFloat(t) : NaN; };
 const XCAT = [['병원비', /병원|진료|검진|검사|수술|입원|처방/], ['접종·예방약', /접종|백신|심장사상충|레볼루션|애드보킷|넥스가드|브라벡토|구충|기생충/], ['사료', /사료/], ['간식', /간식|츄르|트릿|져키/], ['모래', /모래/], ['영양제', /영양제|오메가|유산균/], ['미용·목욕', /미용|목욕/], ['펫시터·호텔', /펫시터|시터|호텔/], ['용품·장난감', /장난감|용품|캣타워|스크래처|하네스|이동장|급식기|급수기|화장실/], ['보험', /보험/]];
 const xcat = (t) => { for (const [k, re] of XCAT) if (re.test(t)) return k; return '기타'; };
 function petOf(text, pets) { for (const p of pets) { const n = p.name || ''; if (n && (text.includes(n) || text.includes(n.replace(/이$/, '')))) return p.id; } return null; }
@@ -4040,6 +4043,16 @@ $('#sheet').addEventListener('focusin', (e) => {
   if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
   setTimeout(() => { try { t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* 넘어감 */ } }, 320);
 });
+/* 소수 칸(몸무게): 쉼표(,)로 적으면 바로 소수점(.)으로 바꿔 보여 줘요 */
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('input[data-dec]')) return;
+  const n = t.value.replace(DEC_SEP, '.');
+  if (n === t.value) return;
+  const a = t.selectionStart; const b = t.selectionEnd;
+  t.value = n;
+  try { t.setSelectionRange(a, b); } catch { /* 넘어감 */ }
+});
 document.addEventListener('keydown', (e) => {
   const lb = !$('#lightbox').hidden;
   if (e.key === 'Escape') { if (lb) lbClose(); else if (!$('#sheet').hidden) closeSheet(); }
@@ -4072,7 +4085,7 @@ function recordForm(rec, kind, petId, preset) {
     ${homePets().length > 1 || (pet && pet.status === 'star') ? `<div class="fld"><span class="lbl">누구</span><div class="pick" role="group" data-pick="pet">${petList().map((x) => `<button type="button" data-val="${esc(x.id)}" aria-pressed="${x.id === r.pet}">${esc(x.name)}</button>`).join('')}</div></div>` : ''}
     <div class="two"><div class="fld"><label for="f-date">날짜</label><input type="date" id="f-date" value="${esc(r.date)}" required></div>
     ${type === 'weight' || type === 'milestone' ? '<div></div>' : `<div class="fld"><label for="f-time">시간 (선택)</label><input type="time" id="f-time" value="${esc(r.time || '')}"></div>`}</div>
-    ${type === 'weight' ? `<div class="fld"><label for="f-kg">몸무게</label><div class="unit"><input type="number" id="f-kg" inputmode="decimal" step="0.01" min="0" max="30" value="${r.kg ?? ''}" placeholder="4.5" required><span>kg</span></div><span class="hint">520g이면 0.52처럼 kg으로 적어 주세요.</span></div>` : `<div class="fld"><label for="f-title">${type === 'milestone' ? '어떤 날' : '무엇을'}</label><input type="text" id="f-title" list="dl-title" value="${esc(r.title)}" placeholder="${esc((SUGGEST[type] || [])[0] || '')}" required>${datalist('dl-title', titles)}</div>`}
+    ${type === 'weight' ? `<div class="fld"><label for="f-kg">몸무게</label><div class="unit"><input type="text" id="f-kg" inputmode="decimal" autocomplete="off" data-dec value="${r.kg ?? ''}" placeholder="4.5" required><span>kg</span></div><span class="hint">520g이면 0.52처럼 kg으로 적어 주세요.</span></div>` : `<div class="fld"><label for="f-title">${type === 'milestone' ? '어떤 날' : '무엇을'}</label><input type="text" id="f-title" list="dl-title" value="${esc(r.title)}" placeholder="${esc((SUGGEST[type] || [])[0] || '')}" required>${datalist('dl-title', titles)}</div>`}
     ${type === 'weight' ? `<div class="fld"><span class="lbl">체형 점수 (선택)</span><div class="pick bcs" role="group" aria-label="체형 점수 1부터 9" data-pick="bcs" data-toggle="1">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button type="button" data-val="${n}" aria-pressed="${Number(r.bcs) === n}">${n}</button>`).join('')}</div><span class="hint">9점 척도예요. 5점은 얇은 지방 아래로 갈비뼈가 만져지고, 위에서 보면 갈비뼈 뒤로 허리가 들어가 보여요. 한 달에 한 번 위·옆에서 찍은 사진을 아래에 같이 올려 두면 체형 변화를 보기 쉬워요.</span></div>` : ''}
     ${showPlace ? `<div class="fld"><label for="f-place">어디서 (선택)</label><input type="text" id="f-place" list="dl-place" value="${esc(r.place)}" placeholder="다니는 동물병원">${datalist('dl-place', places)}</div>` : ''}
     ${type === 'test' ? `<div class="fld"><label for="f-result">결과</label><textarea id="f-result" placeholder="수치나 의사 선생님 말씀을 그대로 적어 두세요">${esc(r.result)}</textarea></div>` : ''}
@@ -4093,7 +4106,9 @@ function recordForm(rec, kind, petId, preset) {
       if (!isDate(d.date)) { toast('날짜를 골라 주세요.'); return; }
       d.time = $('#f-time') ? $('#f-time').value : '';
       if (type === 'weight') {
-        const v = parseFloat(String($('#f-kg').value).replace(',', '.')); if (!(v > 0)) { toast('몸무게를 kg으로 적어 주세요.'); return; }
+        const v = decVal($('#f-kg').value);
+        if (!(v > 0)) { toast('몸무게를 4.5처럼 kg으로 적어 주세요.'); return; }
+        if (v >= 30) { toast('30kg이 넘어요. 4.5처럼 소수점을 넣어 적어 주세요.'); return; }
         d.kg = Math.round(v * 1000) / 1000; d.title = '몸무게';
         const bv = Number(pickVal(body, 'bcs')); if (bv >= 1 && bv <= 9) d.bcs = bv; else delete d.bcs;
       }
@@ -4242,7 +4257,7 @@ function petForm(pid) {
     <div class="two">${f('p-breed', '품종', p.breed, 'text', '먼치킨')}${f('p-sex', '성별', p.sex, 'text', '남아')}</div>
     <div class="two">${f('p-birth', '생일', p.birth, 'date')}${f('p-home', '우리 집에 온 날', p.home, 'date')}</div>
     ${star ? `<div class="two">${f('p-farewell', '소풍 떠난 날', p.farewell, 'date')}${f('p-ashes', '산골한 날', p.ashes, 'date')}</div>` : `<div class="two">${f('p-neutered', '중성화', p.neutered, 'date')}${f('p-bplace', '태어난 곳', p.birthplace, 'text', '경기도')}</div>
-    <div class="fld"><label for="p-target">목표 몸무게 (선택)</label><div class="unit"><input type="number" id="p-target" inputmode="decimal" step="0.01" min="0" max="30" value="${esc(p.targetKg ?? '')}" placeholder="4.5"><span>kg</span></div><span class="hint">병원과 이야기해 정한 몸무게를 적으면 몸무게 그래프에 점선으로 보여요.</span></div>`}
+    <div class="fld"><label for="p-target">목표 몸무게 (선택)</label><div class="unit"><input type="text" id="p-target" inputmode="decimal" autocomplete="off" data-dec value="${esc(p.targetKg ?? '')}" placeholder="4.5"><span>kg</span></div><span class="hint">병원과 이야기해 정한 몸무게를 적으면 몸무게 그래프에 점선으로 보여요.</span></div>`}
     <button class="btn" type="submit">저장</button></form>`;
   F = null;
   openSheet(`${p.name} 프로필`, html, (body) => {
@@ -4252,7 +4267,9 @@ function petForm(pid) {
       const d = { name: v('p-name') || p.name, breed: v('p-breed'), sex: v('p-sex'), birth: v('p-birth'), home: v('p-home') };
       if (star) { d.farewell = v('p-farewell'); d.ashes = v('p-ashes'); } else {
         d.neutered = v('p-neutered'); d.birthplace = v('p-bplace');
-        const tk = parseFloat(String(v('p-target') || '').replace(',', '.')); d.targetKg = tk > 0 && tk < 30 ? Math.round(tk * 1000) / 1000 : null;
+        const tRaw = v('p-target') || ''; const tk = decVal(tRaw);
+        if (tRaw && !(tk > 0 && tk < 30)) { toast('목표 몸무게를 4.5처럼 kg으로 적어 주세요.'); return; }
+        d.targetKg = tk > 0 && tk < 30 ? Math.round(tk * 1000) / 1000 : null;
       }
       if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); }
     });
@@ -4277,7 +4294,7 @@ function feedForm(pid) {
     <button class="btn ghost sm" type="button" data-act="feed-add">+ 한 줄 추가</button>
     <div class="fld"><label for="fd-sup">영양제</label><input type="text" id="fd-sup" value="${esc(p.supplement || '')}" placeholder="오메가3 1알"></div>
     <div class="fld"><label for="fd-note">메모</label><input type="text" id="fd-note" value="${esc(p.feedingNote || '')}" placeholder="몸무게가 늘면 저녁 양 줄이기"></div>
-    <div class="fld"><label for="fd-kg">메모를 띄울 몸무게 (선택)</label><div class="unit"><input type="number" id="fd-kg" inputmode="decimal" step="0.01" min="0" value="${p.feedingNoteKg ?? ''}" placeholder="4.5"><span>kg</span></div><span class="hint">이 몸무게가 되면 홈 화면 몸무게 카드에 메모가 떠요.</span></div>
+    <div class="fld"><label for="fd-kg">메모를 띄울 몸무게 (선택)</label><div class="unit"><input type="text" id="fd-kg" inputmode="decimal" autocomplete="off" data-dec value="${p.feedingNoteKg ?? ''}" placeholder="4.5"><span>kg</span></div><span class="hint">이 몸무게가 되면 홈 화면 몸무게 카드에 메모가 떠요.</span></div>
     <button class="btn" type="submit">저장</button></form>`;
   openSheet('밥 먹는 시간', html, (body) => {
     draw();
@@ -4296,8 +4313,9 @@ function feedForm(pid) {
         }
         return row;
       }).filter((x) => x.time || x.what);
-      const kgv = parseFloat($('#fd-kg').value);
-      const d = { feeding, supplement: $('#fd-sup').value.trim(), feedingNote: $('#fd-note').value.trim(), feedingNoteKg: kgv > 0 ? kgv : null, feedingUpdated: todayStr() };
+      const kgRaw = $('#fd-kg').value.trim(); const kgv = decVal(kgRaw);
+      if (kgRaw && !(kgv > 0 && kgv < 30)) { toast('메모를 띄울 몸무게를 4.5처럼 kg으로 적어 주세요.'); return; }
+      const d = { feeding, supplement: $('#fd-sup').value.trim(), feedingNote: $('#fd-note').value.trim(), feedingNoteKg: kgv > 0 && kgv < 30 ? Math.round(kgv * 1000) / 1000 : null, feedingUpdated: todayStr() };
       if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); autoMealTick(); }
     });
   });
