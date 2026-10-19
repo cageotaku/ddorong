@@ -486,6 +486,19 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .stepper input:focus { border-color: var(--accent); background: var(--surface); }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .snack-total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; color: var(--ink-2); }
+.snack-kind { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.snack-kind .link { font-size: 13px; padding: 2px 0; }
+/* 간식 종류 고치기 */
+.sc-list { display: flex; flex-direction: column; gap: 8px; }
+.sc-row { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.sc-top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 6px; align-items: center; }
+.sc-top input { width: 100%; min-width: 0; height: 44px; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 0 12px; font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; color: var(--ink); }
+.sc-top input:focus { border-color: var(--accent); }
+.sc-top .icon-btn { width: 40px; height: 40px; background: var(--surface); }
+.sc-top .icon-btn .ic { width: 18px; height: 18px; stroke-width: 2.4; }
+.sc-opts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.sc-opts .check { font-size: 13.5px; gap: 7px; }
+.sc-opts .check input { width: 18px; height: 18px; }
 .snack-total b { font-size: 20px; color: var(--ink); }
 .slog { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--ink-2); }
 .slog div { display: flex; gap: 8px; }
@@ -778,7 +791,41 @@ const HEALTH = [['pee', '소변 덩어리', '개'], ['poop', '대변', '번'], [
 const SRR_SEC = 30;
 const MED_SLOTS = [['morning', '아침', '08:00'], ['lunch', '점심', '13:00'], ['evening', '저녁', '19:00']];
 const MEDS_DAYS = 5; /* 약 지난 기록을 처음에 보여 주는 날 수 (오늘 포함) */
-const SNACKS = [['treat', '트릿', '트릿'], ['churu', '츄르', '츄르'], ['dental', '덴탈과자', '덴탈'], ['food', '사료', '사료'], ['etc', '기타', '기타']];
+/* 간식 종류: 정보 시트의 snackTypes 에 두 폰이 같이 저장해요. 정하기 전에는 아래 기본 다섯 가지.
+ * id 는 그날 간식 문서의 칸 이름이라 한 번 정하면 바꾸지 않아요(이름만 바꿔요).
+ * 지운 종류는 off 로 남겨 둬서 지난 기록의 개수와 이름이 그대로 보여요.
+ * meal: 사료처럼 간식 합계에서 빼는 종류 · home: 홈 '오늘 챙기기'에 + 버튼 */
+const SNACK_DEF = [
+  { id: 'treat', name: '트릿', short: '트릿', home: true },
+  { id: 'churu', name: '츄르', short: '츄르', home: true },
+  { id: 'dental', name: '덴탈과자', short: '덴탈', home: true },
+  { id: 'food', name: '사료', short: '사료', meal: true },
+  { id: 'etc', name: '기타', short: '기타' },
+];
+const SNACK_MAX = 12, SNACK_NAME_MAX = 12;
+const SNACK_RESERVED = ['log', 'meals', 'etcNote', 'updatedAt', 'createdAt'];
+const SNACK_ID_RE = /^[a-z][a-z0-9_]{1,20}$/;
+function normSnack(x) {
+  if (!x || typeof x !== 'object') return null;
+  const id = String(x.id || '');
+  if (!SNACK_ID_RE.test(id) || SNACK_RESERVED.includes(id)) return null;
+  const name = String(x.name || '').trim().slice(0, SNACK_NAME_MAX);
+  if (!name) return null;
+  const def = SNACK_DEF.find((d) => d.id === id);
+  return { id, name, short: def && name === def.name ? def.short : '', home: !!x.home, meal: !!x.meal, off: !!x.off };
+}
+function snackCfg() {
+  const c = (S.info && S.info.snackTypes) || null;
+  if (!c || !Array.isArray(c.items)) return SNACK_DEF.map((d) => ({ ...d, home: !!d.home, meal: !!d.meal, off: false }));
+  const seen = new Set();
+  return c.items.map(normSnack).filter((x) => x && !seen.has(x.id) && seen.add(x.id));
+}
+const snackItems = () => snackCfg().filter((x) => !x.off);
+const snackLabel = (it) => it.short || it.name;
+const snackOf = (k) => snackCfg().find((x) => x.id === k) || null;
+/* 간식 합계: 사료처럼 ‘합계에서 빼기’로 둔 종류는 빼요 (지운 종류라도 그날 준 것은 세요) */
+const snackSum = (doc) => snackCfg().reduce((s, it) => s + (it.meal ? 0 : Number((doc || {})[it.id]) || 0), 0);
+const mealSnackNames = () => snackItems().filter((x) => x.meal).map((x) => x.name);
 const LOG_MAX = 40;
 const TABS = ['home', 'cal', 'diary', 'meds', 'snacks', 'records', 'money', 'info'];
 const IC = {
@@ -943,6 +990,8 @@ const dayKo = (s) => `${mdKo(s)} ${wd(s)}요일`;
 const clone = (o) => (o == null ? {} : JSON.parse(JSON.stringify(o)));
 /* 받침 있으면 ‘이’, 없으면 ‘가’ (예: 나비가, 별이) */
 const iga = (name) => { const c = String(name || '').slice(-1).charCodeAt(0); return `${name}${c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '이' : '가'}`; };
+/* 받침 있으면 ‘을’, 없으면 ‘를’ (예: 사료를, 닭가슴살을) */
+const eulReul = (name) => { const c = String(name || '').slice(-1).charCodeAt(0); return `${name}${c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '을' : '를'}`; };
 
 /* ───────── derived ───────── */
 function rateFor(ins, monthKey) {
@@ -1358,10 +1407,10 @@ const CAL_ORDER = ['med', 'pre', 'out', 'hl', 'wt', 'care', 'money', 'snack'];
 const CAL_HIDE = 'ddorong-cal-hide';
 function calHidden() { try { const a = JSON.parse(store.get(CAL_HIDE) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch { return new Set(); } }
 const manwon = (n) => { const v = Math.round(Number(n) || 0); return v >= 10000 ? `${Math.round(v / 1000) / 10}만` : `${v.toLocaleString('ko-KR')}원`; };
-/* 사료(food)는 매일 같아서 빼고 센 간식 수와 내역 */
+/* 사료처럼 간식 합계에서 빼는 종류는 빼고 센 간식 수와 내역 */
 function calSnacks(d) {
   const x = dayDoc('snacks', d);
-  const bits = SNACKS.filter(([k]) => k !== 'food' && Number(x[k]) > 0).map(([k, l]) => [l, Number(x[k])]);
+  const bits = snackCfg().filter((it) => !it.meal && Number(x[it.id]) > 0).map((it) => [it.name, Number(x[it.id])]);
   return { n: bits.reduce((s, b) => s + b[1], 0), bits };
 }
 /* from~to 사이 날짜마다 보여 줄 것 [{fam, label, ...}] */
@@ -2198,17 +2247,18 @@ function srrFinish() {
 }
 
 /* ───────── 간식 체크리스트 ───────── */
-const snackName = (k) => (SNACKS.find((s) => s[0] === k) || [k, k])[1];
-/* 최근 30일 간식(사료 빼고) 막대 + 최근 7일과 그 전 7일 하루 평균. 판정 없이 숫자만 보여 줘요 */
+const snackName = (k) => (snackOf(k) || { name: k }).name;
+/* 최근 30일 간식(합계에서 빼는 종류 빼고) 막대 + 최근 7일과 그 전 7일 하루 평균. 판정 없이 숫자만 보여 줘요 */
 function snackTrendCard(T) {
   const days = []; for (let i = 29; i >= 0; i--) days.push(addDays(T, -i));
   [...new Set(days.map(ym))].forEach((k) => needMonth('snacks', k));
-  const vs = days.map((d) => SNACKS.reduce((s, [k]) => s + (k === 'food' ? 0 : Number(dayDoc('snacks', d)[k]) || 0), 0));
+  const vs = days.map((d) => snackSum(dayDoc('snacks', d)));
   if (!vs.some(Boolean)) return '';
   const max = Math.max(1, ...vs);
   const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
   const f1 = (x) => String(Math.round(x * 10) / 10);
-  return `<div class="card"><div class="card-head"><h2>최근 30일 간식</h2><span class="sub">사료 빼고</span></div><div class="trend">
+  const ex = mealSnackNames();
+  return `<div class="card"><div class="card-head"><h2>최근 30일 간식</h2>${ex.length ? `<span class="sub">${esc(ex.join('·'))} 빼고</span>` : ''}</div><div class="trend">
     <div class="trend-bars" role="img" aria-label="최근 30일 간식 하루 개수. 가장 많은 날 ${max}개, 최근 7일 하루 평균 ${f1(avg(vs.slice(-7)))}개">${vs.map((v, i) => `<i class="${v ? '' : 'z'}${days[i] === T ? ' t' : ''}" style="height:${v ? Math.max(8, Math.round((v / max) * 100)) : 4}%" title="${esc(md(days[i]))} ${v}개"></i>`).join('')}</div>
     <div class="trend-ax"><span>${esc(md(days[0]))}</span><span>가장 많은 날 ${max}개</span><span>오늘</span></div>
     <span class="mini-note">하루 평균 · 최근 7일 ${f1(avg(vs.slice(-7)))}개 · 그 전 7일 ${f1(avg(vs.slice(-14, -7)))}개</span>
@@ -2224,16 +2274,103 @@ function snackChange(date, k, delta, setTo) {
   if (delta) ops.push(['log', 'log', [hhmm(), k, delta, meKey()]]);
   return mut('snacks', date, ops);
 }
+/* ───────── 간식 종류 고치기 ─────────
+ * 이름 바꾸기 · 순서 · 홈 + 버튼 · 합계에서 빼기 · 추가 · 지우기(지난 기록은 남아요) · 되살리기.
+ * 두 폰이 같이 쓰는 설정이라 저장할 때 다른 폰이 먼저 바꿨는지 확인해요. */
+const IC_UP = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14.5 6-6 6 6"/></svg>';
+const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>';
+function snackNewId(items) {
+  const used = new Set([...items.map((x) => x.id), ...SNACK_DEF.map((x) => x.id)]);
+  for (let n = 0; n < 60; n++) {
+    const id = `s${Math.random().toString(36).slice(2, 8)}`;
+    if (SNACK_ID_RE.test(id) && !used.has(id)) return id;
+  }
+  return `s${Date.now().toString(36)}`;
+}
+function snackCfgSheet() {
+  if (S.readOnly || !ready()) return;
+  F = { kind: 'snackcfg', items: snackCfg().map((x) => ({ ...x })), base: ((S.info || {}).snackTypes || {}).updatedAt || '' };
+  const draw = () => {
+    const list = $('#sc-list'); const offBox = $('#sc-off'); if (!list || !F || F.kind !== 'snackcfg') return;
+    const on = F.items.map((x, i) => [x, i]).filter(([x]) => !x.off);
+    list.innerHTML = on.length ? on.map(([x, i], j) => {
+      const nm = esc(x.name || '새 간식');
+      return `<div class="sc-row" data-i="${i}">
+        <div class="sc-top"><input type="text" id="sc-n-${i}" maxlength="${SNACK_NAME_MAX}" value="${esc(x.name)}" placeholder="예: 북어 트릿" aria-label="간식 이름" autocomplete="off">
+          <button class="icon-btn" type="button" data-act="sc-move" data-i="${i}" data-d="-1" aria-label="${nm} 위로"${j === 0 ? ' disabled' : ''}>${IC_UP}</button>
+          <button class="icon-btn" type="button" data-act="sc-move" data-i="${i}" data-d="1" aria-label="${nm} 아래로"${j === on.length - 1 ? ' disabled' : ''}>${IC_DOWN}</button>
+          <button class="icon-btn" type="button" data-act="sc-del" data-i="${i}" aria-label="${nm} 지우기">${X_SVG}</button></div>
+        <div class="sc-opts"><label class="check"><input type="checkbox" id="sc-h-${i}"${x.home ? ' checked' : ''}><span>홈 화면에 + 버튼</span></label><label class="check"><input type="checkbox" id="sc-m-${i}"${x.meal ? ' checked' : ''}><span>간식 합계에서 빼기</span></label></div>
+      </div>`;
+    }).join('') : '<div class="empty">간식 종류가 없어요. 아래에서 추가해 주세요.</div>';
+    const off = F.items.map((x, i) => [x, i]).filter(([x]) => x.off);
+    offBox.innerHTML = off.length ? `<div class="block"><span class="k">지운 종류 · 지난 기록의 개수는 그대로 남아 있어요</span><div class="pick">${off.map(([x, i]) => `<button type="button" data-act="sc-restore" data-i="${i}">${esc(x.name)} 되살리기</button>`).join('')}</div></div>` : '';
+    const add = $('#sc-add'); if (add) add.disabled = on.length >= SNACK_MAX;
+  };
+  /* 그리기 전에 지금 칸에 적은 것을 먼저 담아 둬요 (쓰던 이름이 사라지지 않게) */
+  const sync = () => {
+    F.items = F.items.map((x, i) => {
+      if (x.off) return x;
+      const n = $(`#sc-n-${i}`), h = $(`#sc-h-${i}`), m = $(`#sc-m-${i}`);
+      return { ...x, name: n ? n.value : x.name, home: h ? h.checked : x.home, meal: m ? m.checked : x.meal };
+    });
+  };
+  F.draw = draw; F.sync = sync;
+  openSheet('간식 종류', `<form class="form" id="snackcfg-form" novalidate>
+      <span class="mini-note">이름을 바꾸면 지난 기록에도 새 이름으로 보여요. 지워도 지난 기록의 개수는 그대로 남고, 두 폰에 같이 바뀌어요.</span>
+      <div id="sc-note"></div>
+      <div id="sc-list" class="sc-list"></div>
+      <button class="btn ghost sm" type="button" id="sc-add" data-act="sc-add" style="align-self:flex-start">+ 간식 종류 추가</button>
+      <div id="sc-off"></div>
+      <button class="btn" type="submit">저장</button>
+    </form>`, (body) => {
+    draw();
+    body.querySelector('#snackcfg-form').addEventListener('submit', (e) => { e.preventDefault(); snackCfgSave(e.submitter || body.querySelector('button[type=submit]')); });
+  });
+}
+async function snackCfgSave(btn) {
+  if (!F || F.kind !== 'snackcfg' || !writable()) return;
+  F.sync();
+  const items = []; const names = new Set();
+  for (const x of F.items) {
+    if (x.off) { if (!x.fresh) items.push({ id: x.id, name: x.name, home: !!x.home, meal: !!x.meal, off: true }); continue; }
+    const name = String(x.name || '').trim().replace(/\s+/g, ' ').slice(0, SNACK_NAME_MAX);
+    if (!name) { if (x.fresh) continue; toast('간식 이름을 적어 주세요. 안 쓰는 종류는 ✕로 지울 수 있어요.'); return; }
+    if (names.has(name)) { toast(`같은 이름(${name})이 두 번 있어요. 이름을 다르게 적어 주세요.`); return; }
+    names.add(name);
+    items.push({ id: x.id, name, home: !!x.home, meal: !!x.meal });
+  }
+  if (items.filter((x) => !x.off).length > SNACK_MAX) { toast(`간식 종류는 ${SNACK_MAX}개까지예요.`); return; }
+  const doc = { items, updatedAt: new Date().toISOString(), by: meKey() };
+  if (btn) btn.disabled = true;
+  const ok = await put('info', 'snackTypes', doc, F.base);
+  if (btn) btn.disabled = false;
+  if (ok) { await closeSheet(); toast('간식 종류를 저장했어요'); return; }
+  /* 다른 폰이 먼저 바꿨어요: 그쪽에서 새로 넣은 종류는 목록에 더해 두고, 한 번 더 저장하면 지금 화면대로 바뀌어요 */
+  if (F && F.kind === 'snackcfg') {
+    const cur = (S.info || {}).snackTypes || null;
+    if (cur && cur.updatedAt && cur.updatedAt !== F.base) {
+      F.base = cur.updatedAt;
+      for (const x of snackCfg()) if (!F.items.some((y) => y.id === x.id)) F.items.push({ ...x });
+      F.draw();
+      const note = $('#sc-note');
+      if (note) note.innerHTML = `<div class="warn-box"><b>${esc(famName(cur.by) ? `${iga(famName(cur.by))} ` : '다른 폰에서 ')}먼저 간식 종류를 바꿨어요</b><span>그쪽에서 더한 종류는 목록에 넣어 뒀어요. 확인하고 한 번 더 저장해 주세요.</span></div>`;
+    }
+  }
+}
 function renderSnacks() {
   const el = $('#v-snacks');
-  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>밥·간식 체크리스트</h1></div>${loadingOr('')}<div class="card"><div class="empty">끼니마다 밥을 챙겼는지, 트릿·츄르·덴탈과자를 몇 개 줬는지 적어요.</div></div>`; return; }
+  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>밥·간식 체크리스트</h1></div>${loadingOr('')}<div class="card"><div class="empty">끼니마다 밥을 챙겼는지, 간식을 몇 개 줬는지 적어요.</div></div>`; return; }
   const T = todayStr(); const date = curDay('snacks');
   needMonth('snacks', ym(date));
   const doc = dayDoc('snacks', date);
-  const total = SNACKS.reduce((s, [k]) => s + (Number(doc[k]) || 0), 0);
-  const rows = SNACKS.map(([k, label]) => {
-    const n = Number(doc[k]) || 0;
-    return `<div class="snack-row"><label class="nm" for="sn-${k}">${esc(label)}</label><div class="stepper"><button class="icon-btn" type="button" data-act="snack-step" data-k="${k}" data-d="-1" aria-label="${esc(label)} 하나 빼기"${n <= 0 ? ' disabled' : ''}>${IC.minus}</button><input type="number" id="sn-${k}" data-snack="${k}" inputmode="numeric" pattern="[0-9]*" min="0" max="999" value="${n}" aria-label="${esc(label)} 개수"><button class="icon-btn plus" type="button" data-act="snack-step" data-k="${k}" data-d="1" aria-label="${esc(label)} 하나 더">${IC.plus}</button></div></div>`;
+  const cfg = snackCfg(); const ex = mealSnackNames();
+  /* 지운 종류라도 이날 개수가 있으면 고칠 수 있게 보여 줘요 */
+  const dayItems = cfg.filter((it) => !it.off || Number(doc[it.id]) > 0);
+  const total = snackSum(doc);
+  const rows = dayItems.map((it) => {
+    const k = it.id; const label = it.name; const n = Number(doc[k]) || 0;
+    return `<div class="snack-row"><label class="nm" for="sn-${k}">${esc(label)}${it.off ? '<span class="mini-note"> (지운 종류)</span>' : ''}</label><div class="stepper"><button class="icon-btn" type="button" data-act="snack-step" data-k="${k}" data-d="-1" aria-label="${esc(label)} 하나 빼기"${n <= 0 ? ' disabled' : ''}>${IC.minus}</button><input type="number" id="sn-${k}" data-snack="${k}" inputmode="numeric" pattern="[0-9]*" min="0" max="999" value="${n}" aria-label="${esc(label)} 개수"><button class="icon-btn plus" type="button" data-act="snack-step" data-k="${k}" data-d="1" aria-label="${esc(label)} 하나 더">${IC.plus}</button></div></div>`;
   }).join('');
   const log = (Array.isArray(doc.log) ? doc.log : []).slice().reverse();
   const mk = calMonth('snacks');
@@ -2241,12 +2378,14 @@ function renderSnacks() {
   const docs = monthDocs('snacks', mk);
   const [yy, mm] = mk.split('-').map(Number);
   const lastDay = mk === ym(T) ? parts(T).d : dim(yy, mm);
-  const sums = {}; SNACKS.forEach(([k]) => { sums[k] = 0; });
+  /* 표 칸: 지금 쓰는 종류 + 이 달에 개수가 있는 지운 종류. 합계에는 ‘합계에서 빼기’ 종류를 넣지 않아요 */
+  const monthItems = cfg.filter((it) => !it.off || Object.values(docs).some((x) => Number((x || {})[it.id]) > 0));
+  const sums = {}; monthItems.forEach((it) => { sums[it.id] = 0; });
   let grand = 0, body = '';
   for (let i = lastDay; i >= 1; i--) {
     const d = `${mk}-${pad(i)}`; const x = docs[d] || {};
     let rowSum = 0;
-    const cells = SNACKS.map(([k]) => { const v = Number(x[k]) || 0; sums[k] += v; rowSum += v; return v ? `<td>${v}</td>` : '<td class="z"><span>·</span></td>'; }).join('');
+    const cells = monthItems.map((it) => { const v = Number(x[it.id]) || 0; sums[it.id] += v; if (!it.meal) rowSum += v; return v ? `<td>${v}</td>` : '<td class="z"><span>·</span></td>'; }).join('');
     grand += rowSum;
     body += `<tr class="${d === date ? 'sel' : ''}${d === T ? ' today' : ''}" data-act="day-set" data-tab="snacks" data-date="${d}"><td>${i}<small>${esc(wd(d))}</small></td>${cells}${rowSum ? `<td class="sum">${rowSum}</td>` : '<td class="sum z"><span>·</span></td>'}</tr>`;
   }
@@ -2262,20 +2401,20 @@ function renderSnacks() {
     <div class="card">
       ${dayNav('snacks', date)}
       ${mealsHtml}
-      ${meals.length ? '<div class="med-kind" style="margin-top:4px">간식</div>' : ''}
-      <div class="snack-list">${rows}</div>
-      <div class="fld"><label for="sn-etc-note">기타는 무엇인가요</label><input type="text" id="sn-etc-note" maxlength="60" value="${esc(doc.etcNote || '')}" placeholder="예: 닭가슴살, 북어 트릿"></div>
-      <div class="snack-total"><span>${date === T ? '오늘' : esc(mdKo(date))} 준 간식</span><span><b>${total}</b>개</span></div>
+      <div class="med-kind snack-kind"${meals.length ? ' style="margin-top:4px"' : ''}><span>간식</span>${S.readOnly ? '' : '<button class="link" type="button" data-act="snack-cfg">종류 고치기</button>'}</div>
+      ${rows ? `<div class="snack-list">${rows}</div>` : `<div class="empty">간식 종류가 없어요.${S.readOnly ? '' : ' ‘종류 고치기’에서 추가해 주세요.'}</div>`}
+      ${dayItems.some((it) => it.id === 'etc') ? `<div class="fld"><label for="sn-etc-note">${snackName('etc') === '기타' ? '기타는 무엇인가요' : `${esc(snackName('etc'))} 메모`}</label><input type="text" id="sn-etc-note" maxlength="60" value="${esc(doc.etcNote || '')}" placeholder="예: 닭가슴살, 북어 트릿"></div>` : ''}
+      <div class="snack-total"><span>${date === T ? '오늘' : esc(mdKo(date))} 준 간식${ex.length ? ` <span class="mini-note">(${esc(ex.join('·'))} 빼고)</span>` : ''}</span><span><b>${total}</b>개</span></div>
       ${log.length ? `<div class="slog" aria-label="준 기록">${log.slice(0, 8).map(snackLogLine).join('')}${log.length > 8 ? `<span class="muted" style="font-size:12.5px">그 전에 ${log.length - 8}번 더 있어요</span>` : ''}</div>` : ''}
     </div>
     ${snackTrendCard(T)}
     <div class="card">
       ${monthNav('snacks', mk)}
       ${monthReady('snacks', mk) ? '' : '<div class="empty">이 달 기록을 불러오는 중이에요…</div>'}
-      <div class="tbl-wrap"><table class="stbl"><thead><tr><th scope="col">날짜</th>${SNACKS.map(([, , s]) => `<th scope="col">${esc(s)}</th>`).join('')}<th scope="col">합계</th></tr></thead>
+      <div class="tbl-wrap"><table class="stbl"><thead><tr><th scope="col">날짜</th>${monthItems.map((it) => `<th scope="col">${esc(snackLabel(it))}</th>`).join('')}<th scope="col">합계</th></tr></thead>
         <tbody>${body}</tbody>
-        <tfoot><tr><th scope="row">합계</th>${SNACKS.map(([k]) => `<th>${sums[k]}</th>`).join('')}<th>${grand}</th></tr></tfoot></table></div>
-      <span class="muted" style="font-size:12.5px">줄을 누르면 위에서 그날 수량을 고칠 수 있어요.</span>
+        <tfoot><tr><th scope="row">합계</th>${monthItems.map((it) => `<th>${sums[it.id]}</th>`).join('')}<th>${grand}</th></tr></tfoot></table></div>
+      <span class="muted" style="font-size:12.5px">줄을 누르면 위에서 그날 수량을 고칠 수 있어요.${monthItems.some((it) => it.meal) ? ` 합계에는 ${esc(eulReul(monthItems.filter((it) => it.meal).map((it) => it.name).join('·')))} 넣지 않아요.` : ''}</span>
     </div>`;
 }
 
@@ -2446,8 +2585,8 @@ function todayCard() {
     ? `<div class="t-row"><span class="t-lbl">약</span>${chips}<button class="t-end icon-btn" type="button" data-act="tab" data-tab="meds" aria-label="약 체크리스트 열기" style="width:32px;height:32px;background:none">${IC.right}</button></div>`
     : `<button class="t-row" type="button" data-act="tab" data-tab="meds"><span class="t-lbl">약</span><span class="t-val muted">${medItems().length ? '오늘 챙길 약이 없어요' : '챙길 약 추가하기'}</span><span class="t-end">${IC.right}</span></button>`;
   const sn = dayDoc('snacks', T);
-  const total = SNACKS.reduce((s, [k]) => s + (k === 'food' ? 0 : Number(sn[k]) || 0), 0);
-  const bits = SNACKS.filter(([k]) => k !== 'food' && Number(sn[k]) > 0).map(([k, l]) => `${l} ${Number(sn[k])}`);
+  const total = snackSum(sn);
+  const bits = snackCfg().filter((it) => !it.meal && Number(sn[it.id]) > 0).map((it) => `${it.name} ${Number(sn[it.id])}`);
   const ps = dayPhotos(dayDoc('diary', T));
   const arrow = (tab, label) => `<button class="t-end icon-btn" type="button" data-act="tab" data-tab="${tab}" aria-label="${esc(label)}" style="width:32px;height:32px;background:none">${IC.right}</button>`;
   /* 밥: 밥 먹는 시간마다 한 칩. 먼저 누른 사람이 남아서 둘이 두 번 주지 않게 */
@@ -2457,7 +2596,8 @@ function todayCard() {
     ? `<div class="t-row"><span class="t-lbl">밥</span><div class="t-meds">${meals.map((m) => mealChip(m, md1[m.id])).join('')}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`
     : (p && !S.readOnly ? `<button class="t-row" type="button" data-act="edit-feed" data-pet="${esc(p.id)}"><span class="t-lbl">밥</span><span class="t-val muted">밥 먹는 시간을 정하면 끼니마다 체크할 수 있어요</span><span class="t-end">${IC.right}</span></button>` : '');
   /* 간식: 자주 주는 간식은 여기서 바로 +1 */
-  const quick = S.readOnly ? '' : `<span class="t-meds">${SNACKS.filter(([k]) => !['food', 'etc'].includes(k)).map(([k, , s]) => `<button class="mchip" type="button" data-act="home-snack" data-k="${k}" aria-label="${esc(snackName(k))} 하나 줬어요">+ ${esc(s)}</button>`).join('')}</span>`;
+  const homeSn = snackItems().filter((it) => it.home);
+  const quick = S.readOnly || !homeSn.length ? '' : `<span class="t-meds">${homeSn.map((it) => `<button class="mchip" type="button" data-act="home-snack" data-k="${esc(it.id)}" aria-label="${esc(it.name)} 하나 줬어요">+ ${esc(snackLabel(it))}</button>`).join('')}</span>`;
   const snackRow = `<div class="t-row"><span class="t-lbl">간식</span><div class="t-two"><span class="t-val${total ? '' : ' muted'}">${total ? esc(`${total}개 · ${bits.join(', ')}`) : '오늘은 아직 안 줬어요'}</span>${quick}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`;
   const hl = docsReady() ? healthLine(dayDoc('health', T)) : '';
   const healthRow = docsReady() ? `<button class="t-row" type="button" data-act="health" data-date="${T}"><span class="t-lbl">건강</span><span class="t-val${hl ? '' : ' muted'}">${hl ? esc(hl) : '화장실·물·토·호흡수 적기'}</span><span class="t-end">${IC.right}</span></button>` : '';
@@ -2652,7 +2792,7 @@ function conflictLoad(col, id, curText) {
   const c = { ...(S.raw[col] || {}) };
   if (cur) c[id] = cur; else delete c[id];
   S.raw[col] = c; S.lastWriteAt = Date.now(); buildView(); saveCache(); render();
-  const who = cur && famName(cur.who || cur.payer || '') ? famName(cur.who || cur.payer) : '';
+  const who = cur && famName(cur.who || cur.payer || cur.by || '') ? famName(cur.who || cur.payer || cur.by) : '';
   if (F && (F.kind === 'record' || F.kind === 'expense') && F.id === id) {
     if (cur) {
       const fresh = (col === 'records' ? S.records : S.expenses).find((x) => x.id === id) || { ...cur, id };
@@ -4232,8 +4372,40 @@ const ACT = {
     if (medVal(dayDoc('meds', T), m, t.id)) { setDay('meds', T); S.tab = 'meds'; S.back = 'meds'; window.scrollTo(0, 0); render(); }
     else medCheck(T, m, t, hhmm());
   },
+  /* 간식 종류 고치기 */
+  'snack-cfg'() { snackCfgSheet(); },
+  'sc-add'() {
+    if (!F || F.kind !== 'snackcfg') return; F.sync();
+    if (F.items.filter((x) => !x.off).length >= SNACK_MAX) { toast(`간식 종류는 ${SNACK_MAX}개까지예요.`); return; }
+    F.items.push({ id: snackNewId(F.items), name: '', short: '', home: true, meal: false, off: false, fresh: true });
+    F.draw();
+    const n = $(`#sc-n-${F.items.length - 1}`); if (n) n.focus();
+  },
+  'sc-move'(b) {
+    if (!F || F.kind !== 'snackcfg') return; F.sync();
+    const i = Number(b.dataset.i); const d = Number(b.dataset.d);
+    const on = F.items.map((x, j) => [x, j]).filter(([x]) => !x.off).map(([, j]) => j);
+    const p = on.indexOf(i); const q = p + d;
+    if (p < 0 || q < 0 || q >= on.length) return;
+    const a = on[p], c = on[q]; const t = F.items[a]; F.items[a] = F.items[c]; F.items[c] = t;
+    F.draw();
+    const mv = $(`#sc-list .sc-row[data-i="${c}"] [data-act="sc-move"][data-d="${d}"]`); if (mv && !mv.disabled) mv.focus();
+  },
+  'sc-del'(b) {
+    if (!F || F.kind !== 'snackcfg') return; F.sync();
+    const i = Number(b.dataset.i); const x = F.items[i]; if (!x) return;
+    if (x.fresh) F.items.splice(i, 1); else F.items[i] = { ...x, off: true };
+    F.draw();
+  },
+  'sc-restore'(b) {
+    if (!F || F.kind !== 'snackcfg') return; F.sync();
+    const i = Number(b.dataset.i); const x = F.items[i]; if (!x) return;
+    if (F.items.filter((y) => !y.off).length >= SNACK_MAX) { toast(`간식 종류는 ${SNACK_MAX}개까지예요.`); return; }
+    F.items[i] = { ...x, off: false }; F.draw();
+  },
   'snack-step'(b) {
     const date = curDay('snacks'); const k = b.dataset.k; const d = Number(b.dataset.d);
+    if (!snackOf(k)) return;
     if (d < 0 && (Number(dayDoc('snacks', date)[k]) || 0) <= 0) return;
     snackChange(date, k, d);
   },
@@ -4268,6 +4440,7 @@ const ACT = {
   },
   'home-snack'(b) {
     const T = todayStr(); const k = b.dataset.k;
+    if (!snackOf(k)) return;
     if (snackChange(T, k, 1)) toast(`${snackName(k)} 1개 · 오늘 ${Number(dayDoc('snacks', T)[k]) || 0}개`);
   },
   /* 건강 체크 · 호흡수 */
@@ -4533,6 +4706,7 @@ document.addEventListener('change', (e) => {
   }
   if (t.matches('[data-snack]')) {
     const date = curDay('snacks'); const k = t.dataset.snack;
+    if (!snackOf(k)) return;
     const cur = Number(dayDoc('snacks', date)[k]) || 0;
     let n = parseInt(String(t.value).replace(/[^\d]/g, ''), 10);
     if (!isFinite(n) || n < 0) n = 0;
