@@ -803,6 +803,7 @@ const SNACK_DEF = [
   { id: 'etc', name: '기타', short: '기타' },
 ];
 const SNACK_MAX = 12, SNACK_NAME_MAX = 12;
+const SNACK_TBL_DAYS = 5; /* 아래 표에 처음 보여 주는 날 수 (그 달 안에서 최근부터) */
 const SNACK_RESERVED = ['log', 'meals', 'etcNote', 'updatedAt', 'createdAt'];
 const SNACK_ID_RE = /^[a-z][a-z0-9_]{1,20}$/;
 function normSnack(x) {
@@ -2118,38 +2119,99 @@ async function medSave() {
  * 먼저 누른 사람이 남고(setnx), 늦게 누른 사람에게는 '이미 챙겼어요'가 떠서 두 번 주지 않게 해요. */
 const ATE = [['all', '다 먹음'], ['some', '조금 남김'], ['none', '안 먹음']];
 const ateName = (k) => (ATE.find((a) => a[0] === k) || [k, ''])[1];
+/* 방법에 ‘자동급식기’(‘자동’)라고 적은 끼니는 그 시간이 되면 저절로 체크해요 */
+const AUTO_FEED_RE = /자동|급식기/;
+/* 원래 자동급식기였던 끼니는 이 기능을 넣은 날부터, 나중에 자동급식기로 바꾼 끼니는 바꾼 날부터 체크해요 */
+const AUTO_FEED_START = '2026-10-19';
+const AUTO_FEED_BACK = 7; /* 며칠 동안 앱을 안 열었어도 최근 7일 것까지는 채워 둬요 */
+/* ‘오전 9시’ ‘오후 2시 30분’ ‘저녁 7시 반’ ‘밤 12시’ ‘21:00’ → 하루 안의 분.
+ * 밤 12시(자정)는 그날의 끝(1440분), 밤 1~4시는 그 뒤로 쳐요. 시간을 못 읽으면 null (그 끼니는 저절로 체크하지 않아요) */
+function feedMins(text) {
+  const s = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+  if (/자정/.test(s)) return 1440;
+  if (/정오/.test(s)) return 720;
+  let h; let mi = 0;
+  let m = s.match(/(\d{1,2})\s*:\s*(\d{2})/);
+  if (m) { h = Number(m[1]); mi = Number(m[2]); } else {
+    m = s.match(/(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분|\s*(반))?/);
+    if (!m) return null;
+    h = Number(m[1]); mi = m[2] ? Number(m[2]) : m[3] ? 30 : 0;
+  }
+  if (!(h >= 0 && h <= 24 && mi >= 0 && mi < 60)) return null;
+  if (/밤/.test(s)) { if (h === 12) h = 24; else if (h >= 1 && h <= 4) h += 24; else if (h < 12) h += 12; }
+  else if (/오후|저녁/.test(s)) { if (h < 12) h += 12; }
+  else if (/낮/.test(s)) { if (h >= 1 && h <= 6) h += 12; }
+  else if (/오전|아침|새벽/.test(s)) { if (h === 12) h = 0; }
+  const n = h * 60 + mi;
+  return n <= 1440 + 5 * 60 ? n : null;
+}
+const minsHm = (n) => { const k = ((n % 1440) + 1440) % 1440; return `${pad(Math.floor(k / 60))}:${pad(k % 60)}`; };
+const feedDueAt = (date, mins) => { const p = parts(date); return new Date(p.y, p.m - 1, p.d, 0, mins).getTime(); };
 function mealRows(p) {
-  return (Array.isArray(p && p.feeding) ? p.feeding : []).map((x, i) => ({
-    id: /^[A-Za-z0-9_]{1,40}$/.test(String(x.id || '')) ? String(x.id) : `f${i}`,
-    label: String(x.time || '').trim() || `${i + 1}번째`, what: String(x.what || ''), how: String(x.how || ''), auto: /자동/.test(String(x.how || '')),
-  }));
+  return (Array.isArray(p && p.feeding) ? p.feeding : []).map((x, i) => {
+    const how = String(x.how || ''); const mins = feedMins(x.time);
+    return {
+      id: /^[A-Za-z0-9_]{1,40}$/.test(String(x.id || '')) ? String(x.id) : `f${i}`,
+      label: String(x.time || '').trim() || `${i + 1}번째`, what: String(x.what || ''), how, auto: AUTO_FEED_RE.test(how),
+      mins, hm: mins === null ? '' : minsHm(mins), autoFrom: isDate(x.autoFrom) ? x.autoFrom : '',
+    };
+  });
 }
 const mealsDoc = (doc) => (doc && doc.meals && typeof doc.meals === 'object' && !Array.isArray(doc.meals) ? doc.meals : {});
-const mealVal = (doc, id) => { const v = mealsDoc(doc)[id]; return v && typeof v === 'object' ? v : null; };
+/* skip: 자동급식기 끼니를 ‘안 줬어요’로 바꾼 표시. 체크된 것으로 보지 않지만, 저절로 다시 체크하지도 않아요 */
+const mealRaw = (doc, id) => { const v = mealsDoc(doc)[id]; return v && typeof v === 'object' ? v : null; };
+const mealVal = (doc, id) => { const v = mealRaw(doc, id); return v && !v.skip ? v : null; };
+const mealWho = (v) => (v && v.auto ? '자동급식기' : famName(v && v.who));
+/* 자동급식기 끼니: 시간이 지났는데 아무 표시도 없으면 그 시간으로 체크해요 (사람이 먼저 체크했거나 ‘안 줬어요’로 바꾼 끼니는 그대로) */
+function autoMealTick() {
+  if (!ready() || S.readOnly || S.fromCache || !S.raw || !meKey()) return;
+  const p = mainPet(); if (!p) return;
+  const rows = mealRows(p).filter((m) => m.auto && m.mins !== null);
+  if (!rows.length) return;
+  const T = todayStr(); const now = Date.now(); const at = new Date().toISOString();
+  for (let i = AUTO_FEED_BACK; i >= 0; i--) {
+    const d = addDays(T, -i);
+    if (!monthReady('snacks', ym(d))) continue;
+    const doc = dayDoc('snacks', d); const ops = [];
+    for (const m of rows) {
+      if (d < (m.autoFrom || AUTO_FEED_START)) continue;
+      if (feedDueAt(d, m.mins) > now) continue;
+      if (mealRaw(doc, m.id)) continue;
+      ops.push(['setnx', `meals.${m.id}`, { time: m.hm, who: 'auto', at, auto: true }]);
+    }
+    if (ops.length) mut('snacks', d, ops);
+  }
+}
 function mealChip(m, v) {
   const cls = v ? (v.ate === 'none' ? ' on ate-none' : v.ate === 'some' ? ' on ate-some' : ' on') : m.auto ? ' auto' : '';
-  const said = v ? `${m.auto ? '확인' : '챙김'} ${timeKo(v.time)}${v.ate ? ` · ${ateName(v.ate)}` : ''}` : '체크하기';
+  const said = v ? `${v.auto ? '자동 체크' : m.auto ? '확인' : '챙김'} ${timeKo(v.time)}${v.ate ? ` · ${ateName(v.ate)}` : ''}` : m.auto && m.hm ? `${timeKo(m.hm)}에 자동 체크` : '체크하기';
   return `<button class="mchip${cls}" type="button" data-act="home-meal" data-id="${esc(m.id)}" aria-label="${esc(m.label)} 밥 ${esc(said)}">${v ? IC.check : ''}${esc(m.label)}${v ? `<small>${esc(v.time || '')}</small>` : ''}</button>`;
 }
 function mealFind(id) { const p = mainPet(); return p ? mealRows(p).find((m) => m.id === id) || null : null; }
 function mealCheck(date, m, time) {
   const v = { time, who: meKey(), at: new Date().toISOString() };
-  const done = mut('snacks', date, [['setnx', `meals.${m.id}`, v]], (doc) => {
+  /* ‘안 줬어요’로 바꿔 둔 끼니는 덮어써야 다시 체크돼요 */
+  const raw = mealRaw(dayDoc('snacks', date), m.id);
+  const done = mut('snacks', date, [[raw && raw.skip ? 'set' : 'setnx', `meals.${m.id}`, v]], (doc) => {
     const got = mealVal(doc, m.id);
-    if (got && got.at !== v.at) toast(`${iga(famName(got.who) || '다른 사람')} 이미 ${timeKo(got.time)}에 챙겼어요`);
+    if (got && got.at !== v.at) toast(got.auto ? `${timeKo(got.time)}에 자동급식기로 이미 체크돼 있어요` : `${iga(famName(got.who) || '다른 사람')} 이미 ${timeKo(got.time)}에 챙겼어요`);
   });
   if (done) toast(`${m.label} ${m.auto ? '자동급식기 확인했어요' : '밥 챙겼어요'} · ${timeKo(time)}`);
 }
 function mealSheet(date, m) {
-  const v = mealVal(dayDoc('snacks', date), m.id);
+  const raw = mealRaw(dayDoc('snacks', date), m.id); const v = raw && !raw.skip ? raw : null;
   const who = v ? [famName(v.who), timeKo(v.time)].filter(Boolean).join(' · ') : '';
+  const said = !v ? '' : v.auto ? `자동급식기 시간(${timeKo(v.time)})이 돼서 저절로 체크했어요` : `${who}에 체크했어요`;
   openSheet(`${m.label} 밥 · ${mdKo(date)}`, `<form class="form" id="meal-form" novalidate>
       ${m.what ? `<div class="note"><span>${esc([m.what, m.how].filter(Boolean).join(' · '))}</span></div>` : ''}
-      ${v ? `<div class="note"><span>${esc(who)}에 체크했어요${v.by && v.by !== v.who && famName(v.by) ? ` · ${esc(famName(v.by))} 고침` : ''}</span></div>` : ''}
-      <div class="fld"><label for="ml-time">${m.auto ? '확인한 시간' : '챙긴 시간'}</label><input type="time" id="ml-time" value="${esc(v ? v.time : date === todayStr() ? hhmm() : '09:00')}"></div>
+      ${v ? `<div class="note"><span>${esc(said)}${v.by && v.by !== v.who && famName(v.by) ? ` · ${esc(famName(v.by))} 고침` : ''}</span></div>` : ''}
+      ${raw && raw.skip ? `<div class="note"><span>${esc(famName(raw.who) ? `${iga(famName(raw.who))} ` : '')}‘안 줬어요’로 바꿔 둔 끼니예요. 줬으면 아래에서 체크해 주세요.</span></div>` : ''}
+      ${m.auto && !v && !(raw && raw.skip) && m.hm ? `<div class="note"><span>자동급식기 끼니라 ${esc(timeKo(m.hm))}이 되면 저절로 체크돼요.</span></div>` : ''}
+      <div class="fld"><label for="ml-time">${m.auto ? '확인한 시간' : '챙긴 시간'}</label><input type="time" id="ml-time" value="${esc(v ? v.time : date === todayStr() ? hhmm() : (m.hm || '09:00'))}"></div>
       <div class="fld"><span class="lbl">얼마나 먹었나요 (선택)</span><div class="pick" role="group" data-pick="ate" data-toggle="1">${ATE.map(([k, l]) => `<button type="button" data-val="${k}" aria-pressed="${!!v && v.ate === k}">${esc(l)}</button>`).join('')}</div></div>
       <button class="btn" type="submit">${v ? '고친 내용 저장' : '체크하기'}</button>
-      ${v ? '<button class="btn ghost" type="button" data-act="meal-undo">체크 취소</button>' : ''}
+      ${v ? `<button class="btn ghost" type="button" data-act="meal-undo">${m.auto ? '안 줬어요 (체크 빼기)' : '체크 취소'}</button>` : ''}
     </form>`, (body) => {
     F = { kind: 'meal', date, meal: m.id };
     bindPicks(body);
@@ -2160,7 +2222,7 @@ function mealSheet(date, m) {
       const ate = pickVal(body, 'ate') || '';
       const nv = v ? { ...v, time: tm, ate, by: meKey(), edited: new Date().toISOString() } : { time: tm, who: meKey(), at: new Date().toISOString(), ate };
       if (!ate) delete nv.ate;
-      if (mut('snacks', date, [[v ? 'set' : 'setnx', `meals.${m.id}`, nv]])) { await closeSheet(); toast(v ? '고쳤어요' : `${m.label} 밥 체크했어요 · ${timeKo(tm)}`); }
+      if (mut('snacks', date, [[v || (raw && raw.skip) ? 'set' : 'setnx', `meals.${m.id}`, nv]])) { await closeSheet(); toast(v ? '고쳤어요' : `${m.label} 밥 체크했어요 · ${timeKo(tm)}`); }
     });
   });
 }
@@ -2381,19 +2443,26 @@ function renderSnacks() {
   /* 표 칸: 지금 쓰는 종류 + 이 달에 개수가 있는 지운 종류. 합계에는 ‘합계에서 빼기’ 종류를 넣지 않아요 */
   const monthItems = cfg.filter((it) => !it.off || Object.values(docs).some((x) => Number((x || {})[it.id]) > 0));
   const sums = {}; monthItems.forEach((it) => { sums[it.id] = 0; });
-  let grand = 0, body = '';
+  /* 줄은 그 달 안에서 최근 5일만 (1일이면 1일 하나). 나머지는 ‘더 보기’로. 아래 합계는 늘 그 달 전체예요 */
+  const more = S.snackMore === mk;
+  let grand = 0, body = '', shown = 0;
   for (let i = lastDay; i >= 1; i--) {
     const d = `${mk}-${pad(i)}`; const x = docs[d] || {};
     let rowSum = 0;
     const cells = monthItems.map((it) => { const v = Number(x[it.id]) || 0; sums[it.id] += v; if (!it.meal) rowSum += v; return v ? `<td>${v}</td>` : '<td class="z"><span>·</span></td>'; }).join('');
     grand += rowSum;
+    if (!more && shown >= SNACK_TBL_DAYS) continue;
+    shown++;
     body += `<tr class="${d === date ? 'sel' : ''}${d === T ? ' today' : ''}" data-act="day-set" data-tab="snacks" data-date="${d}"><td>${i}<small>${esc(wd(d))}</small></td>${cells}${rowSum ? `<td class="sum">${rowSum}</td>` : '<td class="sum z"><span>·</span></td>'}</tr>`;
   }
+  const hiddenDays = lastDay - shown;
   /* 밥: 끼니마다 한 칸 (지난날은 눌러서 시간을 넣어요) */
   const p = mainPet(); const meals = p ? mealRows(p) : [];
   const mealsHtml = meals.length ? `<div class="med-group"><div class="med-kind">밥</div><div class="med-list">${meals.map((m) => {
-    const v = mealVal(doc, m.id);
-    const sub = v ? [timeKo(v.time), famName(v.who), v.ate ? ateName(v.ate) : ''].filter(Boolean).join(' · ') : date === T ? [m.what, m.how].filter(Boolean).join(' · ') || '챙기면 눌러 주세요' : '체크 안 했어요';
+    const raw = mealRaw(doc, m.id); const v = raw && !raw.skip ? raw : null;
+    const sub = v ? [timeKo(v.time), mealWho(v), v.ate ? ateName(v.ate) : ''].filter(Boolean).join(' · ')
+      : raw && raw.skip ? '안 줬어요'
+      : date === T ? [m.what, m.auto && m.hm ? `${timeKo(m.hm)}에 자동 체크` : m.how].filter(Boolean).join(' · ') || '챙기면 눌러 주세요' : '체크 안 했어요';
     return `<button class="med-slot${v ? ' on' : ''}" type="button" data-act="snack-meal" data-id="${esc(m.id)}" aria-pressed="${!!v}"><span class="ck">${IC.check}</span><span><b>${esc(m.label)}</b><span class="s">${esc(sub)}</span></span><span class="go">${v ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>`;
   }).join('')}</div></div>` : (p && !S.readOnly ? `<div class="note"><span>정보 탭의 ‘밥 먹는 시간’을 정하면 끼니마다 체크할 수 있어요.</span><button class="link" type="button" data-act="edit-feed" data-pet="${esc(p.id)}" style="padding:0">정하기</button></div>` : '');
   el.innerHTML = `
@@ -2414,7 +2483,8 @@ function renderSnacks() {
       <div class="tbl-wrap"><table class="stbl"><thead><tr><th scope="col">날짜</th>${monthItems.map((it) => `<th scope="col">${esc(snackLabel(it))}</th>`).join('')}<th scope="col">합계</th></tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><th scope="row">합계</th>${monthItems.map((it) => `<th>${sums[it.id]}</th>`).join('')}<th>${grand}</th></tr></tfoot></table></div>
-      <span class="muted" style="font-size:12.5px">줄을 누르면 위에서 그날 수량을 고칠 수 있어요.${monthItems.some((it) => it.meal) ? ` 합계에는 ${esc(eulReul(monthItems.filter((it) => it.meal).map((it) => it.name).join('·')))} 넣지 않아요.` : ''}</span>
+      ${hiddenDays > 0 || more ? `<div class="btn-row">${hiddenDays > 0 ? `<button class="btn ghost sm" type="button" data-act="snack-more" data-mk="${mk}">더 보기 (${hiddenDays}일 더)</button>` : ''}${more && lastDay > SNACK_TBL_DAYS ? `<button class="btn ghost sm" type="button" data-act="snack-more" data-mk="">접기</button>` : ''}</div>` : ''}
+      <span class="muted" style="font-size:12.5px">${!more && lastDay > SNACK_TBL_DAYS ? `최근 ${SNACK_TBL_DAYS}일만 보여요. 맨 아래 합계는 ${parts(`${mk}-01`).m}월 전체예요. ` : ''}줄을 누르면 위에서 그날 수량을 고칠 수 있어요.${monthItems.some((it) => it.meal) ? ` 합계에는 ${esc(eulReul(monthItems.filter((it) => it.meal).map((it) => it.name).join('·')))} 넣지 않아요.` : ''}</span>
     </div>`;
 }
 
@@ -2591,9 +2661,8 @@ function todayCard() {
   const arrow = (tab, label) => `<button class="t-end icon-btn" type="button" data-act="tab" data-tab="${tab}" aria-label="${esc(label)}" style="width:32px;height:32px;background:none">${IC.right}</button>`;
   /* 밥: 밥 먹는 시간마다 한 칩. 먼저 누른 사람이 남아서 둘이 두 번 주지 않게 */
   const p = mainPet(); const meals = p ? mealRows(p) : [];
-  const md1 = mealsDoc(sn);
   const mealRow = meals.length
-    ? `<div class="t-row"><span class="t-lbl">밥</span><div class="t-meds">${meals.map((m) => mealChip(m, md1[m.id])).join('')}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`
+    ? `<div class="t-row"><span class="t-lbl">밥</span><div class="t-meds">${meals.map((m) => mealChip(m, mealVal(sn, m.id))).join('')}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`
     : (p && !S.readOnly ? `<button class="t-row" type="button" data-act="edit-feed" data-pet="${esc(p.id)}"><span class="t-lbl">밥</span><span class="t-val muted">밥 먹는 시간을 정하면 끼니마다 체크할 수 있어요</span><span class="t-end">${IC.right}</span></button>` : '');
   /* 간식: 자주 주는 간식은 여기서 바로 +1 */
   const homeSn = snackItems().filter((it) => it.home);
@@ -2976,7 +3045,7 @@ async function load(opts = {}) {
   try {
     const r = JSON.parse(await gsr('getAll'));
     if (started < S.lastWriteAt) S.reloadPending = true;
-    else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); }
+    else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); }
     /* 지난번에 못 보낸 체크가 있으면 지금 보내요 */
     if (Object.values(Q).some((q) => (q.pend || []).length && !q.flying)) setTimeout(() => flushAll(), 50);
     if (opts.manual) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : r.calError ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
@@ -4204,6 +4273,7 @@ function feedForm(pid) {
   };
   const html = `<form class="form" id="feed-form" novalidate>
     <div id="feed-rows" class="form"></div>${datalist('dl-how', ['직접', '자동급식기'])}
+    <span class="hint muted" style="font-size:12.5px">방법을 ‘자동급식기’로 적은 끼니는 그 시간이 되면 저절로 체크돼요. 시간은 ‘오전 9시’ ‘오후 2시 30분’ ‘밤 12시’처럼 적어 주세요.</span>
     <button class="btn ghost sm" type="button" data-act="feed-add">+ 한 줄 추가</button>
     <div class="fld"><label for="fd-sup">영양제</label><input type="text" id="fd-sup" value="${esc(p.supplement || '')}" placeholder="오메가3 1알"></div>
     <div class="fld"><label for="fd-note">메모</label><input type="text" id="fd-note" value="${esc(p.feedingNote || '')}" placeholder="몸무게가 늘면 저녁 양 줄이기"></div>
@@ -4215,10 +4285,20 @@ function feedForm(pid) {
     F.sync = sync; F.draw = draw;
     body.querySelector('#feed-form').addEventListener('submit', async (e) => {
       e.preventDefault(); sync();
-      const feeding = F.rows.map((x) => ({ id: x.id || medUid('f'), time: String(x.time || '').trim(), what: String(x.what || '').trim(), how: String(x.how || '').trim() })).filter((x) => x.time || x.what);
+      /* 예전 줄과는 번호로 짝을 맞춰요 (번호가 없던 줄은 f0, f1… 로 읽어요) */
+      const T = todayStr(); const before = (p.feeding || []).map((y, i) => ({ ...y, id: /^[A-Za-z0-9_]{1,40}$/.test(String((y && y.id) || '')) ? String(y.id) : `f${i}` }));
+      const feeding = F.rows.map((x) => {
+        const row = { id: x.id || medUid('f'), time: String(x.time || '').trim(), what: String(x.what || '').trim(), how: String(x.how || '').trim() };
+        /* 자동급식기로 바꾼 날부터 저절로 체크해요 (원래 자동급식기였으면 그 날짜 그대로) */
+        if (AUTO_FEED_RE.test(row.how)) {
+          const old = before.find((y) => y && y.id === row.id);
+          row.autoFrom = old && AUTO_FEED_RE.test(String(old.how || '')) ? (isDate(old.autoFrom) ? old.autoFrom : AUTO_FEED_START) : T;
+        }
+        return row;
+      }).filter((x) => x.time || x.what);
       const kgv = parseFloat($('#fd-kg').value);
       const d = { feeding, supplement: $('#fd-sup').value.trim(), feedingNote: $('#fd-note').value.trim(), feedingNoteKg: kgv > 0 ? kgv : null, feedingUpdated: todayStr() };
-      if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); }
+      if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); autoMealTick(); }
     });
   });
 }
@@ -4374,6 +4454,7 @@ const ACT = {
   },
   /* 간식 종류 고치기 */
   'snack-cfg'() { snackCfgSheet(); },
+  'snack-more'(b) { S.snackMore = b.dataset.mk || ''; render(); },
   'sc-add'() {
     if (!F || F.kind !== 'snackcfg') return; F.sync();
     if (F.items.filter((x) => !x.off).length >= SNACK_MAX) { toast(`간식 종류는 ${SNACK_MAX}개까지예요.`); return; }
@@ -4436,6 +4517,8 @@ const ACT = {
   'meal-undo'() {
     if (!F || F.kind !== 'meal') return;
     const { date } = F; const m = mealFind(F.meal); if (!m) return;
+    /* 자동급식기 끼니는 지우면 다시 저절로 체크되니까 ‘안 줬어요’ 표시를 남겨요 */
+    if (m.auto) { if (mut('snacks', date, [['set', `meals.${m.id}`, { skip: true, who: meKey(), at: new Date().toISOString() }]])) { closeSheet(); toast(`${m.label} 밥을 ‘안 줬어요’로 바꿨어요`); } return; }
     if (mut('snacks', date, [['unset', `meals.${m.id}`]])) { closeSheet(); toast(`${m.label} 밥 체크를 취소했어요`); }
   },
   'home-snack'(b) {
@@ -4774,8 +4857,10 @@ else { const cached = loadCache(); if (cached) applyResult(cached, true); loadPe
 renderNow();
 if (API_URL && store.get(KEY_STORE)) load();
 setInterval(() => { if (liveKey() && document.visibilityState === 'visible' && Date.now() - S.loadedAt >= POLL_MS - 1500) load({ soft: true }); }, POLL_MS);
+setInterval(() => { if (liveKey() && document.visibilityState === 'visible') autoMealTick(); }, 60000);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { flushAll(true); return; }
+  if (liveKey()) autoMealTick();
   if (liveKey() && Date.now() - S.loadedAt > 8000) load({ soft: true });
 });
 window.addEventListener('pagehide', () => flushAll(true));
