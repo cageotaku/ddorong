@@ -457,7 +457,7 @@ body.gated .tabbar, body.gated .fab { display: none; }
 .row.jump { animation: rowflash 2.6s ease-out; border-radius: 8px; }
 .med-later { justify-content: space-between; align-items: center; }
 .med-later .link { flex: none; padding: 0; }
-#v-meds, #medcfg-form, #med-form, .t-meds { word-break: keep-all; overflow-wrap: anywhere; }
+#v-meds, #medcfg-form, #med-form, .t-meds, #v-snacks, #meal-form { word-break: keep-all; overflow-wrap: anywhere; }
 .t-meds.lines { flex-direction: column; align-items: flex-start; gap: 8px; }
 .t-mline { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .t-mline .nm { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
@@ -580,6 +580,36 @@ button.amore { color: var(--accent); }
 .mchip.auto:not(.on) { border-style: dashed; }
 .mchip.ate-none { background: var(--surface-2); border-color: var(--danger); color: var(--danger); }
 .mchip.ate-some { background: var(--butter); border-color: var(--butter); color: var(--butter-ink); }
+/* 끼니에 같이 주는 영양제·약: 홈 칩의 작은 표시, 밥·간식 탭 끼니 아래 칩 */
+.mchip .mb { font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 2px; white-space: nowrap; }
+.mchip.on .mb { background: var(--surface); color: var(--accent); }
+.meal-adds { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 2px 66px; }
+.meal-adds .mchip { font-size: 13.5px; padding: 5px 10px; }
+.mchip.add:not(.on) { border-style: dashed; }
+/* 밥 먹는 시간 고치기: 끼니를 눌러서 펴고, 시간·종류·방법을 골라요 */
+#feed-form { word-break: keep-all; overflow-wrap: anywhere; }
+.fd-list { display: flex; flex-direction: column; gap: 8px; }
+.fd-row { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); min-width: 0; }
+.fd-row.open { background: var(--surface); box-shadow: var(--shadow); padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.fd-sum { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; border: 0; background: none; padding: 11px 12px; text-align: left; color: var(--ink); font-size: 15px; border-radius: 14px; }
+.fd-sum .t { font-weight: 700; font-variant-numeric: tabular-nums; }
+.fd-sum .w { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fd-sum .w small { font-size: 13px; color: var(--ink-2); }
+.fd-sum .go { color: var(--ink-3); display: flex; }
+.fd-sum .go .ic { width: 18px; height: 18px; }
+.fd-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fd-head b { font-size: 16px; }
+.fd-head .acts { display: flex; align-items: center; gap: 8px; }
+.fd-time { display: grid; grid-template-columns: minmax(0, 160px) minmax(0, 1fr); gap: 10px; align-items: center; }
+.fd-time .fd-tl { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.fd-adds { display: flex; flex-wrap: wrap; gap: 6px; }
+.fd-add { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; border: 1px solid var(--line); border-radius: 999px; padding: 3px 3px 3px 8px; font-size: 14px; font-weight: 600; background: var(--surface-2); }
+.fd-add .tag { flex: none; }
+.fd-add .icon-btn { width: 28px; height: 28px; background: var(--surface); }
+.fd-add .icon-btn .ic { width: 14px; height: 14px; }
+.fd-addform { display: flex; flex-direction: column; gap: 10px; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; }
+.pick button.more:not([aria-pressed="true"]) { border-style: dashed; color: var(--ink-3); }
+.feed-row small.fadd { display: block; font-size: 13px; color: var(--ink-2); font-weight: 500; margin-top: 2px; }
 
 /* 병원 문서 */
 .doc-ic { display: inline-block; width: 15px; height: 15px; vertical-align: -2px; margin-right: 5px; color: var(--f-med); }
@@ -1611,7 +1641,7 @@ function renderInfo() {
   const el = $('#v-info'); const T = todayStr(); const p = mainPet();
   if (!ready() || !p) { el.innerHTML = `<div class="view-head"><h1>정보</h1></div>${loadingOr(ready() ? '아직 등록된 아이가 없어요.' : '')}`; return; }
   const ins = S.info.insurance; const np = nextPay(ins, T);
-  const feed = p.feeding || [];
+  const feed = mealRows(p);
   const anniv = S.records.filter((r) => r.type === 'milestone').sort(byDateAsc);
   const imp = S.info.import;
   el.innerHTML = `
@@ -1628,8 +1658,8 @@ function renderInfo() {
 
     <div class="card">
       <div class="card-head"><h2>밥 먹는 시간</h2>${S.readOnly ? '' : `<button class="link" data-act="edit-feed" data-pet="${esc(p.id)}">고치기</button>`}</div>
-      ${feed.length ? `<div class="feed">${feed.map((f) => `<div class="feed-row"><span class="t">${esc(f.time)}</span><span>${esc(f.what)}</span><span class="tag">${esc(f.how)}</span></div>`).join('')}</div>` : '<div class="empty">급여 시간과 양을 적어 두면 둘이 헷갈리지 않아요.</div>'}
-      ${p.supplement ? `<div class="note"><span>영양제</span><b>${esc(p.supplement)}</b></div>` : ''}
+      ${feed.length ? `<div class="feed">${feed.map((f) => `<div class="feed-row"><span class="t">${esc(f.label)}</span><span>${esc(f.what)}${f.adds.length ? `<small class="fadd">+ ${esc(f.adds.map(addName).join(', '))}</small>` : ''}</span>${f.how ? `<span class="tag">${esc(f.how)}</span>` : '<span></span>'}</div>`).join('')}</div>` : '<div class="empty">급여 시간과 양을 적어 두면 둘이 헷갈리지 않아요.</div>'}
+      ${supMemo(p, feed) ? `<div class="note"><span>영양제</span><b>${esc(supMemo(p, feed))}</b></div>` : ''}
       ${p.feedingNote ? `<div class="note"><span>메모</span><span><b>${esc(p.feedingNote)}</b>${p.feedingNoteKg && weightsOf(p.id).length ? ` · 지금 ${esc(wt(weightsOf(p.id).slice(-1)[0].kg))}` : ''}</span></div>` : ''}
       ${p.feedingUpdated ? `<span class="muted" style="font-size:13px">${esc(dot(p.feedingUpdated))}에 정리한 내용</span>` : ''}
     </div>
@@ -1903,7 +1933,8 @@ function normMed(x) {
   if (!x || typeof x !== 'object' || !/^[A-Za-z][A-Za-z0-9_]{0,30}$/.test(String(x.id || ''))) return null;
   const times = (Array.isArray(x.times) ? x.times : [])
     .filter((t) => t && /^[A-Za-z0-9_]{1,40}$/.test(String(t.id || '')))
-    .map((t) => ({ id: String(t.id), label: String(t.label || ''), time: /^\d{2}:\d{2}$/.test(String(t.time || '')) ? t.time : '' }))
+    /* meal: 밥 먹는 시간에서 끼니에 붙여 만든 때 (그 끼니 번호). 끼니 시간을 바꾸면 따라가고, 끼니에서 빼면 같이 빠져요 */
+    .map((t) => ({ id: String(t.id), label: String(t.label || ''), time: /^\d{2}:\d{2}$/.test(String(t.time || '')) ? t.time : '', ...(/^[A-Za-z0-9_]{1,40}$/.test(String(t.meal || '')) ? { meal: String(t.meal) } : {}) }))
     .sort(byTime);
   return { id: String(x.id), kind: MED_KINDS[x.kind] ? x.kind : 'oral', name: String(x.name || ''), dose: String(x.dose || ''), times, from: isDay(x.from) ? x.from : '', off: isDay(x.off) ? x.off : '', legacy: !!x.legacy };
 }
@@ -1937,7 +1968,7 @@ function medUsedBefore(m, T) {
 }
 function medSlotBtn(doc, m, t, date, T) {
   const K = medKind(m.kind); const v = medVal(doc, m, t.id);
-  const sub = v ? [timeKo(v.time), famName(v.who)].filter(Boolean).join(' · ') : date === T ? (t.time ? `${timeKo(t.time)}에 ${K.plan}` : K.ask) : '체크 안 했어요';
+  const sub = v ? [timeKo(v.time), famName(v.who), v.meal ? '밥과 같이' : ''].filter(Boolean).join(' · ') : date === T ? (t.time ? `${timeKo(t.time)}에 ${t.meal ? '밥과 같이 ' : ''}${K.plan}` : K.ask) : '체크 안 했어요';
   return `<button class="med-slot${v ? ' on' : ''}" type="button" data-act="med-tap" data-id="${esc(m.id)}" data-t="${esc(t.id)}" aria-pressed="${!!v}"><span class="ck">${IC.check}</span><span><b>${esc(tLabel(t))}</b><span class="s">${esc(sub)}</span></span><span class="go">${v ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>`;
 }
 function renderMeds() {
@@ -2105,7 +2136,7 @@ async function medSave() {
     const label = String(t.label || '').trim(); const time = String(t.time || '').trim();
     if (!label && !time) continue;
     if (!/^\d{2}:\d{2}$/.test(time)) { toast(`${label ? `‘${label}’` : '새로 넣은 때'} 시간을 골라 주세요.`); return; }
-    times.push({ id: t.id, label: label || timeKo(time), time });
+    times.push({ id: t.id, label: label || timeKo(time), time, ...(t.meal ? { meal: t.meal } : {}) });
   }
   if (!times.length) { toast('챙기는 때를 하나 이상 골라 주세요.'); return; }
   times.sort(byTime);
@@ -2151,13 +2182,50 @@ function feedMins(text) {
 }
 const minsHm = (n) => { const k = ((n % 1440) + 1440) % 1440; return `${pad(Math.floor(k / 60))}:${pad(k % 60)}`; };
 const feedDueAt = (date, mins) => { const p = parts(date); return new Date(p.y, p.m - 1, p.d, 0, mins).getTime(); };
+const hmMins = (s) => (/^\d{2}:\d{2}$/.test(String(s || '')) ? Number(s.slice(0, 2)) * 60 + Number(s.slice(3)) : null);
+/* 끼니 고르기: 식사종류·급여방법의 기본 보기 (직접 적은 종류·방법도 보기에 더해져요) */
+const FEED_KINDS = ['건식', '습식', '생식', '화식'];
+const FEED_HOWS = ['직접', '자동급식기'];
+const FEED_ROW_MAX = 12;
+const FEED_ADD_MAX = 6;
+const ADD_ID_RE = /^[A-Za-z0-9_]{1,40}$/;
+/* 고른 시간(24시간) → 끼니 이름. 밤 12시~새벽 3시 전은 그날 밤 끼니(‘밤 12시’ ‘밤 1시 30분’), 3~6시는 새벽 */
+function feedLabel(hm) {
+  const [h, mi] = String(hm).split(':').map(Number);
+  const ap = h < 3 ? '밤' : h < 6 ? '새벽' : h < 12 ? '오전' : h === 12 ? '낮' : '오후';
+  return `${ap} ${h % 12 === 0 ? 12 : h % 12}시${mi ? ` ${mi}분` : ''}`;
+}
+/* 예전에 한 칸에 적은 ‘무엇을·얼마나’ → 식사종류 + 양 (맨 앞이 종류 이름일 때만 나눠요) */
+function splitWhat(what, kinds) {
+  const s = String(what || '').trim();
+  for (const k of kinds) if (k && (s === k || s.startsWith(`${k} `) || s.startsWith(`${k}(`))) return [k, s.slice(k.length).trim()];
+  return ['', s];
+}
+/* 끼니에 같이 주는 영양제·약 [{id, type: sup|med, name, dose, med, slot}] — 약은 약 탭의 그 약(med)·그 때(slot)와 이어져요 */
+function normAdds(list) {
+  return (Array.isArray(list) ? list : []).filter((a) => a && ADD_ID_RE.test(String(a.id || '')) && String(a.name || '').trim()).slice(0, FEED_ADD_MAX)
+    .map((a) => {
+      const med = a.type === 'med';
+      return { id: String(a.id), type: med ? 'med' : 'sup', name: String(a.name).trim().slice(0, 40), dose: String(a.dose || '').trim().slice(0, 40),
+        med: med && /^[A-Za-z][A-Za-z0-9_]{0,30}$/.test(String(a.med || '')) ? String(a.med) : '', slot: med && ADD_ID_RE.test(String(a.slot || '')) ? String(a.slot) : '' };
+    });
+}
 function mealRows(p) {
-  return (Array.isArray(p && p.feeding) ? p.feeding : []).map((x, i) => {
+  const meds = medItems();
+  return (Array.isArray(p && p.feeding) ? p.feeding : []).map((x0, i) => {
+    const x = x0 && typeof x0 === 'object' ? x0 : {};
     const how = String(x.how || ''); const mins = feedMins(x.time);
+    const kind = typeof x.kind === 'string' ? x.kind.trim() : ''; const amount = typeof x.amount === 'string' ? x.amount.trim() : '';
+    /* 약은 약 탭에 있는 약만 (약 탭에서 이름을 바꾸면 여기도 바뀌어요) */
+    const adds = normAdds(x.adds).map((a) => {
+      if (a.type !== 'med') return a;
+      const m = meds.find((y) => y.id === a.med); const t = m && m.times.find((y) => y.id === a.slot);
+      return m && t ? { ...a, name: medName(m), dose: a.dose || m.dose || '' } : null;
+    }).filter(Boolean);
     return {
       id: /^[A-Za-z0-9_]{1,40}$/.test(String(x.id || '')) ? String(x.id) : `f${i}`,
-      label: String(x.time || '').trim() || `${i + 1}번째`, what: String(x.what || ''), how, auto: AUTO_FEED_RE.test(how),
-      mins, hm: mins === null ? '' : minsHm(mins), autoFrom: isDate(x.autoFrom) ? x.autoFrom : '',
+      label: String(x.time || '').trim() || `${i + 1}번째`, what: String(x.what || '').trim() || [kind, amount].filter(Boolean).join(' '), how, auto: AUTO_FEED_RE.test(how),
+      mins, hm: mins === null ? '' : minsHm(mins), autoFrom: isDate(x.autoFrom) ? x.autoFrom : '', kind, amount, adds,
     };
   });
 }
@@ -2166,6 +2234,29 @@ const mealsDoc = (doc) => (doc && doc.meals && typeof doc.meals === 'object' && 
 const mealRaw = (doc, id) => { const v = mealsDoc(doc)[id]; return v && typeof v === 'object' ? v : null; };
 const mealVal = (doc, id) => { const v = mealRaw(doc, id); return v && !v.skip ? v : null; };
 const mealWho = (v) => (v && v.auto ? '자동급식기' : famName(v && v.who));
+/* 같이 주는 것 체크: 영양제는 그날 간식 문서의 sups.<번호>, 약은 약 탭의 그 칸 (밥에서 체크하면 meal 표시를 남겨요) */
+const supsDoc = (doc) => (doc && doc.sups && typeof doc.sups === 'object' && !Array.isArray(doc.sups) ? doc.sups : {});
+const addFind = (a) => (a.type === 'med' ? medFind(a.med, a.slot) : null);
+/* 그날 챙기는 것인지 (약은 약 탭에서 시작한 날·뺀 날을 따라요) */
+function addOn(date, a) { if (a.type !== 'med') return true; const f = addFind(a); return !!f && medOn(f[0], date); }
+function addVal(date, a) {
+  if (a.type !== 'med') { const v = supsDoc(dayDoc('snacks', date))[a.id]; return v && typeof v === 'object' ? v : null; }
+  const f = addFind(a); return f ? medVal(dayDoc('meds', date), f[0], a.slot) : null;
+}
+const addsOf = (date, m) => ((m && m.adds) || []).filter((a) => addOn(date, a));
+const addsLeft = (date, m) => addsOf(date, m).filter((a) => !addVal(date, a));
+const addName = (a) => `${a.name}${a.dose ? ` ${a.dose}` : ''}`;
+const addNames = (list) => list.map((a) => medShort(a.name, 10)).join('·');
+/* ‘영양제 메모’ 칸: 끼니에 똑같이 넣어 둔 영양제면 두 번 보여 주지 않아요 */
+const supMemo = (p, rows) => { const s = String((p && p.supplement) || '').trim(); return s && !rows.some((f) => f.adds.some((a) => a.type !== 'med' && addName(a) === s)) ? s : ''; };
+function addsSet(date, m, list, on, time) {
+  const v = { time, who: meKey(), at: new Date().toISOString(), meal: m.id };
+  const sup = list.filter((a) => a.type !== 'med').map((a) => (on ? ['setnx', `sups.${a.id}`, v] : ['unset', `sups.${a.id}`]));
+  const med = list.filter((a) => a.type === 'med').map((a) => { const f = addFind(a); return f && medOn(f[0], date) ? (on ? ['setnx', medPath(f[0], a.slot), v] : ['unset', medPath(f[0], a.slot)]) : null; }).filter(Boolean);
+  if (sup.length && !mut('snacks', date, sup)) return false;
+  if (med.length && !mut('meds', date, med)) return false;
+  return true;
+}
 /* 자동급식기 끼니: 시간이 지났는데 아무 표시도 없으면 그 시간으로 체크해요 (사람이 먼저 체크했거나 ‘안 줬어요’로 바꾼 끼니는 그대로) */
 function autoMealTick() {
   if (!ready() || S.readOnly || S.fromCache || !S.raw || !meKey()) return;
@@ -2186,24 +2277,37 @@ function autoMealTick() {
     if (ops.length) mut('snacks', d, ops);
   }
 }
-function mealChip(m, v) {
+function mealChip(m, v, T) {
   const cls = v ? (v.ate === 'none' ? ' on ate-none' : v.ate === 'some' ? ' on ate-some' : ' on') : m.auto ? ' auto' : '';
-  const said = v ? `${v.auto ? '자동 체크' : m.auto ? '확인' : '챙김'} ${timeKo(v.time)}${v.ate ? ` · ${ateName(v.ate)}` : ''}` : m.auto && m.hm ? `${timeKo(m.hm)}에 자동 체크` : '체크하기';
-  return `<button class="mchip${cls}" type="button" data-act="home-meal" data-id="${esc(m.id)}" aria-label="${esc(m.label)} 밥 ${esc(said)}">${v ? IC.check : ''}${esc(m.label)}${v ? `<small>${esc(v.time || '')}</small>` : ''}</button>`;
+  /* 아직 안 준 영양제·약이 있으면 칩에 작게 띄워요 (누르면 같이 체크돼요) */
+  const left = addsLeft(T, m);
+  const said = (v ? `${v.auto ? '자동 체크' : m.auto ? '확인' : '챙김'} ${timeKo(v.time)}${v.ate ? ` · ${ateName(v.ate)}` : ''}` : m.auto && m.hm ? `${timeKo(m.hm)}에 자동 체크` : '체크하기')
+    + (left.length ? ` · 같이 줄 것 ${left.map(addName).join(', ')}` : '');
+  const badge = left.length ? `<span class="mb">+${esc(medShort(left[0].name, 6))}${left.length > 1 ? ` 외 ${left.length - 1}` : ''}</span>` : '';
+  return `<button class="mchip${cls}" type="button" data-act="home-meal" data-id="${esc(m.id)}" aria-label="${esc(m.label)} 밥 ${esc(said)}">${v ? IC.check : ''}${esc(m.label)}${v ? `<small>${esc(v.time || '')}</small>` : ''}${badge}</button>`;
 }
 function mealFind(id) { const p = mainPet(); return p ? mealRows(p).find((m) => m.id === id) || null : null; }
 function mealCheck(date, m, time) {
   const v = { time, who: meKey(), at: new Date().toISOString() };
   /* ‘안 줬어요’로 바꿔 둔 끼니는 덮어써야 다시 체크돼요 */
   const raw = mealRaw(dayDoc('snacks', date), m.id);
-  const done = mut('snacks', date, [[raw && raw.skip ? 'set' : 'setnx', `meals.${m.id}`, v]], (doc) => {
+  /* 사람이 밥을 체크하면 같이 주는 영양제·약도 같이 체크해요 (자동급식기가 혼자 체크할 때는 빼고) */
+  const left = addsLeft(date, m);
+  const sv = { ...v, meal: m.id };
+  const ops = [[raw && raw.skip ? 'set' : 'setnx', `meals.${m.id}`, v], ...left.filter((a) => a.type !== 'med').map((a) => ['setnx', `sups.${a.id}`, sv])];
+  const done = mut('snacks', date, ops, (doc) => {
     const got = mealVal(doc, m.id);
     if (got && got.at !== v.at) toast(got.auto ? `${timeKo(got.time)}에 자동급식기로 이미 체크돼 있어요` : `${iga(famName(got.who) || '다른 사람')} 이미 ${timeKo(got.time)}에 챙겼어요`);
   });
-  if (done) toast(`${m.label} ${m.auto ? '자동급식기 확인했어요' : '밥 챙겼어요'} · ${timeKo(time)}`);
+  if (!done) return;
+  const meds = left.filter((a) => a.type === 'med');
+  if (meds.length) addsSet(date, m, meds, true, time);
+  const also = left.length ? addNames(left) : '';
+  toast(m.auto ? `${m.label} 자동급식기 확인했어요${also ? ` · ${also} 챙김` : ''} · ${timeKo(time)}` : `${m.label} 밥${also ? `·${also}` : ''} 챙겼어요 · ${timeKo(time)}`);
 }
 function mealSheet(date, m) {
   const raw = mealRaw(dayDoc('snacks', date), m.id); const v = raw && !raw.skip ? raw : null;
+  const adds = addsOf(date, m);
   const who = v ? [famName(v.who), timeKo(v.time)].filter(Boolean).join(' · ') : '';
   const said = !v ? '' : v.auto ? `자동급식기 시간(${timeKo(v.time)})이 돼서 저절로 체크했어요` : `${who}에 체크했어요`;
   openSheet(`${m.label} 밥 · ${mdKo(date)}`, `<form class="form" id="meal-form" novalidate>
@@ -2213,6 +2317,7 @@ function mealSheet(date, m) {
       ${m.auto && !v && !(raw && raw.skip) && m.hm ? `<div class="note"><span>자동급식기 끼니라 ${esc(timeKo(m.hm))}이 되면 저절로 체크돼요.</span></div>` : ''}
       <div class="fld"><label for="ml-time">${m.auto ? '확인한 시간' : '챙긴 시간'}</label><input type="time" id="ml-time" value="${esc(v ? v.time : date === todayStr() ? hhmm() : (m.hm || '09:00'))}"></div>
       <div class="fld"><span class="lbl">얼마나 먹었나요 (선택)</span><div class="pick" role="group" data-pick="ate" data-toggle="1">${ATE.map(([k, l]) => `<button type="button" data-val="${k}" aria-pressed="${!!v && v.ate === k}">${esc(l)}</button>`).join('')}</div></div>
+      ${adds.length ? `<div class="fld"><span class="lbl">같이 준 영양제·약</span><div class="pick" id="ml-adds" role="group" aria-label="같이 준 영양제·약">${adds.map((a) => `<button type="button" data-act="ml-add" data-a="${esc(a.id)}" aria-pressed="${v ? !!addVal(date, a) : true}">${esc(addName(a))}${a.type === 'med' ? ' · 약' : ''}</button>`).join('')}</div><span class="hint">준 것만 켜 두세요.${adds.some((a) => a.type === 'med') ? ' 약은 약 탭에도 같이 체크돼요.' : ''}</span></div>` : ''}
       <button class="btn" type="submit">${v ? '고친 내용 저장' : '체크하기'}</button>
       ${v ? `<button class="btn ghost" type="button" data-act="meal-undo">${m.auto ? '안 줬어요 (체크 빼기)' : '체크 취소'}</button>` : ''}
     </form>`, (body) => {
@@ -2225,7 +2330,14 @@ function mealSheet(date, m) {
       const ate = pickVal(body, 'ate') || '';
       const nv = v ? { ...v, time: tm, ate, by: meKey(), edited: new Date().toISOString() } : { time: tm, who: meKey(), at: new Date().toISOString(), ate };
       if (!ate) delete nv.ate;
-      if (mut('snacks', date, [[v || (raw && raw.skip) ? 'set' : 'setnx', `meals.${m.id}`, nv]])) { await closeSheet(); toast(v ? '고쳤어요' : `${m.label} 밥 체크했어요 · ${timeKo(tm)}`); }
+      /* 같이 준 영양제·약: 켠 것은 체크하고, 끈 것은 빼요 */
+      const want = new Set([...body.querySelectorAll('#ml-adds button[aria-pressed="true"]')].map((b) => b.dataset.a));
+      const on = adds.filter((a) => want.has(a.id) && !addVal(date, a)); const off = adds.filter((a) => !want.has(a.id) && addVal(date, a));
+      if (mut('snacks', date, [[v || (raw && raw.skip) ? 'set' : 'setnx', `meals.${m.id}`, nv]])) {
+        if (on.length) addsSet(date, m, on, true, tm);
+        if (off.length) addsSet(date, m, off, false);
+        await closeSheet(); toast(v ? '고쳤어요' : `${m.label} 밥${on.length ? `·${addNames(on)}` : ''} 체크했어요 · ${timeKo(tm)}`);
+      }
     });
   });
 }
@@ -2461,12 +2573,18 @@ function renderSnacks() {
   const hiddenDays = lastDay - shown;
   /* 밥: 끼니마다 한 칸 (지난날은 눌러서 시간을 넣어요) */
   const p = mainPet(); const meals = p ? mealRows(p) : [];
-  const mealsHtml = meals.length ? `<div class="med-group"><div class="med-kind">밥</div><div class="med-list">${meals.map((m) => {
+  const mealsHtml = meals.length ? `<div class="med-group"><div class="med-kind snack-kind"><span>밥</span>${S.readOnly ? '' : `<button class="link" type="button" data-act="edit-feed" data-pet="${esc(p.id)}">끼니 고치기</button>`}</div><div class="med-list">${meals.map((m) => {
     const raw = mealRaw(doc, m.id); const v = raw && !raw.skip ? raw : null;
     const sub = v ? [timeKo(v.time), mealWho(v), v.ate ? ateName(v.ate) : ''].filter(Boolean).join(' · ')
       : raw && raw.skip ? '안 줬어요'
       : date === T ? [m.what, m.auto && m.hm ? `${timeKo(m.hm)}에 자동 체크` : m.how].filter(Boolean).join(' · ') || '챙기면 눌러 주세요' : '체크 안 했어요';
-    return `<button class="med-slot${v ? ' on' : ''}" type="button" data-act="snack-meal" data-id="${esc(m.id)}" aria-pressed="${!!v}"><span class="ck">${IC.check}</span><span><b>${esc(m.label)}</b><span class="s">${esc(sub)}</span></span><span class="go">${v ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>`;
+    /* 같이 주는 영양제·약: 끼니 아래 칩 (밥을 체크하면 같이 체크되고, 따로 눌러서 고칠 수 있어요) */
+    const adds = addsOf(date, m);
+    const chips = adds.length ? `<div class="meal-adds">${adds.map((a) => {
+      const av = addVal(date, a);
+      return `<button class="mchip add${av ? ' on' : ''}" type="button" data-act="meal-add-tap" data-id="${esc(m.id)}" data-a="${esc(a.id)}" data-date="${date}" aria-pressed="${!!av}" aria-label="${esc(`${m.label} 밥과 같이 주는 ${a.type === 'med' ? '약' : '영양제'} ${addName(a)} ${av ? `챙김 ${timeKo(av.time)}` : '체크하기'}`)}">${av ? IC.check : '+ '}${esc(addName(a))}${av ? `<small>${esc(av.time || '')}</small>` : ''}</button>`;
+    }).join('')}</div>` : '';
+    return `<button class="med-slot${v ? ' on' : ''}" type="button" data-act="snack-meal" data-id="${esc(m.id)}" aria-pressed="${!!v}"><span class="ck">${IC.check}</span><span><b>${esc(m.label)}</b><span class="s">${esc(sub)}</span></span><span class="go">${v ? '고치기' : date === T ? '체크' : '시간 넣기'}</span></button>${chips}`;
   }).join('')}</div></div>` : (p && !S.readOnly ? `<div class="note"><span>정보 탭의 ‘밥 먹는 시간’을 정하면 끼니마다 체크할 수 있어요.</span><button class="link" type="button" data-act="edit-feed" data-pet="${esc(p.id)}" style="padding:0">정하기</button></div>` : '');
   el.innerHTML = `
     <div class="view-head"><h1>밥·간식 체크리스트</h1></div>
@@ -2665,7 +2783,7 @@ function todayCard() {
   /* 밥: 밥 먹는 시간마다 한 칩. 먼저 누른 사람이 남아서 둘이 두 번 주지 않게 */
   const p = mainPet(); const meals = p ? mealRows(p) : [];
   const mealRow = meals.length
-    ? `<div class="t-row"><span class="t-lbl">밥</span><div class="t-meds">${meals.map((m) => mealChip(m, mealVal(sn, m.id))).join('')}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`
+    ? `<div class="t-row"><span class="t-lbl">밥</span><div class="t-meds">${meals.map((m) => mealChip(m, mealVal(sn, m.id), T)).join('')}</div>${arrow('snacks', '밥·간식 체크리스트 열기')}</div>`
     : (p && !S.readOnly ? `<button class="t-row" type="button" data-act="edit-feed" data-pet="${esc(p.id)}"><span class="t-lbl">밥</span><span class="t-val muted">밥 먹는 시간을 정하면 끼니마다 체크할 수 있어요</span><span class="t-end">${IC.right}</span></button>` : '');
   /* 간식: 자주 주는 간식은 여기서 바로 +1 */
   const homeSn = snackItems().filter((it) => it.home);
@@ -3042,16 +3160,18 @@ function applyResult(r, fromCache) {
 }
 async function load(opts = {}) {
   if (!store.get(KEY_STORE)) { S.phase = 'needkey'; render(); return; }
-  if (S.loading) { S.reloadPending = true; return; }
+  if (S.loading) { S.reloadPending = opts.manual ? 'manual' : (S.reloadPending || true); return; }
   S.loading = true; const started = Date.now();
   if (opts.manual) render();
   try {
     const r = JSON.parse(await gsr('getAll'));
-    if (started < S.lastWriteAt) S.reloadPending = true;
+    /* 불러오는 사이에 체크가 생겼으면 이 결과는 버리고 곧 다시 불러와요. 직접 누른 ‘새로 불러오기’면 다시 불러온 뒤에 알려요 */
+    const stale = started < S.lastWriteAt;
+    if (stale) S.reloadPending = opts.manual ? 'manual' : (S.reloadPending || true);
     else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); }
     /* 지난번에 못 보낸 체크가 있으면 지금 보내요 */
     if (Object.values(Q).some((q) => (q.pend || []).length && !q.flying)) setTimeout(() => flushAll(), 50);
-    if (opts.manual) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : r.calError ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
+    if (opts.manual && !stale) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : r.calError ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
   } catch (e) {
     const code = e && e.code;
     S.loadError = code === 'NO_SERVER' ? 'NO_SERVER' : (errText(e) || 'error');
@@ -3062,7 +3182,7 @@ async function load(opts = {}) {
   } finally {
     S.loading = false; S.gateBusy = false;
     if (opts.soft) softRender(); else render();
-    if (S.reloadPending) { S.reloadPending = false; setTimeout(() => load({ soft: true }), 400); }
+    if (S.reloadPending) { const manual = S.reloadPending === 'manual'; S.reloadPending = false; setTimeout(() => load({ soft: true, manual }), 400); }
   }
 }
 const clock = (ms) => { try { return new Date(ms).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
@@ -3878,6 +3998,12 @@ function vetReportText(pid) {
   if (surg.length) L.push(`수술·시술: ${surg.join(', ')}`);
   const meds = medItems().filter((x) => medOn(x, T));
   if (meds.length) L.push(`지금 챙기는 약: ${meds.map((x) => `${medName(x)}${x.dose ? ` (${x.dose})` : ''} ${x.times.map(tLabel).join('·')}`).join(' / ')}`);
+  /* 밥 먹는 시간과 같이 주는 영양제 */
+  const feedRows = mealRows(p);
+  if (feedRows.length) L.push(`밥: ${feedRows.map((f) => [f.label, f.what, f.auto ? '(자동급식기)' : ''].filter(Boolean).join(' ')).join(' / ')}`);
+  const sups = feedRows.flatMap((f) => f.adds.filter((a) => a.type !== 'med').map((a) => `${addName(a)} (${f.label} 밥과 같이)`));
+  const memo = supMemo(p, feedRows); if (memo) sups.push(memo);
+  if (sups.length) L.push(`영양제: ${sups.join(', ')}`);
   for (const c of cyclesOf(pid)) if (c.last) L.push(`${c.label}: 마지막 ${dot(c.last.date)} ${c.last.title}${c.booked ? ` · 예약 ${dot(c.booked.date)}` : c.auto ? ` · 다음 ${dot(c.auto.date)}` : ''}`);
   const chk = S.docs.filter((d) => d.kind === 'checkup' && (!d.pet || d.pet === pid) && d.sum).sort((a, b) => b.date.localeCompare(a.date))[0];
   if (chk) {
@@ -4275,50 +4401,222 @@ function petForm(pid) {
     });
   });
 }
+/* ───────── 밥 먹는 시간 (끼니 정하기) ─────────
+ * 끼니마다 급여시간(시간 고르기)·식사종류·양·급여방법을 고르고, 같이 주는 영양제·약을 붙여요.
+ * 끼니 번호(id)는 그대로 둬서 지난 체크가 이어져요. 약은 약 탭의 약·때와 이어 둬요(없으면 새로 넣어요). */
+const newFeedRow = () => ({ id: medUid('f'), time: '', hm: '', hm0: '', kind: '', amount: '', how: '직접', adds: [], kindEdit: false, howEdit: false });
+/* 끼니 이름: 시간을 새로 고르면 그 시간으로, 안 건드렸으면 원래 적힌 그대로 */
+const feedRowLabel = (r) => (r.hm && r.hm !== r.hm0 ? feedLabel(r.hm) : (r.time || (r.hm ? feedLabel(r.hm) : '')));
+const feedTimeNote = (r) => (r.hm ? `→ ${feedRowLabel(r)}${Number(r.hm.slice(0, 2)) < 3 ? ' · 그날 밤 끼니' : ''}` : '');
+function feedRowSum(r, i) {
+  const lbl = feedRowLabel(r); const what = [r.kind, r.amount].filter(Boolean).join(' ');
+  const sub = [r.how, ...r.adds.map((a) => `+ ${addName(a)}`)].filter(Boolean).join(' · ');
+  return `<div class="fd-row" data-frow="${i}"><button class="fd-sum" type="button" data-act="feed-open" data-i="${i}" aria-label="${esc(lbl || `${i + 1}번째`)} 끼니 고치기"><span class="t">${esc(lbl || '시간 없음')}</span><span class="w"><span>${esc(what || '종류·양 안 정함')}</span>${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="go">${IC.right}</span></button></div>`;
+}
+function feedRowEdit(r, i, kinds, hows) {
+  const lbl = feedRowLabel(r); const auto = AUTO_FEED_RE.test(r.how);
+  const chips = (f, list, edit, more) => `${list.map((k) => `<button type="button" data-act="fd-pick" data-f="${f}" data-i="${i}" data-val="${esc(k)}" aria-pressed="${!edit && r[f] === k}">${esc(k)}</button>`).join('')}<button type="button" data-act="fd-pick" data-f="${f}" data-i="${i}" data-custom="1" class="more" aria-pressed="${!!edit}">${more}</button>`;
+  return `<div class="fd-row open" data-frow="${i}">
+    <div class="fd-head"><b id="fr-hd-${i}">${esc(lbl || '새 끼니')}</b><span class="acts"><button class="link" type="button" data-act="feed-open" data-i="${i}">접기</button><button class="icon-btn" type="button" data-act="feed-del" data-i="${i}" aria-label="이 끼니 지우기">${X_SVG}</button></span></div>
+    <div class="fld"><label for="fr-t-${i}">급여시간</label><div class="fd-time"><input type="time" id="fr-t-${i}" data-ft="${i}" value="${esc(r.hm)}"><span class="fd-tl" id="fr-tl-${i}">${esc(feedTimeNote(r))}</span></div>${!r.hm && r.time ? `<span class="hint">지금은 ‘${esc(r.time)}’로 적혀 있어요. 시간을 고르면 그 시간으로 바뀌어요.</span>` : ''}</div>
+    <div class="fld"><span class="lbl">식사종류</span><div class="pick" role="group" aria-label="식사종류">${chips('kind', kinds, r.kindEdit, '+ 다른 종류')}</div>${r.kindEdit ? `<input type="text" id="fr-kc-${i}" maxlength="20" value="${esc(r.kind)}" placeholder="예: 동결건조, 처방식" aria-label="식사종류 직접 적기" autocomplete="off">` : ''}</div>
+    <div class="fld"><label for="fr-a-${i}">양 (선택)</label><input type="text" id="fr-a-${i}" maxlength="40" value="${esc(r.amount)}" placeholder="예: 20g, 반 캔" autocomplete="off"></div>
+    <div class="fld"><span class="lbl">급여방법</span><div class="pick" role="group" aria-label="급여방법">${chips('how', hows, r.howEdit, '+ 다른 방법')}</div>${r.howEdit ? `<input type="text" id="fr-hc-${i}" maxlength="20" value="${esc(r.how)}" placeholder="예: 노즈워크, 퍼즐 장난감" aria-label="급여방법 직접 적기" autocomplete="off">` : ''}${auto ? '<span class="hint">이 시간이 되면 밥은 저절로 체크돼요.</span>' : ''}</div>
+    <div class="fld"><span class="lbl">같이 주는 영양제·약 (선택)</span>
+      ${r.adds.length ? `<div class="fd-adds">${r.adds.map((a, j) => `<span class="fd-add"><span class="tag${a.type === 'med' ? ' warn' : ''}">${a.type === 'med' ? '약' : '영양제'}</span><span>${esc(addName(a))}</span><button class="icon-btn" type="button" data-act="fa-del" data-i="${i}" data-j="${j}" aria-label="${esc(addName(a))} 빼기">${X_SVG}</button></span>`).join('')}</div>` : ''}
+      ${F.add && F.add.i === i ? feedAddForm(F.add.type, r) : r.adds.length >= FEED_ADD_MAX ? '' : `<div class="pick"><button type="button" class="more" data-act="fa-open" data-i="${i}" data-type="sup">+ 영양제</button><button type="button" class="more" data-act="fa-open" data-i="${i}" data-type="med">+ 약</button></div>`}
+      ${auto && r.adds.length ? '<span class="hint">자동급식기 끼니라도 영양제·약은 저절로 체크되지 않아요. 주고 나서 눌러 주세요.</span>' : ''}
+    </div>
+  </div>`;
+}
+/* 영양제·약 넣는 칸: 전에 적은 것(약은 약 탭에 있는 복용약)은 눌러서 바로 넣어요 */
+function feedAddForm(type, r) {
+  const T = todayStr(); const med = type === 'med';
+  const have = new Set(r.adds.filter((a) => a.type === type).map((a) => a.name));
+  const quick = (med
+    ? medItems().filter((m) => m.kind === 'oral' && !m.virtual && (!m.off || m.off > T) && m.name).map((m) => ({ name: m.name, dose: m.dose || '' }))
+    : supQuick()).filter((q) => !have.has(q.name)).slice(0, 8);
+  return `<div class="fd-addform" id="fa-box">
+    ${quick.length ? `<div class="pick" role="group" aria-label="${med ? '약 탭에 있는 약' : '전에 적은 영양제'}">${quick.map((q) => `<button type="button" data-act="fa-quick" data-name="${esc(q.name)}" data-dose="${esc(q.dose)}">+ ${esc(addName(q))}</button>`).join('')}</div>` : ''}
+    <div class="two"><div class="fld"><label for="fa-n">${med ? '약 이름' : '영양제 이름'}</label><input type="text" id="fa-n" maxlength="40" placeholder="${med ? '예: 항생제' : '예: 유산균'}" autocomplete="off"></div>
+      <div class="fld"><label for="fa-d">양 (선택)</label><input type="text" id="fa-d" maxlength="40" placeholder="${med ? '예: 1/4알' : '예: 1포'}" autocomplete="off"></div></div>
+    <span class="hint">${med ? '약 탭에도 같이 들어가요. 밥을 체크하면 약도 같이 체크돼요.' : '밥을 체크하면 영양제도 같이 체크돼요.'}</span>
+    <div class="btn-row"><button class="btn sm" type="button" data-act="fa-save">넣기</button><button class="btn ghost sm" type="button" data-act="fa-cancel">취소</button></div>
+  </div>`;
+}
+function supQuick() {
+  const out = []; const seen = new Set();
+  const push = (name, dose) => { const n = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 40); if (!n || seen.has(n)) return; seen.add(n); out.push({ name: n, dose: String(dose || '').trim().slice(0, 40) }); };
+  for (const r of F.rows) for (const a of r.adds) if (a.type !== 'med') push(a.name, a.dose);
+  /* ‘영양제 메모’ 칸에 적어 둔 것 (예: 오메가3 1알 → 이름 오메가3 · 양 1알) */
+  for (const part of String(((S.pets || {})[F.pid] || {}).supplement || '').split(/[,·/]/)) {
+    const s = part.trim(); const m = s.match(/^(.*\S)\s+(\d[\d./]*\s*\S*)$/);
+    if (m) push(m[1], m[2]); else push(s, '');
+  }
+  return out;
+}
+function feedAddPush(name, dose) {
+  if (!F || F.kind !== 'feed' || !F.add) return;
+  F.sync();
+  const r = F.rows[F.add.i]; if (!r) return;
+  const nm = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+  if (!nm) { toast(`${F.add.type === 'med' ? '약' : '영양제'} 이름을 적어 주세요.`); return; }
+  if (r.adds.some((a) => a.type === F.add.type && a.name === nm)) { toast(`${nm}은(는) 이미 넣었어요.`); return; }
+  if (r.adds.length >= FEED_ADD_MAX) { toast(`한 끼니에 ${FEED_ADD_MAX}개까지 넣을 수 있어요.`); return; }
+  r.adds.push({ id: medUid('a'), type: F.add.type, name: nm, dose: String(dose || '').trim().replace(/\s+/g, ' ').slice(0, 40), med: '', slot: '' });
+  F.add = null; F.draw();
+}
 function feedForm(pid) {
+  const p = S.pets[pid]; if (!p) return;
+  const T = todayStr(); const meds = medItems();
   /* 줄마다 번호(id)를 붙여 둬요: 끼니 체크가 이 번호로 남아서, 순서를 바꾸거나 고쳐도 지난 체크가 이어져요 */
-  const p = S.pets[pid]; const rows = (p.feeding || []).map((x, i) => ({ ...x, id: /^[A-Za-z0-9_]{1,40}$/.test(String(x.id || '')) ? x.id : `f${i}` }));
-  const rowHtml = (x, i) => `<div class="two" data-frow="${i}" style="grid-template-columns:minmax(0,0.9fr) minmax(0,1.3fr) minmax(0,0.9fr) auto;align-items:end">
-    <div class="fld"><label for="fr-t-${i}">시간</label><input type="text" id="fr-t-${i}" value="${esc(x.time)}" placeholder="오전 9시"></div>
-    <div class="fld"><label for="fr-w-${i}">무엇을·얼마나</label><input type="text" id="fr-w-${i}" value="${esc(x.what)}" placeholder="습식 1캔"></div>
-    <div class="fld"><label for="fr-h-${i}">방법</label><input type="text" id="fr-h-${i}" value="${esc(x.how)}" placeholder="직접" list="dl-how"></div>
-    <button class="icon-btn" type="button" data-act="feed-del" data-i="${i}" aria-label="이 줄 지우기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`;
-  F = { kind: 'feed', rows };
+  const stored = (Array.isArray(p.feeding) ? p.feeding : []).map((x0, i) => { const x = x0 && typeof x0 === 'object' ? x0 : {}; return { ...x, id: ADD_ID_RE.test(String(x.id || '')) ? String(x.id) : `f${i}` }; });
+  const kinds0 = [...new Set([...FEED_KINDS, ...stored.map((x) => (typeof x.kind === 'string' ? x.kind.trim() : '')).filter(Boolean)])];
+  const rows = stored.map((x) => {
+    const mins = feedMins(x.time); const hm = mins === null ? '' : minsHm(mins);
+    const ka = typeof x.kind === 'string' || typeof x.amount === 'string' ? [String(x.kind || '').trim(), String(x.amount || '').trim()] : splitWhat(x.what, kinds0);
+    /* 약 탭에서 뺀 약(또는 그 때)은 끼니에서도 빠지고, 약 탭에서 바꾼 이름은 여기도 바뀌어요 */
+    const adds = normAdds(x.adds).flatMap((a) => {
+      if (a.type !== 'med' || !a.med) return [a];
+      const m = meds.find((y) => y.id === a.med && (!y.off || y.off > T));
+      return m && m.times.some((t) => t.id === a.slot) ? [{ ...a, name: medName(m), dose: a.dose || m.dose || '' }] : [];
+    });
+    return { id: x.id, time: String(x.time || '').trim(), hm, hm0: hm, kind: ka[0], amount: ka[1], how: String(x.how || '').trim(), adds, kindEdit: false, howEdit: false };
+  });
+  if (!rows.length) rows.push(newFeedRow());
+  F = { kind: 'feed', pid, rows, open: stored.length ? null : 0, add: null };
   const draw = () => {
-    const body = $('#sheet-body');
-    body.querySelector('#feed-rows').innerHTML = F.rows.map(rowHtml).join('');
+    const box = $('#feed-rows'); if (!box || !F || F.kind !== 'feed') return;
+    const kinds = [...new Set([...FEED_KINDS, ...F.rows.map((r) => r.kind).filter(Boolean)])];
+    const hows = [...new Set([...FEED_HOWS, ...F.rows.map((r) => r.how).filter(Boolean)])];
+    box.innerHTML = F.rows.map((r, i) => (i === F.open ? feedRowEdit(r, i, kinds, hows) : feedRowSum(r, i))).join('');
+    const add = $('#feed-add'); if (add) add.disabled = F.rows.length >= FEED_ROW_MAX;
   };
+  /* 펴 둔 끼니 칸에 적은 것을 먼저 담아 둬요 (다시 그려도 쓰던 것이 남게) */
+  const sync = () => {
+    const i = F.open; const r = i === null ? null : F.rows[i]; if (!r) return;
+    const t = $(`#fr-t-${i}`); if (t) r.hm = /^\d{2}:\d{2}$/.test(t.value) ? t.value : '';
+    const kc = $(`#fr-kc-${i}`); if (kc) r.kind = kc.value.trim().replace(/\s+/g, ' ').slice(0, 20);
+    const a = $(`#fr-a-${i}`); if (a) r.amount = a.value;
+    const hc = $(`#fr-hc-${i}`); if (hc) r.how = hc.value.trim().replace(/\s+/g, ' ').slice(0, 20);
+  };
+  F.draw = draw; F.sync = sync;
   const html = `<form class="form" id="feed-form" novalidate>
-    <div id="feed-rows" class="form"></div>${datalist('dl-how', ['직접', '자동급식기'])}
-    <span class="hint muted" style="font-size:12.5px">방법을 ‘자동급식기’로 적은 끼니는 그 시간이 되면 저절로 체크돼요. 시간은 ‘오전 9시’ ‘오후 2시 30분’ ‘밤 12시’처럼 적어 주세요.</span>
-    <button class="btn ghost sm" type="button" data-act="feed-add">+ 한 줄 추가</button>
-    <div class="fld"><label for="fd-sup">영양제</label><input type="text" id="fd-sup" value="${esc(p.supplement || '')}" placeholder="오메가3 1알"></div>
+    <span class="mini-note">끼니를 누르면 급여시간·식사종류·급여방법을 고르고, 같이 주는 영양제·약을 넣을 수 있어요. 급여방법이 ‘자동급식기’인 끼니는 그 시간이 되면 저절로 체크돼요.</span>
+    <div id="feed-rows" class="fd-list"></div>
+    <button class="btn ghost sm" type="button" id="feed-add" data-act="feed-add" style="align-self:flex-start">+ 끼니 추가</button>
+    <div class="fld"><label for="fd-sup">영양제 메모 (선택)</label><input type="text" id="fd-sup" value="${esc(p.supplement || '')}" placeholder="오메가3 1알"><span class="hint">끼니와 같이 주는 영양제는 위 끼니에서 ‘+ 영양제’로 넣으면 체크리스트에 떠요.</span></div>
     <div class="fld"><label for="fd-note">메모</label><input type="text" id="fd-note" value="${esc(p.feedingNote || '')}" placeholder="몸무게가 늘면 저녁 양 줄이기"></div>
     <div class="fld"><label for="fd-kg">메모를 띄울 몸무게 (선택)</label><div class="unit"><input type="text" id="fd-kg" inputmode="decimal" autocomplete="off" data-dec value="${p.feedingNoteKg ?? ''}" placeholder="4.5"><span>kg</span></div><span class="hint">이 몸무게가 되면 홈 화면 몸무게 카드에 메모가 떠요.</span></div>
     <button class="btn" type="submit">저장</button></form>`;
   openSheet('밥 먹는 시간', html, (body) => {
     draw();
-    const sync = () => { F.rows = F.rows.map((x, i) => ({ ...x, time: ($(`#fr-t-${i}`) || {}).value ?? x.time, what: ($(`#fr-w-${i}`) || {}).value ?? x.what, how: ($(`#fr-h-${i}`) || {}).value ?? x.how })); };
-    F.sync = sync; F.draw = draw;
-    body.querySelector('#feed-form').addEventListener('submit', async (e) => {
-      e.preventDefault(); sync();
-      /* 예전 줄과는 번호로 짝을 맞춰요 (번호가 없던 줄은 f0, f1… 로 읽어요) */
-      const T = todayStr(); const before = (p.feeding || []).map((y, i) => ({ ...y, id: /^[A-Za-z0-9_]{1,40}$/.test(String((y && y.id) || '')) ? String(y.id) : `f${i}` }));
-      const feeding = F.rows.map((x) => {
-        const row = { id: x.id || medUid('f'), time: String(x.time || '').trim(), what: String(x.what || '').trim(), how: String(x.how || '').trim() };
-        /* 자동급식기로 바꾼 날부터 저절로 체크해요 (원래 자동급식기였으면 그 날짜 그대로) */
-        if (AUTO_FEED_RE.test(row.how)) {
-          const old = before.find((y) => y && y.id === row.id);
-          row.autoFrom = old && AUTO_FEED_RE.test(String(old.how || '')) ? (isDate(old.autoFrom) ? old.autoFrom : AUTO_FEED_START) : T;
-        }
-        return row;
-      }).filter((x) => x.time || x.what);
-      const kgRaw = $('#fd-kg').value.trim(); const kgv = decVal(kgRaw);
-      if (kgRaw && !(kgv > 0 && kgv < 30)) { toast('메모를 띄울 몸무게를 4.5처럼 kg으로 적어 주세요.'); return; }
-      const d = { feeding, supplement: $('#fd-sup').value.trim(), feedingNote: $('#fd-note').value.trim(), feedingNoteKg: kgv > 0 && kgv < 30 ? Math.round(kgv * 1000) / 1000 : null, feedingUpdated: todayStr() };
-      if (await patch('pets', pid, d)) { await closeSheet(); toast('저장했어요'); autoMealTick(); }
-    });
+    /* 시간을 고르면 끼니 이름을 바로 보여 줘요 */
+    const live = (e) => {
+      const t = e.target; if (!t || !t.matches || !t.matches('[data-ft]') || !F || F.kind !== 'feed') return;
+      const i = Number(t.dataset.ft); const r = F.rows[i]; if (!r) return;
+      r.hm = /^\d{2}:\d{2}$/.test(t.value) ? t.value : '';
+      const l = $(`#fr-tl-${i}`); if (l) l.textContent = feedTimeNote(r);
+      const h = $(`#fr-hd-${i}`); if (h) h.textContent = feedRowLabel(r) || '새 끼니';
+    };
+    const box = body.querySelector('#feed-rows');
+    box.addEventListener('input', live); box.addEventListener('change', live);
+    /* 영양제·약 이름 칸에서 엔터를 누르면 저장 대신 ‘넣기’ */
+    body.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target && (e.target.id === 'fa-n' || e.target.id === 'fa-d')) { e.preventDefault(); feedAddPush(($('#fa-n') || {}).value, ($('#fa-d') || {}).value); } });
+    body.querySelector('#feed-form').addEventListener('submit', (e) => { e.preventDefault(); feedSave(e.submitter || body.querySelector('#feed-form button[type=submit]')); });
   });
+}
+async function feedSave(btn) {
+  if (!F || F.kind !== 'feed') return;
+  F.sync();
+  const pid = F.pid; const p = S.pets[pid]; if (!p) return;
+  const T = todayStr();
+  /* 예전 줄과는 번호로 짝을 맞춰요 (번호가 없던 줄은 f0, f1… 로 읽어요) */
+  const before = (p.feeding || []).map((y, i) => ({ ...y, id: ADD_ID_RE.test(String((y && y.id) || '')) ? String(y.id) : `f${i}` }));
+  const out = [];
+  for (let i = 0; i < F.rows.length; i++) {
+    const r = F.rows[i];
+    const time = feedRowLabel(r);
+    const kind = String(r.kind || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+    const amount = String(r.amount || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    const how = String(r.how || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+    const adds = (r.adds || []).filter((a) => a && String(a.name || '').trim());
+    if (!time && !kind && !amount && !adds.length) continue;
+    const mins = feedMins(time);
+    if (!time || (mins === null && adds.some((a) => a.type === 'med'))) {
+      F.open = i; F.add = null; F.draw();
+      toast(!time ? '급여시간을 골라 주세요.' : '약을 같이 주는 끼니는 급여시간을 골라 주세요.');
+      return;
+    }
+    const row = { id: r.id || medUid('f'), time, kind, amount, what: [kind, amount].filter(Boolean).join(' '), how };
+    if (adds.length) row.adds = adds.map((a) => ({ id: a.id, type: a.type === 'med' ? 'med' : 'sup', name: String(a.name).trim().slice(0, 40), dose: String(a.dose || '').trim().slice(0, 40), ...(a.type === 'med' ? { med: a.med || '', slot: a.slot || '' } : {}) }));
+    /* 자동급식기로 바꾼 날부터 저절로 체크해요 (원래 자동급식기였으면 그 날짜 그대로) */
+    if (AUTO_FEED_RE.test(how)) {
+      const old = before.find((y) => y && y.id === row.id);
+      row.autoFrom = old && AUTO_FEED_RE.test(String(old.how || '')) ? (isDate(old.autoFrom) ? old.autoFrom : AUTO_FEED_START) : T;
+    }
+    out.push([mins === null ? 99999 : mins, i, row]);
+  }
+  /* 시간 순서로 정리해요 (끼니 번호는 그대로라 지난 체크가 이어져요) */
+  out.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const feeding = out.map((x) => x[2]);
+  const kgRaw = $('#fd-kg').value.trim(); const kgv = decVal(kgRaw);
+  if (kgRaw && !(kgv > 0 && kgv < 30)) { toast('메모를 띄울 몸무게를 4.5처럼 kg으로 적어 주세요.'); return; }
+  const plan = feedMedPlan(feeding);
+  const d = { feeding, supplement: $('#fd-sup').value.trim(), feedingNote: $('#fd-note').value.trim(), feedingNoteKg: kgv > 0 && kgv < 30 ? Math.round(kgv * 1000) / 1000 : null, feedingUpdated: T };
+  if (btn) btn.disabled = true;
+  try {
+    /* 약 탭을 먼저 저장해요 (끼니가 가리키는 약이 늘 있게) */
+    if (plan.changed && !(await patch('info', 'meds', { items: plan.items }))) return;
+    if (await patch('pets', pid, d)) {
+      await closeSheet();
+      toast(plan.made.length ? `저장했어요 · 약 탭에도 ${eulReul(plan.made.join('·'))} 넣었어요` : '저장했어요');
+      autoMealTick();
+    }
+  } finally { if (btn) btn.disabled = false; }
+}
+/* 끼니에 붙인 약 ↔ 약 탭: 같은 이름의 복용약이 있으면 그 약에서 끼니 시간과 2시간 안쪽인 때에 잇고, 없으면 끼니 시간으로 새 때를 만들어요.
+ * 약 탭에 없는 약은 오늘부터 새로 넣어요. 끼니에서 만든 때(meal)는 끼니 시간을 따라가고, 끼니에서 빼면 같이 빠져요. */
+function feedMedPlan(feeding) {
+  const T = todayStr();
+  const list = medItems().map(medStored).map((m) => ({ ...m, times: (m.times || []).map((t) => ({ ...t })) }));
+  const orig = JSON.stringify(list);
+  const live = (m) => !m.off || m.off > T;
+  const key = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const used = new Set(); const made = [];
+  for (const row of feeding) {
+    const mins = feedMins(row.time); if (mins === null) continue;
+    const hm = minsHm(mins); const at = mins % 1440;
+    for (const a of (row.adds || []).filter((x) => x.type === 'med')) {
+      /* 같은 이름이면 같은 약 (복용약을 먼저 찾아요) */
+      let m = (a.med && list.find((x) => x.id === a.med && live(x))) || list.find((x) => live(x) && x.kind === 'oral' && key(x.name) === key(a.name)) || list.find((x) => live(x) && key(x.name) === key(a.name));
+      if (!m) { m = { id: medUid('md'), kind: 'oral', name: a.name, dose: a.dose, times: [], from: T, off: '' }; list.push(m); made.push(a.name); }
+      let t = a.slot && a.med === m.id ? m.times.find((x) => x.id === a.slot && !used.has(`${m.id}.${x.id}`)) || null : null;
+      if (t && t.meal && t.meal !== row.id) t = null;
+      if (!t) {
+        let bd = 121;
+        for (const x of m.times) {
+          if (x.meal || used.has(`${m.id}.${x.id}`)) continue;
+          const xm = hmMins(x.time); if (xm === null) continue;
+          const dd = Math.min(Math.abs(xm - at), 1440 - Math.abs(xm - at));
+          if (dd < bd) { bd = dd; t = x; }
+        }
+      }
+      if (!t) { t = { id: medUid('t'), label: `${row.time} 밥`, time: hm, meal: row.id }; m.times.push(t); m.times.sort(byTime); }
+      else if (t.meal === row.id && t.time !== hm) { t.time = hm; t.label = `${row.time} 밥`; m.times.sort(byTime); }
+      used.add(`${m.id}.${t.id}`);
+      a.med = m.id; a.slot = t.id;
+    }
+  }
+  const items = [];
+  for (const m of list) {
+    const keep = m.times.filter((t) => !t.meal || used.has(`${m.id}.${t.id}`));
+    if (keep.length === m.times.length) { items.push(m); continue; }
+    if (keep.length) { items.push({ ...m, times: keep }); continue; }
+    /* 남은 때가 없으면: 전에 체크한 적이 있으면 오늘부터 빼서 지난 기록을 남기고, 없으면 지워요 */
+    if (medUsedBefore(m, T)) items.push({ ...m, off: m.off && m.off <= T ? m.off : T });
+  }
+  return { items, changed: JSON.stringify(items) !== orig, made };
 }
 function insForm() {
   const ins = S.info.insurance || { company: '', product: '', joined: '', payDay: 1, firstPay: '', rates: [], payer: meKey(), method: '', active: true, coverage: [], excluded: [], notes: [], agent: { name: '', phone: '' }, pet: mainPet()?.id || '' };
@@ -4526,8 +4824,22 @@ const ACT = {
   /* 밥 */
   'home-meal'(b) {
     const T = todayStr(); const m = mealFind(b.dataset.id); if (!m) return;
-    if (mealVal(dayDoc('snacks', T), m.id)) mealSheet(T, m); else mealCheck(T, m, hhmm());
+    if (!mealVal(dayDoc('snacks', T), m.id)) { mealCheck(T, m, hhmm()); return; }
+    /* 밥은 체크됐는데(자동급식기 등) 같이 줄 영양제·약이 남았으면, 누르면 그것만 체크해요 */
+    const left = addsLeft(T, m);
+    if (left.length) { const tm = hhmm(); if (addsSet(T, m, left, true, tm)) toast(`${addNames(left)} 챙겼어요 · ${timeKo(tm)}`); return; }
+    mealSheet(T, m);
   },
+  /* 밥·간식 탭: 끼니 아래 영양제·약 칩 (누르면 체크, 한 번 더 누르면 빼요) */
+  'meal-add-tap'(b) {
+    const date = isDate(b.dataset.date) ? b.dataset.date : todayStr(); const m = mealFind(b.dataset.id); if (!m) return;
+    const a = (m.adds || []).find((x) => x.id === b.dataset.a); if (!a) return;
+    if (addVal(date, a)) { if (addsSet(date, m, [a], false)) toast(`${addName(a)} 체크를 뺐어요`); return; }
+    const mv = mealVal(dayDoc('snacks', date), m.id);
+    const tm = date === todayStr() ? hhmm() : (mv && mv.time) || m.hm || '09:00';
+    if (addsSet(date, m, [a], true, tm)) toast(`${addName(a)} 챙겼어요 · ${timeKo(tm)}`);
+  },
+  'ml-add'(b) { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); },
   'snack-meal'(b) {
     const date = curDay('snacks'); const m = mealFind(b.dataset.id); if (!m) return;
     if (mealVal(dayDoc('snacks', date), m.id) || date !== todayStr()) mealSheet(date, m); else mealCheck(date, m, hhmm());
@@ -4537,7 +4849,13 @@ const ACT = {
     const { date } = F; const m = mealFind(F.meal); if (!m) return;
     /* 자동급식기 끼니는 지우면 다시 저절로 체크되니까 ‘안 줬어요’ 표시를 남겨요 */
     if (m.auto) { if (mut('snacks', date, [['set', `meals.${m.id}`, { skip: true, who: meKey(), at: new Date().toISOString() }]])) { closeSheet(); toast(`${m.label} 밥을 ‘안 줬어요’로 바꿨어요`); } return; }
-    if (mut('snacks', date, [['unset', `meals.${m.id}`]])) { closeSheet(); toast(`${m.label} 밥 체크를 취소했어요`); }
+    /* 체크 취소: 같이 준 영양제와, 이 밥에서 같이 체크한 약도 같이 빼요 */
+    const sups = (m.adds || []).filter((a) => a.type !== 'med').map((a) => ['unset', `sups.${a.id}`]);
+    if (mut('snacks', date, [['unset', `meals.${m.id}`], ...sups])) {
+      const meds = (m.adds || []).filter((a) => a.type === 'med' && (addVal(date, a) || {}).meal === m.id);
+      if (meds.length) addsSet(date, m, meds, false);
+      closeSheet(); toast(`${m.label} 밥 체크를 취소했어요`);
+    }
   },
   'home-snack'(b) {
     const T = todayStr(); const k = b.dataset.k;
@@ -4707,8 +5025,42 @@ const ACT = {
   'close-sheet'() { closeSheet(); },
   'edit-pet'(b) { petForm(b.dataset.pet); },
   'edit-feed'(b) { feedForm(b.dataset.pet); },
-  'feed-add'() { if (!F || F.kind !== 'feed') return; F.sync(); F.rows.push({ id: medUid('f'), time: '', what: '', how: '' }); F.draw(); },
-  'feed-del'(b) { if (!F || F.kind !== 'feed') return; F.sync(); F.rows.splice(Number(b.dataset.i), 1); F.draw(); },
+  /* 밥 먹는 시간: 끼니 펴기·접기, 추가·지우기, 종류·방법 고르기, 영양제·약 넣기·빼기 */
+  'feed-open'(b) {
+    if (!F || F.kind !== 'feed') return;
+    F.sync(); const i = Number(b.dataset.i); F.open = F.open === i ? null : i; F.add = null; F.draw();
+    const row = document.querySelector(`#feed-rows [data-frow="${i}"]`);
+    if (row) setTimeout(() => { try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* 넘어감 */ } }, 30);
+  },
+  'feed-add'() {
+    if (!F || F.kind !== 'feed') return;
+    F.sync();
+    if (F.rows.length >= FEED_ROW_MAX) { toast(`끼니는 ${FEED_ROW_MAX}개까지예요.`); return; }
+    F.rows.push(newFeedRow()); F.open = F.rows.length - 1; F.add = null; F.draw();
+    const row = document.querySelector(`#feed-rows [data-frow="${F.open}"]`);
+    if (row) setTimeout(() => { try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* 넘어감 */ } }, 30);
+  },
+  'feed-del'(b) { if (!F || F.kind !== 'feed') return; F.sync(); F.rows.splice(Number(b.dataset.i), 1); F.open = null; F.add = null; F.draw(); },
+  'fd-pick'(b) {
+    if (!F || F.kind !== 'feed') return;
+    F.sync();
+    const i = Number(b.dataset.i); const r = F.rows[i]; if (!r) return;
+    const f = b.dataset.f === 'how' ? 'how' : 'kind'; const edit = f === 'how' ? 'howEdit' : 'kindEdit';
+    /* ‘+ 다른 종류/방법’: 직접 적는 칸을 열고 닫아요. 보기를 누르면 그걸로 (한 번 더 누르면 빼요) */
+    if (b.dataset.custom) { r[edit] = !r[edit]; if (r[edit]) r[f] = ''; }
+    else { r[edit] = false; r[f] = r[f] === b.dataset.val ? '' : b.dataset.val; }
+    F.draw();
+    if (b.dataset.custom && r[edit]) { const inp = $(`#fr-${f === 'how' ? 'hc' : 'kc'}-${i}`); if (inp) inp.focus(); }
+  },
+  'fa-open'(b) {
+    if (!F || F.kind !== 'feed') return;
+    F.sync(); F.add = { i: Number(b.dataset.i), type: b.dataset.type === 'med' ? 'med' : 'sup' }; F.draw();
+    if (!document.querySelector('#fa-box [data-act="fa-quick"]')) { const inp = $('#fa-n'); if (inp) inp.focus(); }
+  },
+  'fa-cancel'() { if (!F || F.kind !== 'feed') return; F.sync(); F.add = null; F.draw(); },
+  'fa-save'() { feedAddPush(($('#fa-n') || {}).value, ($('#fa-d') || {}).value); },
+  'fa-quick'(b) { feedAddPush(b.dataset.name, b.dataset.dose); },
+  'fa-del'(b) { if (!F || F.kind !== 'feed') return; F.sync(); const r = F.rows[Number(b.dataset.i)]; if (!r) return; r.adds.splice(Number(b.dataset.j), 1); F.draw(); },
   'edit-ins'() { insForm(); },
   'gc-sync'() { load({ manual: true }); },
   async 'push-mode'(b) {
