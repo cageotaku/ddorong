@@ -107,7 +107,12 @@ svg { display: block; }
 
 /* hero: 등록증 같은 프로필 카드 */
 .hero { padding: 18px 16px 16px; gap: 14px; }
-.hero-top { display: flex; gap: 14px; align-items: center; }
+.hero-top { display: grid; grid-template-columns: minmax(84px, 1fr) auto; gap: 16px; align-items: center; }
+/* 홈 맨 위 사진: 이름 칸은 글자만큼, 남는 자리는 모두 사진으로 (너무 커지지 않게 240px까지) */
+.hero-top .avatar { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1 / 1; border-radius: 24px; justify-self: start; }
+.hero-top .avatar .mono { font-size: 56px; }
+.hero-top .avatar .cam { right: 8px; bottom: 8px; width: 30px; height: 30px; }
+.hero-top .avatar .cam .ic { width: 17px; height: 17px; }
 .avatar { flex: none; width: 76px; height: 76px; border-radius: 50%; background: var(--butter); color: var(--butter-ink); display: grid; place-items: center; overflow: hidden; border: 0; padding: 0; position: relative; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar .mono { font-family: var(--font-display); font-size: 34px; line-height: 1; }
@@ -269,6 +274,12 @@ svg { display: block; }
 .star-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: var(--star); flex: none; overflow: hidden; }
 .star-ic img { width: 100%; height: 100%; object-fit: cover; }
 .star-ic .ic { width: 22px; height: 22px; }
+/* 별이 된 아이: 사진이 있어도 모서리에 작은 별을 달아요 */
+.av-wrap { position: relative; flex: none; display: inline-flex; }
+.star-b { position: absolute; left: -3px; top: -3px; width: 20px; height: 20px; border-radius: 50%; background: var(--night); color: var(--star); display: grid; place-items: center; box-shadow: 0 0 0 2px var(--night-2); pointer-events: none; }
+.star-b .ic { width: 12px; height: 12px; }
+.avatar .star-mono { display: grid; place-items: center; }
+.avatar .star-mono .ic { width: 28px; height: 28px; }
 .star-card .nm { font-family: var(--font-display); font-size: 22px; line-height: 1.1; }
 .star-card .ds { font-size: 13px; color: var(--night-ink-2); }
 .star-card .go { margin-left: auto; color: var(--night-ink-2); }
@@ -1189,17 +1200,22 @@ function expenseRow(e) {
   const sub = [e.category, e.place, whoLabel(e.payer)].filter(Boolean).join(' · ');
   return `<button class="row" data-act="open-expense" data-id="${esc(e.id)}">${dateCell(e.date)}<span class="row-main"><span class="row-title">${esc(e.item || e.category || '지출')}</span><span class="row-sub">${esc(sub)}${e.virtual ? '<span class="tag">자동</span>' : ''}${e.src === 'gcal' ? '<span class="tag gc">캘린더</span>' : ''}${(e.photos || []).length ? '<span class="tag">영수증</span>' : ''}</span></span><span class="row-end amt">${esc(won(e.amount))}</span></button>`;
 }
-function petAvatar(p, big = true) {
+const STAR_SVG = '<svg class="ic ic-fill" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.2 2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.5l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z"/></svg>';
+const starBadge = () => `<span class="star-b" aria-hidden="true">${STAR_SVG}</span>`;
+/* kind: 'full'이면 큰 사진 (받는 동안은 작은 사진을 먼저 보여 줘요). 별이 된 아이는 사진이 없으면 별을 보여 줘요 */
+function petAvatar(p, kind = 'thumb') {
   const canPhoto = canEdit();
-  const inner = p.photo ? photoImg(p.photo, 'thumb', `${p.name} 사진`) : `<span class="mono" aria-hidden="true">${esc((p.name || '?').slice(0, 1))}</span>`;
+  const inner = p.photo ? photoImg(p.photo, kind, `${p.name} 사진`, kind === 'full')
+    : p.status === 'star' ? `<span class="mono star-mono" aria-hidden="true">${STAR_SVG}</span>`
+    : `<span class="mono" aria-hidden="true">${esc((p.name || '?').slice(0, 1))}</span>`;
   const cam = canPhoto ? `<span class="cam" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.4-2h5.8l1.4 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.8" r="3.3"/></svg></span>` : '';
   if (canPhoto) return `<button class="avatar" data-act="pet-photo" data-pet="${esc(p.id)}" aria-label="${esc(p.name)} 사진 ${p.photo ? '바꾸기' : '올리기'}">${inner}${cam}</button>`;
   return `<span class="avatar">${inner}</span>`;
 }
 function starCard(p) {
   const together = isDate(p.home) && isDate(p.farewell) ? diffDays(p.home, p.farewell) + 1 : null;
-  const pic = p.photo ? photoImg(p.photo, 'thumb') : `<svg class="ic ic-fill" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.2 2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.5l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z"/></svg>`;
-  return `<button class="star-card night" data-act="star" data-pet="${esc(p.id)}"><span class="star-ic">${pic}</span><span><span class="nm">${esc(p.name)}</span><br><span class="ds">${isDate(p.birth) ? esc(dot(p.birth)) : ''}${isDate(p.farewell) ? ' – ' + esc(dot(p.farewell)) : ''}${together ? ` · 우리와 함께한 ${together}일` : ''}</span></span><span class="go"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span></button>`;
+  const pic = p.photo ? photoImg(p.photo, 'thumb') : STAR_SVG;
+  return `<button class="star-card night" data-act="star" data-pet="${esc(p.id)}"><span class="av-wrap"><span class="star-ic">${pic}</span>${p.photo ? starBadge() : ''}</span><span><span class="nm">${esc(p.name)}</span><br><span class="ds">${isDate(p.birth) ? esc(dot(p.birth)) : ''}${isDate(p.farewell) ? ' – ' + esc(dot(p.farewell)) : ''}${together ? ` · 우리와 함께한 ${together}일` : ''}</span></span><span class="go"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span></button>`;
 }
 function loadingOr(msg) {
   if (S.phase === 'nosheet') return `<div class="banner">기록을 담은 구글 시트를 열지 못했어요. 구글 드라이브의 ‘또롱이 수첩 데이터 (지우지 마세요)’ 시트가 그대로 있는지 확인해 주세요.</div>`;
@@ -1322,7 +1338,7 @@ function renderHome() {
     ${appTipBanner()}
     ${syncLine()}
     <div class="card hero">
-      <div class="hero-top">${petAvatar(p)}<div class="hero-name"><h1>${esc(p.name)}</h1><span class="meta">${esc(metaBits.join(' · '))}</span>${togetherN ? `<span class="chip butter">함께한 지 ${togetherN.toLocaleString('ko-KR')}일째</span>` : ''}</div></div>
+      <div class="hero-top">${petAvatar(p, 'full')}<div class="hero-name"><h1>${esc(p.name)}</h1><span class="meta">${esc(metaBits.join(' · '))}</span>${togetherN ? `<span class="chip butter">함께한 지 ${togetherN.toLocaleString('ko-KR')}일째</span>` : ''}</div></div>
       ${fields.length ? `<dl class="fields">${fields.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(dot(v))}</dd></div>`).join('')}</dl>` : ''}
     </div>
 
@@ -1717,7 +1733,7 @@ function renderStar() {
   el.innerHTML = `
     <div><button class="back-btn" data-act="back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>돌아가기</button></div>
     <div class="mem-hero night">
-      <div class="mem-top">${p.photo || canEdit() ? petAvatar(p) : `<span class="avatar"><svg class="ic ic-fill" viewBox="0 0 24 24" aria-hidden="true" style="width:28px;height:28px"><path d="m12 3.2 2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.5l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z"/></svg></span>`}<div><h1>${esc(p.name)}</h1><div class="line">하늘나라로 소풍 간 날 <b>${isDate(p.farewell) ? esc(dot(p.farewell)) : ''}</b></div></div></div>
+      <div class="mem-top"><span class="av-wrap">${petAvatar(p)}${p.photo ? starBadge() : ''}</span><div><h1>${esc(p.name)}</h1><div class="line">하늘나라로 소풍 간 날 <b>${isDate(p.farewell) ? esc(dot(p.farewell)) : ''}</b></div></div></div>
       ${together ? `<div class="line">우리와 함께한 <b>${together}일</b>${isDate(p.ashes) ? ` · ${esc(dot(p.ashes))} 산골` : ''}</div>` : ''}
       ${facts.length ? `<dl class="mem-facts">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(dot(v))}</dd></div>`).join('')}</dl>` : ''}
       ${ws.length > 1 ? `<div><div class="line" style="font-size:13px;margin-bottom:6px">자라온 몸무게 ${esc(wt(ws[0].kg))} → ${esc(wt(ws[ws.length - 1].kg))}</div><div class="chart" data-chart="${esc(p.id)}" role="img" aria-label="${esc(p.name)} 몸무게 그래프: ${esc(wt(ws[0].kg))}에서 ${esc(wt(ws[ws.length - 1].kg))}까지"></div></div>` : ''}
@@ -3311,11 +3327,13 @@ function photoSrc(id, kind) {
   if (!s && kind === 'thumb') { try { s = localStorage.getItem(thKey(id)); } catch { s = null; } if (s) PH.thumb.set(id, s); }
   return s || '';
 }
-function photoImg(id, kind = 'thumb', alt = '') {
+/* soft: 큰 사진(full)을 받는 동안 작은 사진(thumb)을 먼저 보여 줘요 */
+function photoImg(id, kind = 'thumb', alt = '', soft = false) {
   const own = photoSrc(id, kind);
   const s = own || (kind === 'full' ? photoSrc(id, 'thumb') : '');
   if (!own && !PH.missing.has(`${kind}:${id}`)) { PH.want[kind].add(id); queuePhotos(); }
-  return `<img data-ph="${esc(id)}" data-kind="${kind}" src="${esc(s || BLANK)}" alt="${esc(alt)}"${own ? '' : ' data-wait="1"'}>`;
+  if (soft && kind === 'full' && !s && !PH.missing.has(`thumb:${id}`)) { PH.want.thumb.add(id); queuePhotos(); }
+  return `<img data-ph="${esc(id)}" data-kind="${kind}"${soft ? ' data-soft="1"' : ''} src="${esc(s || BLANK)}" alt="${esc(alt)}"${own || (soft && s) ? '' : ' data-wait="1"'}>`;
 }
 function queuePhotos() { if (PH.timer) return; PH.timer = setTimeout(() => { PH.timer = 0; fetchPhotos(); }, 30); }
 function fetchPhotos() {
@@ -3344,7 +3362,7 @@ function paintPhotos() {
     const own = PH[kind].get(id);
     const s = own || (kind === 'full' ? PH.thumb.get(id) : '');
     if (s && img.getAttribute('src') !== s) img.src = s;
-    if (own || (s && PH.missing.has(`${kind}:${id}`))) img.removeAttribute('data-wait');
+    if (own || (s && (PH.missing.has(`${kind}:${id}`) || img.dataset.soft))) img.removeAttribute('data-wait');
     if (!s && PH.missing.has(`${kind}:${id}`)) {
       const box = img.closest('.ph');
       if (box) { if (!box.querySelector('.gone')) box.insertAdjacentHTML('beforeend', '<span class="gone">사진 없음</span>'); img.remove(); }
