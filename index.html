@@ -274,10 +274,14 @@ svg { display: block; }
 .star-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: var(--star); flex: none; overflow: hidden; }
 .star-ic img { width: 100%; height: 100%; object-fit: cover; }
 .star-ic .ic { width: 22px; height: 22px; }
-/* 별이 된 아이: 사진이 있어도 모서리에 작은 별을 달아요 */
-.av-wrap { position: relative; flex: none; display: inline-flex; }
-.star-b { position: absolute; left: -3px; top: -3px; width: 20px; height: 20px; border-radius: 50%; background: var(--night); color: var(--star); display: grid; place-items: center; box-shadow: 0 0 0 2px var(--night-2); pointer-events: none; }
-.star-b .ic { width: 12px; height: 12px; }
+.crop-box { position: relative; width: min(100%, 340px); aspect-ratio: 1 / 1; margin: 0 auto; border-radius: 24px; overflow: hidden; background: var(--surface-2); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.crop-box img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; -webkit-user-drag: none; }
+.crop-box::after { content: ""; position: absolute; inset: 0; border-radius: 24px; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7); pointer-events: none; }
+.crop-zoom { display: flex; align-items: center; gap: 10px; }
+.crop-zoom input { flex: 1; accent-color: var(--accent); }
+.crop-zoom span { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+.nm-star { display: inline-flex; margin-left: 0.28em; color: var(--star); vertical-align: 0.08em; }
+.nm-star .ic { width: 0.62em; height: 0.62em; }
 .avatar .star-mono { display: grid; place-items: center; }
 .avatar .star-mono .ic { width: 28px; height: 28px; }
 .star-card .nm { font-family: var(--font-display); font-size: 22px; line-height: 1.1; }
@@ -1201,7 +1205,8 @@ function expenseRow(e) {
   return `<button class="row" data-act="open-expense" data-id="${esc(e.id)}">${dateCell(e.date)}<span class="row-main"><span class="row-title">${esc(e.item || e.category || '지출')}</span><span class="row-sub">${esc(sub)}${e.virtual ? '<span class="tag">자동</span>' : ''}${e.src === 'gcal' ? '<span class="tag gc">캘린더</span>' : ''}${(e.photos || []).length ? '<span class="tag">영수증</span>' : ''}</span></span><span class="row-end amt">${esc(won(e.amount))}</span></button>`;
 }
 const STAR_SVG = '<svg class="ic ic-fill" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.2 2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.5l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z"/></svg>';
-const starBadge = () => `<span class="star-b" aria-hidden="true">${STAR_SVG}</span>`;
+/* 별이 된 아이: 사진이 있으면 사진을 가리지 않게 이름 옆에 작은 별 */
+const nameStar = (p) => (p.status === 'star' && p.photo ? `<span class="nm-star" aria-hidden="true">${STAR_SVG}</span>` : '');
 /* kind: 'full'이면 큰 사진 (받는 동안은 작은 사진을 먼저 보여 줘요). 별이 된 아이는 사진이 없으면 별을 보여 줘요 */
 function petAvatar(p, kind = 'thumb') {
   const canPhoto = canEdit();
@@ -1215,7 +1220,7 @@ function petAvatar(p, kind = 'thumb') {
 function starCard(p) {
   const together = isDate(p.home) && isDate(p.farewell) ? diffDays(p.home, p.farewell) + 1 : null;
   const pic = p.photo ? photoImg(p.photo, 'thumb') : STAR_SVG;
-  return `<button class="star-card night" data-act="star" data-pet="${esc(p.id)}"><span class="av-wrap"><span class="star-ic">${pic}</span>${p.photo ? starBadge() : ''}</span><span><span class="nm">${esc(p.name)}</span><br><span class="ds">${isDate(p.birth) ? esc(dot(p.birth)) : ''}${isDate(p.farewell) ? ' – ' + esc(dot(p.farewell)) : ''}${together ? ` · 우리와 함께한 ${together}일` : ''}</span></span><span class="go"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span></button>`;
+  return `<button class="star-card night" data-act="star" data-pet="${esc(p.id)}"><span class="star-ic">${pic}</span><span><span class="nm">${esc(p.name)}${nameStar(p)}</span><br><span class="ds">${isDate(p.birth) ? esc(dot(p.birth)) : ''}${isDate(p.farewell) ? ' – ' + esc(dot(p.farewell)) : ''}${together ? ` · 우리와 함께한 ${together}일` : ''}</span></span><span class="go"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span></button>`;
 }
 function loadingOr(msg) {
   if (S.phase === 'nosheet') return `<div class="banner">기록을 담은 구글 시트를 열지 못했어요. 구글 드라이브의 ‘또롱이 수첩 데이터 (지우지 마세요)’ 시트가 그대로 있는지 확인해 주세요.</div>`;
@@ -1733,7 +1738,7 @@ function renderStar() {
   el.innerHTML = `
     <div><button class="back-btn" data-act="back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>돌아가기</button></div>
     <div class="mem-hero night">
-      <div class="mem-top"><span class="av-wrap">${petAvatar(p)}${p.photo ? starBadge() : ''}</span><div><h1>${esc(p.name)}</h1><div class="line">하늘나라로 소풍 간 날 <b>${isDate(p.farewell) ? esc(dot(p.farewell)) : ''}</b></div></div></div>
+      <div class="mem-top">${petAvatar(p)}<div><h1>${esc(p.name)}${nameStar(p)}</h1><div class="line">하늘나라로 소풍 간 날 <b>${isDate(p.farewell) ? esc(dot(p.farewell)) : ''}</b></div></div></div>
       ${together ? `<div class="line">우리와 함께한 <b>${together}일</b>${isDate(p.ashes) ? ` · ${esc(dot(p.ashes))} 산골` : ''}</div>` : ''}
       ${facts.length ? `<dl class="mem-facts">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(dot(v))}</dd></div>`).join('')}</dl>` : ''}
       ${ws.length > 1 ? `<div><div class="line" style="font-size:13px;margin-bottom:6px">자라온 몸무게 ${esc(wt(ws[0].kg))} → ${esc(wt(ws[ws.length - 1].kg))}</div><div class="chart" data-chart="${esc(p.id)}" role="img" aria-label="${esc(p.name)} 몸무게 그래프: ${esc(wt(ws[0].kg))}에서 ${esc(wt(ws[ws.length - 1].kg))}까지"></div></div>` : ''}
@@ -3425,6 +3430,75 @@ $('#file-in').addEventListener('change', async (e) => {
   const cb = filePick; filePick = null;
   if (cb && files.length) cb(files);
 });
+/* ───────── 아이 사진 고르기: 네모 칸에 맞춰 옮기고 키워서 자르기 ─────────
+ * 손가락으로 끌어서 옮기고, 두 손가락이나 아래 막대로 키우고 줄여요. 칸 밖은 잘려요 */
+const CROP_OUT = 1200;
+async function cropPhoto(file, title) {
+  let loaded;
+  try { loaded = await readImage(file); } catch (e) { toast(photoErr(e)); return null; }
+  return new Promise((resolve) => {
+    const { img } = loaded; const W0 = img.naturalWidth || img.width, H0 = img.naturalHeight || img.height;
+    const C = { z: 1, x: 0, y: 0, box: 0, done: false };
+    const finish = (v) => { if (C.done) return; C.done = true; URL.revokeObjectURL(loaded.url); resolve(v); };
+    openSheet(title, `<div class="form" id="crop-form">
+        <span class="mini-note">사진을 끌어서 옮기고, 두 손가락이나 아래 막대로 키울 수 있어요. 네모 칸 안이 사진이 돼요.</span>
+        <div class="crop-box" id="crop-box"><img id="crop-img" alt="고를 사진" src="${esc(loaded.url)}"></div>
+        <label class="crop-zoom"><span>작게</span><input type="range" id="crop-z" min="1" max="4" step="0.01" value="1" aria-label="사진 크기"><span>크게</span></label>
+        <div class="btn-row"><button class="btn" type="button" id="crop-ok">이대로 쓰기</button><button class="btn ghost" type="button" id="crop-reset">처음대로</button></div>
+        <button class="btn ghost" type="button" id="crop-cancel">취소</button>
+      </div>`, (body) => {
+      F = { kind: 'crop' };
+      const box = body.querySelector('#crop-box'); const im = body.querySelector('#crop-img'); const zr = body.querySelector('#crop-z');
+      const base = () => C.box / Math.min(W0, H0);
+      const clamp = () => {
+        const k = base() * C.z; const w = W0 * k, h = H0 * k;
+        C.x = Math.min(0, Math.max(C.box - w, C.x)); C.y = Math.min(0, Math.max(C.box - h, C.y));
+      };
+      const draw = () => { clamp(); const k = base() * C.z; im.style.width = `${W0}px`; im.style.height = `${H0}px`; im.style.transform = `translate(${C.x}px, ${C.y}px) scale(${k})`; zr.value = String(C.z); };
+      /* 가운데를 기준으로 키우고 줄여요 */
+      const zoomTo = (z, cx = C.box / 2, cy = C.box / 2) => {
+        const nz = Math.min(4, Math.max(1, z)); const k0 = base() * C.z, k1 = base() * nz;
+        C.x = cx - ((cx - C.x) / k0) * k1; C.y = cy - ((cy - C.y) / k0) * k1; C.z = nz; draw();
+      };
+      const reset = () => { C.box = box.clientWidth; C.z = 1; const k = base(); C.x = (C.box - W0 * k) / 2; C.y = (C.box - H0 * k) / 2; draw(); };
+      reset();
+      new ResizeObserver(() => { const old = C.box; if (!old || box.clientWidth === old) return; const r = box.clientWidth / old; C.box = box.clientWidth; C.x *= r; C.y *= r; draw(); }).observe(box);
+      const pts = new Map(); let last = null;
+      const mid = () => { const a = [...pts.values()]; const r = box.getBoundingClientRect(); return { x: (a[0].x + a[1].x) / 2 - r.left, y: (a[0].y + a[1].y) / 2 - r.top, d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) }; };
+      box.addEventListener('pointerdown', (e) => { box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = pts.size === 2 ? mid() : { x: e.clientX, y: e.clientY }; e.preventDefault(); });
+      box.addEventListener('pointermove', (e) => {
+        if (!pts.has(e.pointerId)) return;
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pts.size >= 2) { const m = mid(); if (last && last.d) { C.x += m.x - last.x; C.y += m.y - last.y; zoomTo(C.z * (m.d / last.d), m.x, m.y); } last = m; }
+        else if (last) { C.x += e.clientX - last.x; C.y += e.clientY - last.y; last = { x: e.clientX, y: e.clientY }; draw(); }
+      });
+      const up = (e) => { pts.delete(e.pointerId); last = pts.size === 1 ? { ...[...pts.values()][0] } : pts.size >= 2 ? mid() : null; };
+      box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+      box.addEventListener('wheel', (e) => { e.preventDefault(); const r = box.getBoundingClientRect(); zoomTo(C.z * (e.deltaY < 0 ? 1.08 : 1 / 1.08), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+      zr.addEventListener('input', () => zoomTo(Number(zr.value)));
+      body.querySelector('#crop-reset').addEventListener('click', reset);
+      body.querySelector('#crop-cancel').addEventListener('click', async () => { await closeSheet(); finish(null); });
+      body.querySelector('#crop-ok').addEventListener('click', async () => {
+        const k = base() * C.z; const sx = -C.x / k, sy = -C.y / k, sw = C.box / k;
+        const c = document.createElement('canvas'); const out = Math.min(CROP_OUT, Math.round(sw)); c.width = out; c.height = out;
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, out, out); g.drawImage(img, sx, sy, sw, sw, 0, 0, out, out);
+        const full = c.toDataURL('image/jpeg', 0.86);
+        let thumb = canvasJpeg(c, 360, 0.75); if (thumb.length > 45000) thumb = canvasJpeg(c, 240, 0.6);
+        c.width = 1; c.height = 1;
+        await closeSheet(); finish({ full, thumb });
+      });
+    });
+    /* 시트를 다른 방법(바깥 누르기·닫기)으로 닫으면 취소로 쳐요 */
+    const watch = setInterval(() => { if (!F || F.kind !== 'crop') { clearInterval(watch); finish(null); } }, 400);
+  });
+}
+async function savePhotoData(c) {
+  try {
+    const id = await gsr('savePhoto', c.thumb, c.full);
+    PH.thumb.set(id, c.thumb); PH.full.set(id, c.full); tcPut(id, c.thumb);
+    return id;
+  } catch (e) { toast(photoErr(e)); return ''; }
+}
 function pickPhotos(cb, multiple = true) { filePick = cb; const fi = $('#file-in'); fi.multiple = multiple; fi.click(); }
 function photoGrid(ids, editable) {
   const tiles = ids.map((id) => `<div class="ph"><button class="ph-open" type="button" data-act="view-photo" data-id="${esc(id)}" aria-label="사진 크게 보기">${photoImg(id, 'thumb')}</button>${editable ? `<button class="x" type="button" data-act="drop-photo" data-id="${esc(id)}" aria-label="사진 빼기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : ''}</div>`);
@@ -5141,11 +5215,13 @@ const ACT = {
   'pet-photo'(b) {
     if (!canEdit()) return; const pid = b.dataset.pet;
     pickPhotos(async (files) => {
+      const name = (S.pets[pid] || {}).name || '';
+      const c = await cropPhoto(files[0], `${name} 사진 맞추기`); if (!c) return;
       toast('사진을 올리는 중이에요…');
-      const ids = await uploadFiles(files.slice(0, 1)); if (!ids.length) return;
+      const id = await savePhotoData(c); if (!id) return;
       const old = S.pets[pid]?.photo;
-      if (await patch('pets', pid, { photo: ids[0] })) { toast('사진을 바꿨어요'); if (old && old !== ids[0]) dropPhoto(old); }
-      else dropPhoto(ids[0]);
+      if (await patch('pets', pid, { photo: id })) { toast('사진을 바꿨어요'); if (old && old !== id) dropPhoto(old); }
+      else dropPhoto(id);
     }, false);
   },
 };
