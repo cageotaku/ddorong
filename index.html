@@ -255,6 +255,14 @@ svg { display: block; }
 .btn.sm { padding: 7px 12px; font-size: 14px; border-radius: 10px; }
 .btn.danger { background: none; color: var(--danger); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+/* 누르는 느낌: 누르는 동안 살짝 작아지고, 저장 버튼은 한 번 톡 튀고 저장하는 동안 도는 표시 */
+.btn, .icon-btn, .mchip, .med-slot, .pick button, .tile, .seg button { transition: transform 0.08s ease, filter 0.08s ease; }
+.btn:active:not(:disabled), .icon-btn:active:not(:disabled), .mchip:active, .med-slot:active, .pick button:active, .tile:active, .seg button:active { transform: scale(0.95); filter: brightness(0.9); }
+@keyframes btnpop { 0% { transform: scale(1); } 35% { transform: scale(0.93); } 100% { transform: scale(1); } }
+.btn.pop { animation: btnpop 0.28s ease-out; }
+.btn.busy { pointer-events: none; opacity: 0.8; }
+.btn.busy::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .btn.pop { animation: none; } .btn.busy::before { animation-duration: 1.6s; } }
 .btn-row .btn { flex: 1 1 auto; }
 
 /* memorial */
@@ -2962,7 +2970,23 @@ function renderNow() {
 }
 let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCharts, 150); });
 
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); }
+/* 햅틱: 아이폰 사파리에는 진동 기능이 없어서, 숨겨 둔 스위치를 눌러 시스템 진동을 내요 (iOS 18 이상). 안드로이드는 vibrate */
+let HAP = null;
+function haptic() {
+  try {
+    if (navigator.vibrate && !/iP(hone|ad|od)/.test(navigator.userAgent)) { navigator.vibrate(12); return; }
+    if (!HAP) {
+      HAP = document.createElement('label'); HAP.setAttribute('aria-hidden', 'true');
+      HAP.style.cssText = 'position:fixed;left:-20px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); i.tabIndex = -1; i.id = 'hap-sw';
+      HAP.appendChild(i); document.body.appendChild(HAP);
+    }
+    HAP.click();
+  } catch { /* 넘어감 */ }
+}
+const BUSY = new Set();
+function unbusy() { for (const b of BUSY) b.classList.remove('busy'); BUSY.clear(); }
+function toast(msg) { unbusy(); const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); }
 
 /* ───────── writes ───────── */
 function errText(e) { return String((e && (e.message || e.name)) || e || ''); }
@@ -4241,7 +4265,7 @@ function openSheet(title, html, onMount) {
 async function closeSheet() {
   if (F && F.fresh && F.fresh.length) { for (const id of F.fresh) dropPhoto(id); }
   if (F && F.kind === 'srr') { clearInterval(SR.timer); SR.timer = 0; }
-  F = null; S.addDate = ''; $('#sheet').hidden = true; $('#sheet-body').innerHTML = ''; $('#sheet').style.height = ''; $('#sheet').style.top = '';
+  unbusy(); F = null; S.addDate = ''; $('#sheet').hidden = true; $('#sheet-body').innerHTML = ''; $('#sheet').style.height = ''; $('#sheet').style.top = '';
 }
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 /* 아이폰 키보드가 올라오면 보이는 높이만큼 시트를 줄이고, 누른 칸이 키보드에 가려지지 않게 올려요 */
@@ -5225,6 +5249,21 @@ const ACT = {
     }, false);
   },
 };
+/* 아이폰은 이게 있어야 누르는 동안(:active) 모양이 바뀌어요 */
+document.addEventListener('touchstart', () => {}, { passive: true });
+/* 저장·체크 같은 주 버튼: 누르면 톡 튀고 진동 */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('button.btn');
+  if (!b || b.disabled || b.classList.contains('ghost') || b.classList.contains('danger')) return;
+  haptic(); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+}, true);
+/* 저장하는 동안은 도는 표시를 띄우고 다시 못 누르게 (끝나면 알림이나 시트가 닫히면서 풀려요) */
+document.addEventListener('submit', (e) => {
+  const b = e.submitter || (e.target.querySelector && e.target.querySelector('button[type=submit]'));
+  if (!b || !b.classList.contains('btn')) return;
+  b.classList.add('busy'); BUSY.add(b);
+  setTimeout(() => { if (BUSY.has(b)) { b.classList.remove('busy'); BUSY.delete(b); } }, 8000);
+}, true);
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const fn = ACT[el.dataset.act]; if (!fn) return;
