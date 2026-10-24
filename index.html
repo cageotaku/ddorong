@@ -5370,8 +5370,31 @@ window.addEventListener('pagehide', () => flushAll(true));
 window.addEventListener('pageshow', (e) => { if (e.persisted && liveKey()) load({ soft: true }); });
 window.addEventListener('focus', () => { if (liveKey() && Date.now() - S.loadedAt > 8000) load({ soft: true }); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* 없어도 앱은 돌아감 */ }); });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => { /* 없어도 앱은 돌아감 */ }); });
 }
+/* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
+ * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
+const BUILD = '2026-10-24a';
+let buildChecking = false;
+async function checkBuild() {
+  if (buildChecking || location.protocol !== 'https:') return;
+  buildChecking = true;
+  try {
+    const r = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const live = String((await r.json()).build || '');
+    if (!live || live === BUILD) return;
+    /* 같은 번호로 두 번 불러오지 않아요 (사이트 반영이 늦을 때 계속 새로고침되지 않게) */
+    let tried = ''; try { tried = sessionStorage.getItem('ddorong-build-try') || ''; } catch { /* 넘어감 */ }
+    if (tried === live) return;
+    if (F || !$('#sheet').hidden || pendingCount()) return;
+    try { sessionStorage.setItem('ddorong-build-try', live); } catch { /* 넘어감 */ }
+    flushAll(true);
+    location.reload();
+  } catch { /* 인터넷이 안 되면 다음에 */ } finally { buildChecking = false; }
+}
+setTimeout(checkBuild, 2500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(checkBuild, 800); });
 })();
 </script>
 </body>
