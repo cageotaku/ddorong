@@ -384,10 +384,6 @@ svg { display: block; }
 .ph img[data-wait], .avatar img[data-wait], .star-ic img[data-wait], .cday img[data-wait], .t-thumbs img[data-wait] { opacity: 0; }
 .ph img, .avatar img, .star-ic img, .cday img, .t-thumbs img { transition: opacity 0.2s ease; }
 .lightbox img.lo { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
-.lb-load { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 62px); display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 13px; font-weight: 600; pointer-events: none; opacity: 0; animation: lbin 0.2s ease 0.35s forwards; }
-.lb-load[hidden] { display: none; }
-.lb-load i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.8s linear infinite; }
-@keyframes lbin { to { opacity: 1; } }
 .acct { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-2); }
 .acct b { color: var(--ink); }
 .steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-2); }
@@ -748,7 +744,6 @@ button.amore { color: var(--accent); }
 <div class="sheet-wrap" id="sheet" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-head"><h2 id="sheet-title"></h2><button class="icon-btn" data-act="close-sheet" aria-label="닫기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="sheet-body" id="sheet-body"></div></div></div>
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="사진 크게 보기" hidden>
   <img id="lightbox-img" alt="">
-  <div class="lb-load" id="lb-load" hidden><i></i>선명한 사진 받는 중</div>
   <div class="lb-top" id="lb-top"></div>
   <button class="lb-close" data-act="close-lightbox" aria-label="사진 닫기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   <button class="lb-nav prev" id="lb-prev" data-act="lb-go" data-dir="-1" aria-label="이전 사진"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
@@ -2868,16 +2863,23 @@ function lbShow() {
 function lbOpen(ids, i, dates, album, title) {
   LB.ids = ids.slice(); LB.i = Math.max(0, Math.min(ids.length - 1, i));
   LB.dates = Array.isArray(dates) ? dates.slice() : ids.map(() => dates || '');
-  LB.album = !!album; LB.confirm = false; LB.title = title || ''; lbShow();
+  LB.album = !!album; LB.confirm = false; LB.title = title || ''; lbShowSoon();
 }
-function lbGo(dir) { const j = LB.i + dir; if ($('#lightbox').hidden || j < 0 || j >= LB.ids.length) return; LB.i = j; LB.confirm = false; lbShow(); }
-function lbClose() { $('#lightbox').hidden = true; LB.confirm = false; }
-/* 큰 사진이 오기 전에는 작은 사진을 같은 크기로 밝게 보여 주고, 아래에 받는 중이라고 적어요 */
+let lbSeq = 0;
+function lbShowSoon() {
+  const id = LB.ids[LB.i]; const seq = ++lbSeq;
+  if (!id || PH.full.get(id)) { lbShow(); return; }
+  let done = false;
+  const go = () => { if (done || seq !== lbSeq) return; done = true; lbShow(); };
+  fcGet([id]).then((m) => { const d = m.get(id); if (d && !PH.full.get(id)) PH.full.set(id, d); go(); });
+  setTimeout(go, 300);
+}
+function lbGo(dir) { const j = LB.i + dir; if ($('#lightbox').hidden || j < 0 || j >= LB.ids.length) return; LB.i = j; LB.confirm = false; lbShowSoon(); }
+function lbClose() { lbSeq++; $('#lightbox').hidden = true; LB.confirm = false; }
+/* 큰 사진이 아직 없으면(아주 드물게) 작은 사진을 같은 크기로 밝게 보여 줬다가 그 자리에서 바꿔요 */
 function lbMark() {
   const img = $('#lightbox-img'); const id = img.dataset.ph || '';
-  const full = !!PH.full.get(id);
-  img.classList.toggle('lo', !full);
-  $('#lb-load').hidden = full || $('#lightbox').hidden || PH.missing.has(`full:${id}`);
+  img.classList.toggle('lo', !PH.full.get(id));
 }
 /* 지금 사진을 다 받은 뒤에만 다음·이전 사진을 미리 받아요 (지금 사진이 느려지지 않게) */
 function lbWarm() {
@@ -2991,6 +2993,7 @@ function renderNow() {
   drawCharts();
   albumObserve();
   if (S.tab === 'diary') warmDay();
+  if (ready()) warmAllSoon();
 }
 let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCharts, 150); });
 
@@ -3376,7 +3379,7 @@ function tcDel(id) {
   try { localStorage.removeItem(thKey(id)); localStorage.setItem(TC_IDX, JSON.stringify(idx)); } catch { /* 넘어감 */ }
 }
 /* 큰 사진 보관함: 최근에 본·올린 큰 사진 80장까지 이 폰에 두고, 넘치면 오래 안 본 것부터 지워요 */
-const FC = { db: null, max: 80 };
+const FC = { db: null, max: 150 };
 function fcOpen() {
   if (FC.db) return FC.db;
   FC.db = new Promise((res) => {
@@ -3421,6 +3424,39 @@ function fcPut(id, data) {
   });
 }
 function fcDel(id) { fcOpen().then((db) => { if (!db) return; try { db.transaction('full', 'readwrite').objectStore('full').delete(id); } catch { /* 넘어감 */ } }); }
+async function fcKeys() {
+  const db = await fcOpen(); if (!db) return null;
+  return new Promise((res) => { try { const q = db.transaction('full').objectStore('full').getAllKeys(); q.onsuccess = () => res(q.result || []); q.onerror = () => res(null); } catch { res(null); } });
+}
+/* 미리 받기: 사진첩 순서(최근 날짜부터)로 60장까지, 이미 폰에 있는 건 건너뛰고 한 장씩 천천히. 처음 한 번만 오래 걸리고, 그다음엔 새 사진만 받아요 */
+const WARM = { on: false, n: 60, t: 0 };
+function warmAllSoon(ms = 4000) { clearTimeout(WARM.t); WARM.t = setTimeout(warmAll, ms); }
+async function warmAll() {
+  if (WARM.on || !WARM.n || !ready() || document.visibilityState === 'hidden') return;
+  WARM.on = true;
+  try {
+    const keys = await fcKeys(); if (!keys) return;   /* 폰에 보관할 수 없으면 받지 않아요 */
+    const have = new Set(keys); const seen = new Set();
+    const ids = albumList().map((x) => x.id).filter((id) => !seen.has(id) && seen.add(id)).slice(0, WARM.n)
+      .filter((id) => !have.has(id) && !PH.full.get(id) && !PH.missing.has(`full:${id}`));
+    for (const id of ids) {
+      if (document.visibilityState === 'hidden' || !ready()) break;
+      if (PH.full.get(id) || PH.flying.has(`full:${id}`)) continue;
+      PH.flying.add(`full:${id}`);
+      let ok = true;
+      try {
+        const got = JSON.parse((await gsr('getPhotos', JSON.stringify([id]), 'full')) || '{}');
+        if (got[id]) { fcPut(id, got[id]); if (!$('#lightbox').hidden && LB.ids.includes(id)) PH.full.set(id, got[id]); }
+        else PH.missing.add(`full:${id}`);
+      } catch { ok = false; }
+      PH.flying.delete(`full:${id}`);
+      /* 받는 사이에 그 사진을 크게 열었으면 바로 보여 주거나, 실패했으면 그 사진만 다시 받아요 */
+      if (!$('#lightbox').hidden && LB.ids.includes(id)) { if (PH.full.get(id)) paintPhotos(); else { PH.want.full.add(id); queuePhotos(); } }
+      if (!ok) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  } finally { WARM.on = false; }
+}
 function fullPut(id, data) { PH.full.set(id, data); fcPut(id, data); }
 function fullDel(id) { PH.full.delete(id); fcDel(id); }
 function photoSrc(id, kind) {
@@ -5464,7 +5500,7 @@ const h0 = (location.hash || '').slice(1); if (TABS.includes(h0)) { S.tab = h0; 
 
 /* ───────── boot ───────── */
 /* 내 컴퓨터에서 시험할 때만 사진 보관 상태를 들여다볼 수 있게 해요 (실제 사이트에서는 안 생겨요) */
-if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, fcOpen, stopWarm: () => clearTimeout(warmT) };
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, WARM, fcOpen, stopWarm: () => clearTimeout(warmT) };
 const liveKey = () => !!store.get(KEY_STORE) && !gated();
 if (!API_URL) { S.phase = 'error'; S.loadError = 'NO_SERVER'; }
 else if (!store.get(KEY_STORE)) S.phase = 'needkey';
@@ -5486,7 +5522,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-10-25a';
+const BUILD = '2026-10-25b';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
