@@ -383,7 +383,11 @@ svg { display: block; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ph img[data-wait], .avatar img[data-wait], .star-ic img[data-wait], .cday img[data-wait], .t-thumbs img[data-wait] { opacity: 0; }
 .ph img, .avatar img, .star-ic img, .cday img, .t-thumbs img { transition: opacity 0.2s ease; }
-.lightbox img[data-wait] { opacity: 0.5; }
+.lightbox img.lo { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+.lb-load { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 62px); display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 13px; font-weight: 600; pointer-events: none; opacity: 0; animation: lbin 0.2s ease 0.35s forwards; }
+.lb-load[hidden] { display: none; }
+.lb-load i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.8s linear infinite; }
+@keyframes lbin { to { opacity: 1; } }
 .acct { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-2); }
 .acct b { color: var(--ink); }
 .steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-2); }
@@ -744,6 +748,7 @@ button.amore { color: var(--accent); }
 <div class="sheet-wrap" id="sheet" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-head"><h2 id="sheet-title"></h2><button class="icon-btn" data-act="close-sheet" aria-label="닫기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="sheet-body" id="sheet-body"></div></div></div>
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="사진 크게 보기" hidden>
   <img id="lightbox-img" alt="">
+  <div class="lb-load" id="lb-load" hidden><i></i>선명한 사진 받는 중</div>
   <div class="lb-top" id="lb-top"></div>
   <button class="lb-close" data-act="close-lightbox" aria-label="사진 닫기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   <button class="lb-nav prev" id="lb-prev" data-act="lb-go" data-dir="-1" aria-label="이전 사진"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
@@ -2767,7 +2772,7 @@ function diaryUpload(date) {
         const c = await compressImage(f);
         const uid = newId('u');
         const r = JSON.parse(await retry(() => gsr('addDiaryPhoto', date, c.thumb, c.full, uid)));
-        PH.thumb.set(r.id, c.thumb); PH.full.set(r.id, c.full); tcPut(r.id, c.thumb);
+        PH.thumb.set(r.id, c.thumb); fullPut(r.id, c.full); tcPut(r.id, c.thumb);
         setBase('diary', date, r.doc); ok++;
       } catch (e) { lastErr = e; }
       S.uploading[date] = Math.max(0, (S.uploading[date] || 1) - 1);
@@ -2783,7 +2788,7 @@ async function diaryRemove(date, id) {
   try {
     const txt = await retry(() => gsr('removeDiaryPhoto', date, id));
     setBase('diary', date, JSON.parse(txt));
-    PH.thumb.delete(id); PH.full.delete(id); tcDel(id);
+    PH.thumb.delete(id); fullDel(id); tcDel(id);
     S.lastWriteAt = Date.now(); saveCache(); render();
     return true;
   } catch (e) { writeError(e); return false; }
@@ -2844,7 +2849,6 @@ function lbShow() {
   img.dataset.ph = id; img.dataset.kind = 'full';
   img.src = own || photoSrc(id, 'thumb') || BLANK;
   if (own) img.removeAttribute('data-wait'); else { img.setAttribute('data-wait', '1'); PH.missing.delete(`full:${id}`); PH.want.full.add(id); }
-  const nx = LB.ids[LB.i + 1]; if (nx && !photoSrc(nx, 'full')) PH.want.full.add(nx);
   queuePhotos();
   const many = LB.ids.length > 1;
   $('#lb-prev').hidden = !many; $('#lb-next').hidden = !many;
@@ -2859,6 +2863,7 @@ function lbShow() {
   if (date && canEdit()) bar.push(LB.confirm ? '<span>이 사진을 지울까요?</span><button class="lb-btn warn" type="button" data-act="lb-del-yes">지우기</button><button class="lb-btn" type="button" data-act="lb-del-no">그대로 두기</button>' : '<button class="lb-btn" type="button" data-act="lb-del">지우기</button>');
   $('#lb-bar').innerHTML = bar.join('');
   $('#lightbox').hidden = false;
+  lbMark(); lbWarm();
 }
 function lbOpen(ids, i, dates, album, title) {
   LB.ids = ids.slice(); LB.i = Math.max(0, Math.min(ids.length - 1, i));
@@ -2867,6 +2872,24 @@ function lbOpen(ids, i, dates, album, title) {
 }
 function lbGo(dir) { const j = LB.i + dir; if ($('#lightbox').hidden || j < 0 || j >= LB.ids.length) return; LB.i = j; LB.confirm = false; lbShow(); }
 function lbClose() { $('#lightbox').hidden = true; LB.confirm = false; }
+/* 큰 사진이 오기 전에는 작은 사진을 같은 크기로 밝게 보여 주고, 아래에 받는 중이라고 적어요 */
+function lbMark() {
+  const img = $('#lightbox-img'); const id = img.dataset.ph || '';
+  const full = !!PH.full.get(id);
+  img.classList.toggle('lo', !full);
+  $('#lb-load').hidden = full || $('#lightbox').hidden || PH.missing.has(`full:${id}`);
+}
+/* 지금 사진을 다 받은 뒤에만 다음·이전 사진을 미리 받아요 (지금 사진이 느려지지 않게) */
+function lbWarm() {
+  if ($('#lightbox').hidden) return;
+  const id = LB.ids[LB.i]; if (!id || !PH.full.get(id)) return;
+  let add = false;
+  for (const j of [LB.i + 1, LB.i - 1, LB.i + 2]) {
+    const x = LB.ids[j];
+    if (x && !PH.full.get(x) && !PH.missing.has(`full:${x}`) && !PH.flying.has(`full:${x}`)) { PH.want.full.add(x); add = true; }
+  }
+  if (add) queuePhotos();
+}
 
 /* ───────── chart ───────── */
 /* 몸무게 카드 아래 한 줄: 목표 몸무게, 마지막 체형 점수, 이번 달 체형 사진(위·옆) 남겼는지 */
@@ -2967,6 +2990,7 @@ function renderNow() {
   (R[S.tab] || renderStar)();
   drawCharts();
   albumObserve();
+  if (S.tab === 'diary') warmDay();
 }
 let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCharts, 150); });
 
@@ -3351,6 +3375,54 @@ function tcDel(id) {
   const idx = tcLoad(); const i = idx.indexOf(id); if (i >= 0) idx.splice(i, 1);
   try { localStorage.removeItem(thKey(id)); localStorage.setItem(TC_IDX, JSON.stringify(idx)); } catch { /* 넘어감 */ }
 }
+/* 큰 사진 보관함: 최근에 본·올린 큰 사진 80장까지 이 폰에 두고, 넘치면 오래 안 본 것부터 지워요 */
+const FC = { db: null, max: 80 };
+function fcOpen() {
+  if (FC.db) return FC.db;
+  FC.db = new Promise((res) => {
+    try {
+      const r = indexedDB.open('ddorong-photos', 1);
+      r.onupgradeneeded = () => { const st = r.result.createObjectStore('full', { keyPath: 'id' }); st.createIndex('t', 't'); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch { res(null); }
+  });
+  return FC.db;
+}
+async function fcGet(ids) {
+  const out = new Map();
+  const db = ids.length ? await fcOpen() : null;
+  if (!db) return out;
+  return new Promise((res) => {
+    try {
+      const tx = db.transaction('full', 'readwrite'); const st = tx.objectStore('full'); const now = Date.now();
+      ids.forEach((id) => { const q = st.get(id); q.onsuccess = () => { const v = q.result; if (v && v.data) { out.set(id, v.data); v.t = now; st.put(v); } }; });
+      tx.oncomplete = () => res(out); tx.onerror = () => res(out); tx.onabort = () => res(out);
+    } catch { res(out); }
+  });
+}
+function fcTrim(db, extra) {
+  try {
+    const tx = db.transaction('full', 'readwrite'); const cur = tx.objectStore('full').index('t').openCursor();
+    cur.onsuccess = () => { const k = cur.result; if (!k || extra <= 0) return; k.delete(); extra--; k.continue(); };
+  } catch { /* 넘어감 */ }
+}
+function fcPut(id, data) {
+  if (!id || !data) return;
+  fcOpen().then((db) => {
+    if (!db) return;
+    try {
+      const tx = db.transaction('full', 'readwrite'); const st = tx.objectStore('full');
+      st.put({ id, data, t: Date.now() });
+      tx.oncomplete = () => { try { const c = db.transaction('full').objectStore('full').count(); c.onsuccess = () => { if (c.result > FC.max) fcTrim(db, c.result - FC.max); }; } catch { /* 넘어감 */ } };
+      /* 폰 공간이 모자라면 오래된 것 20장을 비우고 한 번만 다시 넣어 봐요 */
+      tx.onabort = () => { if (tx.error && tx.error.name === 'QuotaExceededError' && !fcPut.retry) { fcPut.retry = true; fcTrim(db, 20); setTimeout(() => { fcPut(id, data); fcPut.retry = false; }, 300); } };
+    } catch { /* 넘어감 */ }
+  });
+}
+function fcDel(id) { fcOpen().then((db) => { if (!db) return; try { db.transaction('full', 'readwrite').objectStore('full').delete(id); } catch { /* 넘어감 */ } }); }
+function fullPut(id, data) { PH.full.set(id, data); fcPut(id, data); }
+function fullDel(id) { PH.full.delete(id); fcDel(id); }
 function photoSrc(id, kind) {
   let s = PH[kind].get(id);
   if (!s && kind === 'thumb') { try { s = localStorage.getItem(thKey(id)); } catch { s = null; } if (s) PH.thumb.set(id, s); }
@@ -3369,21 +3441,50 @@ function fetchPhotos() {
   for (const kind of ['thumb', 'full']) {
     const ids = [...PH.want[kind]].filter((id) => !PH[kind].has(id) && !PH.flying.has(`${kind}:${id}`));
     PH.want[kind].clear();
-    const size = kind === 'full' ? 2 : 12;
-    for (let i = 0; i < ids.length; i += size) {
-      const batch = ids.slice(i, i + size);
-      batch.forEach((id) => PH.flying.add(`${kind}:${id}`));
-      gsr('getPhotos', JSON.stringify(batch), kind).then((txt) => {
-        const got = JSON.parse(txt || '{}');
-        for (const id of batch) {
-          PH.flying.delete(`${kind}:${id}`);
-          if (got[id]) { PH[kind].set(id, got[id]); if (kind === 'thumb') tcPut(id, got[id]); }
-          else PH.missing.add(`${kind}:${id}`);
-        }
-        paintPhotos();
-      }).catch(() => { batch.forEach((id) => PH.flying.delete(`${kind}:${id}`)); });
-    }
+    if (!ids.length) continue;
+    if (kind === 'thumb') { askPhotos('thumb', ids); continue; }
+    /* 큰 사진은 먼저 이 폰 보관함에서 찾고, 없는 것만 서버에 물어요 */
+    ids.forEach((id) => PH.flying.add(`full:${id}`));
+    fcGet(ids).then((have) => {
+      const rest = [];
+      for (const id of ids) {
+        const d = have.get(id);
+        if (d && !PH.full.has(id)) PH.full.set(id, d);
+        if (PH.full.has(id)) PH.flying.delete(`full:${id}`); else rest.push(id);
+      }
+      if (have.size) paintPhotos();
+      askPhotos('full', rest);
+    });
   }
+}
+/* 큰 사진은 한 장씩 따로 받아요: 두 장을 묶으면 둘 다 받을 때까지 지금 보는 사진도 기다려야 해요 */
+function askPhotos(kind, ids) {
+  const size = kind === 'full' ? 1 : 12;
+  for (let i = 0; i < ids.length; i += size) {
+    const batch = ids.slice(i, i + size);
+    batch.forEach((id) => PH.flying.add(`${kind}:${id}`));
+    gsr('getPhotos', JSON.stringify(batch), kind).then((txt) => {
+      const got = JSON.parse(txt || '{}');
+      for (const id of batch) {
+        PH.flying.delete(`${kind}:${id}`);
+        if (got[id]) { if (kind === 'thumb') { PH.thumb.set(id, got[id]); tcPut(id, got[id]); } else fullPut(id, got[id]); }
+        else PH.missing.add(`${kind}:${id}`);
+      }
+      paintPhotos();
+    }).catch(() => { batch.forEach((id) => PH.flying.delete(`${kind}:${id}`)); paintPhotos(); });
+  }
+}
+/* 오늘의 또롱이 날짜 화면에 있는 사진은, 화면을 연 뒤 잠깐 있다가 큰 사진을 미리 받아 둬요 (6장까지) */
+let warmT = 0;
+function warmDay() {
+  clearTimeout(warmT);
+  warmT = setTimeout(() => {
+    if (document.visibilityState === 'hidden') return;
+    const ids = [...document.querySelectorAll(`#v-${S.tab} .dphotos [data-act="view-photo"]`)].map((b) => b.dataset.id)
+      .filter((id) => id && !PH.full.get(id) && !PH.missing.has(`full:${id}`) && !PH.flying.has(`full:${id}`)).slice(0, 6);
+    if (!ids.length) return;
+    ids.forEach((id) => PH.want.full.add(id)); queuePhotos();
+  }, 1500);
 }
 function paintPhotos() {
   document.querySelectorAll('img[data-ph]').forEach((img) => {
@@ -3398,6 +3499,7 @@ function paintPhotos() {
       else if (img.id !== 'lightbox-img') img.remove();
     }
   });
+  if (!$('#lightbox').hidden) { lbMark(); lbWarm(); }
 }
 function readImage(file) {
   return new Promise((resolve, reject) => {
@@ -3441,13 +3543,13 @@ async function uploadFiles(files) {
     try {
       const c = await compressImage(f);
       const id = await gsr('savePhoto', c.thumb, c.full);
-      PH.thumb.set(id, c.thumb); PH.full.set(id, c.full); tcPut(id, c.thumb);
+      PH.thumb.set(id, c.thumb); fullPut(id, c.full); tcPut(id, c.thumb);
       ids.push(id);
     } catch (e) { toast(photoErr(e)); }
   }
   return ids;
 }
-const dropPhoto = (id) => { PH.thumb.delete(id); PH.full.delete(id); tcDel(id); return gsr('deletePhoto', id).catch(() => {}); };
+const dropPhoto = (id) => { PH.thumb.delete(id); fullDel(id); tcDel(id); return gsr('deletePhoto', id).catch(() => {}); };
 let filePick = null;
 $('#file-in').addEventListener('change', async (e) => {
   const files = [...(e.target.files || [])]; e.target.value = '';
@@ -3519,7 +3621,7 @@ async function cropPhoto(file, title) {
 async function savePhotoData(c) {
   try {
     const id = await gsr('savePhoto', c.thumb, c.full);
-    PH.thumb.set(id, c.thumb); PH.full.set(id, c.full); tcPut(id, c.thumb);
+    PH.thumb.set(id, c.thumb); fullPut(id, c.full); tcPut(id, c.thumb);
     return id;
   } catch (e) { toast(photoErr(e)); return ''; }
 }
@@ -3755,7 +3857,7 @@ async function docUploadFlow(files, opts = {}) {
     const all = pages.reduce((s, p) => s + p.full.length, 0) || 1; let sent = 0;
     for (const b of pageBatches(pages)) {
       const got = JSON.parse(await retry(() => gsr('savePhotos', JSON.stringify(b), label, 'doc')));
-      got.forEach((pid, i) => { PH.thumb.set(pid, b[i].thumb); PH.full.set(pid, b[i].full); if (i === 0) tcPut(pid, b[i].thumb); });
+      got.forEach((pid, i) => { PH.thumb.set(pid, b[i].thumb); fullPut(pid, b[i].full); if (i === 0) tcPut(pid, b[i].thumb); });
       ids.push(...got); sent += b.reduce((s, p) => s + p.full.length, 0); UP.pct = sent / all; upDraw();
     }
     const name = file ? file.name : `사진 ${pages.length}장`;
@@ -5061,7 +5163,7 @@ const ACT = {
     try {
       await retry(() => gsr('docRemove', id));
       const c = { ...(S.raw.docs || {}) }; const d = c[id]; delete c[id]; S.raw.docs = c;
-      if (d) (d.pages || []).forEach((p) => { PH.thumb.delete(p); PH.full.delete(p); tcDel(p); });
+      if (d) (d.pages || []).forEach((p) => { PH.thumb.delete(p); fullDel(p); tcDel(p); });
       afterWrite(); await closeSheet(); toast('문서를 지웠어요');
     } catch (e) { b.disabled = false; writeError(e); }
   },
@@ -5340,6 +5442,14 @@ document.addEventListener('click', (e) => {
   /* 컴퓨터에서만 달력을 직접 열어요. 폰은 눌러서 바로 열리고, 여기서 한 번 더 열면 달력이 바로 닫힐 수 있어요 */
   if (t && t.matches && t.matches('[data-day-input], #rec-date') && typeof t.showPicker === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches) { try { t.showPicker(); } catch { /* 열 수 없으면 그대로 둬요 */ } }
 });
+/* 사진을 손가락으로 누르는 순간(떼기 전)부터 큰 사진을 받기 시작해요 */
+document.addEventListener('pointerdown', (e) => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-act="view-photo"], [data-act="album-photo"]') : null;
+  if (!b) return;
+  let id = b.dataset.id;
+  if (!id && b.dataset.act === 'album-photo') { try { const x = albumList()[Number(b.dataset.i)]; id = x && x.id; } catch { id = ''; } }
+  if (id && !PH.full.get(id)) { PH.missing.delete(`full:${id}`); PH.want.full.add(id); queuePhotos(); }
+}, { passive: true, capture: true });
 {
   let sx = null, sy = 0;
   const lbEl = $('#lightbox');
@@ -5353,6 +5463,8 @@ document.addEventListener('click', (e) => {
 const h0 = (location.hash || '').slice(1); if (TABS.includes(h0)) { S.tab = h0; S.back = h0; }
 
 /* ───────── boot ───────── */
+/* 내 컴퓨터에서 시험할 때만 사진 보관 상태를 들여다볼 수 있게 해요 (실제 사이트에서는 안 생겨요) */
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, fcOpen, stopWarm: () => clearTimeout(warmT) };
 const liveKey = () => !!store.get(KEY_STORE) && !gated();
 if (!API_URL) { S.phase = 'error'; S.loadError = 'NO_SERVER'; }
 else if (!store.get(KEY_STORE)) S.phase = 'needkey';
@@ -5374,7 +5486,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-10-24a';
+const BUILD = '2026-10-25a';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
