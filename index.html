@@ -16,7 +16,7 @@
 <script src="config.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&display=swap">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
@@ -53,7 +53,7 @@
   --ear-out: #FFB3C5;
   --ear-in: #FFE3EA;
   --card-edge: rgba(255, 255, 255, 0.7);
-  --font-display: 'Bagel Fat One', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --font-display: 'Gowun Batang', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   --font-body: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Segoe UI', system-ui, sans-serif;
   --r: 24px;
   --r-sm: 14px;
@@ -321,7 +321,7 @@ svg { display: block; }
 /* tab bar & fab */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
   padding-left: max(4px, env(safe-area-inset-left, 0px)); padding-right: max(4px, env(safe-area-inset-right, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.tabbar-in { max-width: 560px; margin: 0 auto; height: var(--tabbar-h); display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.tabbar-in { max-width: 560px; margin: 0 auto; height: var(--tabbar-h); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .tab { border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--ink-3); font-size: 11px; font-weight: 600; min-width: 0; padding: 0; white-space: nowrap; }
 .tab[aria-current="page"] { color: var(--accent); }
 .fab { position: fixed; z-index: 21; width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 8px 20px rgba(214, 51, 106, 0.34);
@@ -719,7 +719,7 @@ button.amore { color: var(--accent); }
  * 바탕은 우유빛, 포인트는 또롱이 코 같은 분홍, 강조는 호박색 눈 같은 노랑.
  * 한 군데만 힘을 줘요: 홈 맨 위 또롱이 사진에 고양이 귀. 나머지는 조용하고 둥글게. */
 body { font-size: 15.5px; letter-spacing: -0.01em; }
-.view-head h1 { font-size: 27px; letter-spacing: -0.02em; color: var(--ink); }
+.view-head h1 { font-size: 28px; color: var(--ink); }
 .card { border-radius: var(--r); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--card-edge); }
 .card-head h2 { font-size: 16.5px; font-weight: 800; }
 .link { font-weight: 700; }
@@ -749,7 +749,8 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 .toast { border-radius: 999px; font-weight: 700; }
 .sheet { border-radius: 28px 28px 0 0; }
 .sheet-head { border-bottom: 0; padding-top: 18px; }
-.sheet-head h2 { font-family: var(--font-display); font-weight: 400; font-size: 21px; letter-spacing: -0.01em; }
+.sheet-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: -0.01em; }
+.view-head h1, .hero-name h1, .mem-hero h1, .gate-top h1, .star-card .nm, .avatar .mono { font-weight: 700; letter-spacing: -0.02em; }
 .sheet-head::before { content: ""; position: absolute; left: 50%; top: 7px; width: 38px; height: 5px; margin-left: -19px; border-radius: 999px; background: var(--line); }
 .sheet { position: relative; }
 
@@ -763,7 +764,7 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 .hero-top .avatar::before { left: 2%; transform: rotate(-8deg); }
 .hero-top .avatar::after { right: 2%; transform: scaleX(-1) rotate(-8deg); }
 .hero-top .avatar .cam { background: var(--surface); color: var(--accent); }
-.hero-name h1 { font-size: 38px; letter-spacing: -0.02em; color: var(--ink); }
+.hero-name h1 { font-size: 40px; color: var(--ink); }
 .hero-name .meta { font-weight: 600; }
 .fields { border-top: 1.5px dashed var(--line); }
 .fields dd { font-weight: 700; }
@@ -789,6 +790,9 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 
 /* 쪼랭이: 밤하늘 대신 보랏빛 저녁 하늘 */
 .night { background: radial-gradient(120% 90% at 85% 0%, var(--night-2), var(--night) 72%); }
+.rep-more { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.rep-more .unit input { max-width: 96px; }
+.tag.rep { background: var(--accent-soft); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -796,12 +800,13 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 <div class="app" id="app">
   <section class="view gate" id="v-gate" aria-label="들어가기" hidden></section>
   <section class="view" id="v-home" aria-label="홈"></section>
-  <section class="view" id="v-cal" aria-label="달력" hidden></section>
+  <section class="view" id="v-cal" aria-label="기록 · 달력" hidden></section>
   <section class="view" id="v-diary" aria-label="오늘의 또롱이" hidden></section>
   <section class="view" id="v-meds" aria-label="약 체크리스트" hidden></section>
   <section class="view" id="v-snacks" aria-label="밥·간식 체크리스트" hidden></section>
-  <section class="view" id="v-records" aria-label="기록" hidden>
+  <section class="view" id="v-records" aria-label="기록 · 목록" hidden>
     <div class="view-head"><h1>기록</h1><span class="muted" id="rec-count"></span></div>
+    <div id="rec-seg"></div>
     <label class="search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span class="sr">기록 검색</span><input id="rec-q" type="search" placeholder="심장사상충, 병원 이름, 메모…" autocomplete="off"></label>
     <label class="date-find" id="rec-find"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><span>날짜로 찾기</span><span class="go"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span><input type="date" id="rec-date" aria-label="날짜로 찾기"></label>
     <div class="filters" id="rec-filters" role="group" aria-label="종류"></div>
@@ -815,11 +820,10 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 <nav class="tabbar" aria-label="메뉴">
   <div class="tabbar-in">
     <button class="tab" data-act="tab" data-tab="home" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>홈</button>
-    <button class="tab" data-act="tab" data-tab="cal" aria-label="달력"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M8 13.5h2M14 13.5h2M8 16.5h2"/></svg>달력</button>
+    <button class="tab" data-act="tab" data-tab="rec" aria-label="기록 (달력·목록)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M8 13.5h2M14 13.5h2M8 16.5h2"/></svg>기록</button>
     <button class="tab" data-act="tab" data-tab="diary" aria-label="오늘의 또롱이"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m4.5 17.6 4.9-4.5 3.4 3 2.7-2.4 4 3.7"/></svg>오늘</button>
     <button class="tab" data-act="tab" data-tab="meds" aria-label="약 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="8.6" width="18.4" height="6.8" rx="3.4" transform="rotate(-45 12 12)"/><path d="m9.6 9.6 4.8 4.8"/></svg>약</button>
     <button class="tab" data-act="tab" data-tab="snacks" aria-label="밥·간식 체크리스트"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12c2-3.3 4.8-5 7.9-5 2.8 0 4.9 1.7 6.6 5-1.7 3.3-3.8 5-6.6 5-3.1 0-5.9-1.7-7.9-5z"/><path d="M7 12 2.8 8.6v6.8z"/><circle cx="17.2" cy="11.1" r="1" fill="currentColor" stroke="none"/></svg>밥·간식</button>
-    <button class="tab" data-act="tab" data-tab="records"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg>기록</button>
     <button class="tab" data-act="tab" data-tab="money"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8V7.2A2.2 2.2 0 0 1 7.2 5H17v3"/><rect x="4" y="8" width="16" height="11.5" rx="2.5"/><path d="M15.5 13.7h2"/></svg>지출</button>
     <button class="tab" data-act="tab" data-tab="info"><svg class="ic ic-fill" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="6.8" cy="10" rx="1.8" ry="2.3"/><ellipse cx="10.3" cy="6.4" rx="1.8" ry="2.3"/><ellipse cx="13.9" cy="6.4" rx="1.8" ry="2.3"/><ellipse cx="17.3" cy="10" rx="1.8" ry="2.3"/><path d="M12.1 11.6c-2.8 0-5.1 2.9-5.1 5.3 0 1.6 1.2 2.6 2.7 2.6 1 0 1.6-.5 2.4-.5s1.4.5 2.4.5c1.5 0 2.7-1 2.7-2.6 0-2.4-2.3-5.3-5.1-5.3z"/></svg>정보</button>
   </div>
@@ -1108,7 +1112,7 @@ const S = {
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
   dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {}, health: {} }, histLoading: new Set(), uploading: {}, medsDays: MEDS_DAYS, medHist: '',
-  diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
+  diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', recMode: store.get('ddorong-rec-mode') === 'list' ? 'list' : 'cal', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
 };
 
 const famName = (key) => { const m = (S.info.family?.members || []).find((x) => x.key === key); return m ? m.name : ''; };
@@ -1223,10 +1227,13 @@ function upcoming() {
     if (r.date !== T) return false;
     return r.time ? r.time >= nowHm : ['vet', 'test', 'vaccine', 'prevent', 'outing', 'milestone', 'insurance'].includes(r.type);
   };
+  const firstOf = new Map();
+  for (const r of S.records) if (r.series && isUpcoming(r)) { const f = firstOf.get(r.series); if (!f || r.date < f.date || (r.date === f.date && (r.time || '') < (f.time || ''))) firstOf.set(r.series, r); }
   for (const r of S.records) {
     if (!isUpcoming(r)) continue;
+    if (r.series && firstOf.get(r.series) !== r) continue;
     if (isAutoRec(r)) { items.push({ date: r.date, title: r.title, sub: `${monthsKo(Number(r.months) || 12)}마다 돌아오는 검진`, fam: TYPES[r.type]?.fam || 'med', act: 'open-record', id: r.id, auto: true }); continue; }
-    items.push({ date: r.date, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title, sub: [TYPES[r.type]?.label, timeKo(r.time), r.place].filter(Boolean).join(' · '), fam: TYPES[r.type]?.fam || 'out', act: 'open-record', id: r.id });
+    items.push({ date: r.date, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title, sub: [TYPES[r.type]?.label, timeKo(r.time), r.place, r.series && r.rep ? `${repLabel(r.rep.f)} 반복` : ''].filter(Boolean).join(' · '), fam: TYPES[r.type]?.fam || 'out', act: 'open-record', id: r.id });
   }
   for (const r of S.records) {
     if (r.type !== 'milestone' || !r.yearly || !isDate(r.date)) continue;
@@ -1273,6 +1280,7 @@ function recTags(r) {
   if (ds.length) tags.push(`<span class="tag">${ds.length > 1 ? `문서 ${ds.length}` : esc(DOC_SHORT[ds[0].kind] || '문서')}</span>`);
   else if (isAutoRec(r)) tags.push('<span class="tag">자동</span>');
   else if (r.type === 'test' && !r.result && !(isDate(r.date) && r.date > todayStr())) tags.push('<span class="tag warn">결과 미기록</span>');
+  if (r.rep && r.rep.f && r.series) tags.push(`<span class="tag rep">${esc(repLabel(r.rep.f))}</span>`);
   return tags;
 }
 function recordRow(r, opts = {}) {
@@ -1508,6 +1516,7 @@ function recJump(D) {
 }
 function renderRecords() {
   const p = mainPet(); const T = todayStr();
+  $('#rec-seg').innerHTML = recModeSeg();
   $('#rec-filters').innerHTML = FILTERS.map(([k, l]) => `<button class="fchip" data-act="filter" data-filter="${k}" aria-pressed="${S.filter === k}">${k === 'doc' ? DOC_IC : k !== 'all' ? famDot(k) : ''}${esc(l)}</button>`).join('');
   const list = $('#rec-list');
   if (!ready() || !p) { list.innerHTML = loadingOr(ready() ? '아직 등록된 아이가 없어요.' : ''); $('#rec-count').textContent = ''; return; }
@@ -1529,7 +1538,9 @@ function renderRecords() {
     const ws = weightsOf(p.id);
     if (ws.length > 1) html += `<div class="card"><div class="card-head"><h2>${esc(p.name)}가 자라온 길</h2><span class="sub">${esc(wt(ws[0].kg))} → ${esc(wt(ws[ws.length - 1].kg))}</span></div><div class="chart" data-chart="${esc(p.id)}" role="img" aria-label="몸무게 그래프"></div></div>`;
   }
-  if (future.length) html += `<div class="card"><div class="card-head"><h2>예정</h2><span class="sub">${future.length}개</span></div><div class="list">${future.map((r) => recordRow(r)).join('')}</div></div>`;
+  /* 반복 일정은 가장 가까운 하나만 (검색할 때는 다) */
+  const seen = new Set(); const fut = q ? future : future.filter((r) => !r.series || (!seen.has(r.series) && seen.add(r.series)));
+  if (fut.length) html += `<div class="card"><div class="card-head"><h2>예정</h2><span class="sub">${fut.length}개</span></div><div class="list">${fut.map((r) => recordRow(r)).join('')}</div>${fut.length < future.length ? '<span class="muted" style="font-size:12.5px">반복 일정은 가장 가까운 날만 보여요. 나머지는 달력에서 볼 수 있어요.</span>' : ''}</div>`;
   if (past.length) {
     const shown = q ? past : past.slice(0, S.recLimit);
     let cur = ''; let body = '';
@@ -1669,7 +1680,7 @@ const calMin = () => { const ds = S.records.map((r) => r.date).filter(isDate).so
 const calMax = () => addMonths(`${ym(todayStr())}-01`, 24).slice(0, 7);
 function renderCal() {
   const el = $('#v-cal');
-  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>달력</h1></div>${loadingOr('')}<div class="card"><div class="empty">기록과 일정이 한 달 달력에 모여요.</div></div>`; return; }
+  if (!ready()) { el.innerHTML = `<div class="view-head"><h1>기록</h1></div>${recModeSeg()}${loadingOr('')}<div class="card"><div class="empty">기록과 일정이 한 달 달력에 모여요.</div></div>`; return; }
   const T = todayStr();
   if (!S.calMonth) S.calMonth = ym(T);
   if (!isDate(S.calSel)) S.calSel = T;
@@ -1687,7 +1698,8 @@ function renderCal() {
   }
   const loading = [ym(from), k, ym(to)].some((mk) => mk <= ym(T) && mk >= minMonth() && !(monthReady('snacks', mk) && monthReady('diary', mk)));
   el.innerHTML = `
-    <div class="view-head"><h1>달력</h1>${k !== ym(T) || S.calSel !== T ? '<button class="link" type="button" data-act="cal-today">오늘로 가기</button>' : ''}</div>
+    <div class="view-head"><h1>기록</h1>${k !== ym(T) || S.calSel !== T ? '<button class="link" type="button" data-act="cal-today">오늘로 가기</button>' : ''}</div>
+    ${recModeSeg()}
     <div class="card ucard">
       <div class="month-nav"><button class="icon-btn" type="button" data-act="ucal-move" data-dir="-1" aria-label="이전 달"${k <= calMin() ? ' disabled' : ''}>${IC.left}</button><strong>${esc(ymKo(k))}</strong><button class="icon-btn" type="button" data-act="ucal-move" data-dir="1" aria-label="다음 달"${k >= calMax() ? ' disabled' : ''}>${IC.right}</button></div>
       <div class="uhead" aria-hidden="true"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
@@ -2724,6 +2736,9 @@ function renderSnacks() {
 
 /* ───────── 오늘의 또롱이 ───────── */
 const dayPhotos = (doc) => (Array.isArray(doc.photos) ? doc.photos : []).filter((p) => p && p.id);
+/* 기록 탭: 달력 ↔ 목록 (둘은 같은 기록을 다르게 보여 줘요) */
+function setRecMode(m) { const v = m === 'list' ? 'list' : 'cal'; if (S.recMode !== v) { S.recMode = v; store.set('ddorong-rec-mode', v); } }
+const recModeSeg = () => `<div class="seg wide" role="group" aria-label="보기 방식"><button type="button" data-act="rec-mode" data-mode="cal" aria-pressed="${S.tab === 'cal'}">달력</button><button type="button" data-act="rec-mode" data-mode="list" aria-pressed="${S.tab === 'records'}">목록</button></div>`;
 function setDiaryMode(m) { S.diaryMode = m === 'album' ? 'album' : 'day'; store.set('ddorong-diary-mode', S.diaryMode); }
 const diaryModeSeg = () => `<div class="seg wide" role="group" aria-label="보기 방식"><button type="button" data-act="diary-mode" data-mode="day" aria-pressed="${S.diaryMode !== 'album'}">날짜별</button><button type="button" data-act="diary-mode" data-mode="album" aria-pressed="${S.diaryMode === 'album'}">사진첩</button></div>`;
 /* 사진첩: 알고 있는 모든 날의 사진 (최근 날짜부터, 하루 안에서는 올린 순서) */
@@ -3069,7 +3084,10 @@ function renderNow() {
     return;
   }
   for (const v of VIEWS) $(`#v-${v}`).hidden = S.tab !== v;
-  document.querySelectorAll('.tab').forEach((b) => { if (b.dataset.tab === (S.tab === 'star' ? S.back : S.tab)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  const curTab = S.tab === 'star' ? S.back : S.tab;
+  if (curTab === 'cal' || curTab === 'records') setRecMode(curTab === 'records' ? 'list' : 'cal');
+  const tabKey = curTab === 'cal' || curTab === 'records' ? 'rec' : curTab;
+  document.querySelectorAll('.tab').forEach((b) => { if (b.dataset.tab === tabKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   $('#fab').hidden = S.readOnly || !ready() || ['star', 'meds', 'snacks'].includes(S.tab);
   $('#fab').setAttribute('aria-label', S.tab === 'diary' ? '사진 올리기' : '기록 추가');
   const R = { home: renderHome, cal: renderCal, diary: renderDiary, meds: renderMeds, snacks: renderSnacks, records: renderRecords, money: renderMoney, info: renderInfo };
@@ -4552,6 +4570,39 @@ function addMenu(petId) {
   openSheet(star ? `${p.name} 기록 남기기` : '무엇을 남길까요?', `<div class="tiles">${tiles.map(([k, l, d]) => `<button class="tile${k === 'expense' ? ' money' : ''}" data-act="add" data-kind="${k}"${petId ? ` data-pet="${esc(petId)}"` : ''}><b>${k === 'doc' ? DOC_IC : famDot(k === 'expense' ? 'money' : TYPES[k].fam)}${esc(l)}</b><span>${esc(d)}</span></button>`).join('')}</div>`);
 }
 
+/* ───────── 반복 일정 ─────────
+ * 저장할 때 반복을 고르면, 같은 내용에 날짜만 다른 기록을 정한 횟수만큼 만들고 하나씩 공유 캘린더에도 올려요.
+ * 같은 반복으로 만든 기록은 series 번호를 같이 가져서, 고치거나 지울 때 ‘이후 일정 모두’를 고를 수 있어요. */
+const REPS = [['', '안 함'], ['day', '매일'], ['week', '매주'], ['2week', '2주마다'], ['month', '매달'], ['3month', '3개월마다'], ['year', '매년']];
+const REP_DEF = { day: 7, week: 8, '2week': 6, month: 12, '3month': 4, year: 5 };
+const REP_MAX = 60;
+const repLabel = (f) => (REPS.find((x) => x[0] === f) || ['', ''])[1];
+function repDates(start, f, n) {
+  const out = []; const d0 = parts(start).d;
+  for (let i = 0; i < n; i++) {
+    out.push(f === 'day' ? addDays(start, i) : f === 'week' ? addDays(start, 7 * i) : f === '2week' ? addDays(start, 14 * i)
+      : f === 'month' ? addMonths(start, i, d0) : f === '3month' ? addMonths(start, 3 * i, d0) : addMonths(start, 12 * i, d0));
+  }
+  return out;
+}
+const seriesOf = (r) => (r && r.series ? S.records.filter((x) => x.series === r.series).sort(byDateAsc) : []);
+const ykDay = (d) => (parts(d).y === parts(todayStr()).y ? mdKo(d) : `${parts(d).y}년 ${mdKo(d)}`);
+/* 반복으로 새로 만들 기록: 캘린더 연결·자동 일정 표시·사진은 빼고 내용만 */
+function seriesCopy(base, date, i) {
+  const x = { ...base, date, rep: { ...base.rep, i }, photos: [], src: 'app', ttPhotos: 0 };
+  for (const k of ['id', 'gcal', 'gsig', 'cal', 'calError', 'auto', 'cyc', 'cycFor', 'months']) delete x[k];
+  for (const k of Object.keys(x)) if (k[0] === '_') delete x[k];
+  x.createdAt = x.updatedAt = new Date().toISOString();
+  return x;
+}
+/* 여러 개를 셋씩 나란히 저장해요. step(i) 는 성공하면 참 */
+async function runLanes(n, step, onDone) {
+  let next = 0, ok = 0, done = 0;
+  const lane = async () => { while (next < n) { const i = next++; if (await step(i)) ok++; done++; if (onDone) onDone(done, n); } };
+  await Promise.all([lane(), lane(), lane()]);
+  return ok;
+}
+
 function recordForm(rec, kind, petId, preset) {
   const T = todayStr(); const isNew = !rec;
   const r = rec ? { ...rec } : { type: kind, pet: petId || mainPet()?.id, date: S.addDate || T, time: '', title: '', place: '', memo: '', result: '', kg: null, who: meKey(), photos: [], yearly: false, kind: '', ...(preset || {}) };
@@ -4563,12 +4614,17 @@ function recordForm(rec, kind, petId, preset) {
   const places = S.records.map((x) => x.place);
   const titles = [...(SUGGEST[type] || []), ...S.records.filter((x) => x.type === type).map((x) => x.title)];
   const showPlace = !['weight', 'milestone'].includes(type);
+  const canRep = !['weight', 'milestone'].includes(type) && !(rec && (rec.series || isAutoRec(rec)));
+  const inSeries = !!(rec && rec.series && seriesOf(rec).filter((x) => x.date >= rec.date).length > 1);
   const autoHint = rec && isAutoRec(rec) ? `<div class="note"><span>${rec.date > T ? '자동으로 넣은 건강검진 시기예요. 병원을 예약했다면 예약한 날짜·시간으로 바꿔 주세요.' : '자동으로 넣은 건강검진 시기예요. 다녀온 날짜와 결과를 적어 주세요.'} 저장하면 이 일정은 주기에 따라 옮겨지지 않아요.</span></div>` : '';
   const html = `<form class="form" id="rec-form" novalidate>
     ${autoHint}
     ${homePets().length > 1 || (pet && pet.status === 'star') ? `<div class="fld"><span class="lbl">누구</span><div class="pick" role="group" data-pick="pet">${petList().map((x) => `<button type="button" data-val="${esc(x.id)}" aria-pressed="${x.id === r.pet}">${esc(x.name)}</button>`).join('')}</div></div>` : ''}
     <div class="two"><div class="fld"><label for="f-date">날짜</label><input type="date" id="f-date" value="${esc(r.date)}" required></div>
     ${type === 'weight' || type === 'milestone' ? '<div></div>' : `<div class="fld"><label for="f-time">시간 (선택)</label><input type="time" id="f-time" value="${esc(r.time || '')}"></div>`}</div>
+    ${canRep ? `<div class="fld"><span class="lbl">반복</span><div class="pick" role="group" aria-label="반복" data-pick="rep">${REPS.map(([k, l]) => `<button type="button" data-val="${k}" aria-pressed="${k === ''}">${l}</button>`).join('')}</div>
+      <div class="rep-more" id="rep-more" hidden><div class="unit"><input type="text" id="f-rep-n" inputmode="numeric" autocomplete="off" value="8" aria-label="몇 번 반복할지"><span>번</span></div><span class="hint" id="rep-hint"></span></div></div>` : ''}
+    ${inSeries ? `<div class="fld"><span class="lbl">반복 일정 · 고칠 범위</span><div class="pick" role="group" aria-label="고칠 범위" data-pick="scope"><button type="button" data-val="one" aria-pressed="true">이 일정만</button><button type="button" data-val="after" aria-pressed="false">이후 일정 모두 (${seriesOf(rec).filter((x) => x.date >= rec.date).length}개)</button></div><span class="hint">‘이후 일정 모두’는 이 날부터 뒤의 반복 일정을 같이 고쳐요. 날짜를 바꾸면 모두 같은 날수만큼 옮겨져요.</span></div>` : ''}
     ${type === 'weight' ? `<div class="fld"><label for="f-kg">몸무게</label><div class="unit"><input type="text" id="f-kg" inputmode="decimal" autocomplete="off" data-dec value="${r.kg ?? ''}" placeholder="4.5" required><span>kg</span></div><span class="hint">520g이면 0.52처럼 kg으로 적어 주세요.</span></div>` : `<div class="fld"><label for="f-title">${type === 'milestone' ? '어떤 날' : '무엇을'}</label><input type="text" id="f-title" list="dl-title" value="${esc(r.title)}" placeholder="${esc((SUGGEST[type] || [])[0] || '')}" required>${datalist('dl-title', titles)}</div>`}
     ${type === 'weight' ? `<div class="fld"><span class="lbl">체형 점수 (선택)</span><div class="pick bcs" role="group" aria-label="체형 점수 1부터 9" data-pick="bcs" data-toggle="1">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button type="button" data-val="${n}" aria-pressed="${Number(r.bcs) === n}">${n}</button>`).join('')}</div><span class="hint">9점 척도예요. 5점은 얇은 지방 아래로 갈비뼈가 만져지고, 위에서 보면 갈비뼈 뒤로 허리가 들어가 보여요. 한 달에 한 번 위·옆에서 찍은 사진을 아래에 같이 올려 두면 체형 변화를 보기 쉬워요.</span></div>` : ''}
     ${showPlace ? `<div class="fld"><label for="f-place">어디서 (선택)</label><input type="text" id="f-place" list="dl-place" value="${esc(r.place)}" placeholder="다니는 동물병원">${datalist('dl-place', places)}</div>` : ''}
@@ -4583,6 +4639,25 @@ function recordForm(rec, kind, petId, preset) {
   </form>`;
   openSheet(`${isNew ? '' : '고치기 · '}${t ? t.label : '기록'}${pet && pet.status === 'star' ? ` · ${pet.name}` : ''}`, html, (body) => {
     bindPicks(body);
+    const repG = body.querySelector('[data-pick="rep"]');
+    if (repG) {
+      const nIn = body.querySelector('#f-rep-n'); const hint = body.querySelector('#rep-hint'); let typed = false;
+      const upd = () => {
+        const f = pickVal(body, 'rep') || '';
+        body.querySelector('#rep-more').hidden = !f;
+        if (!f) return;
+        if (!typed) nIn.value = String(REP_DEF[f]);
+        const n = parseInt(String(nIn.value).replace(/[^\d]/g, ''), 10) || 0;
+        const st = $('#f-date').value;
+        if (n < 2 || n > REP_MAX) { hint.textContent = `2번부터 ${REP_MAX}번까지 정할 수 있어요.`; return; }
+        if (!isDate(st)) { hint.textContent = '날짜를 먼저 골라 주세요.'; return; }
+        const ds = repDates(st, f, n);
+        hint.textContent = `${ykDay(ds[0])}부터 ${repLabel(f)}, ${n}번 · 마지막은 ${ykDay(ds[n - 1])}${willPush ? ' · 공유 캘린더에도 하나씩 올라가요' : ''}`;
+      };
+      repG.addEventListener('click', upd);
+      nIn.addEventListener('input', () => { typed = true; upd(); });
+      $('#f-date').addEventListener('change', upd); $('#f-date').addEventListener('input', upd);
+    }
     body.querySelector('#rec-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const d = { ...F.data };
@@ -4607,15 +4682,51 @@ function recordForm(rec, kind, petId, preset) {
       d.src = d.src || 'app'; d.ttPhotos = d.ttPhotos || 0; d.kind = d.kind || ''; if (d.kg === undefined) d.kg = null;
       d.updatedAt = new Date().toISOString(); if (!d.createdAt) d.createdAt = d.updatedAt;
       delete d.id;
+      /* 반복: 몇 번인지 확인하고 같은 반복 번호를 붙여요 */
+      const rf = canRep ? (pickVal(body, 'rep') || '') : '';
+      let repN = 0;
+      if (rf) {
+        repN = parseInt(String($('#f-rep-n').value).replace(/[^\d]/g, ''), 10) || 0;
+        if (repN < 2 || repN > REP_MAX) { toast(`반복 횟수는 2번부터 ${REP_MAX}번까지 정할 수 있어요.`); return; }
+        d.series = newId('s'); d.rep = { f: rf, n: repN, i: 1 };
+      }
+      const scope = inSeries ? (pickVal(body, 'scope') || 'one') : 'one';
+      const orig = F.orig;
       const id = F.id || newId('r');
       const dropped = F.dropped.slice();
       const btn = e.submitter || body.querySelector('button[type=submit]'); btn.disabled = true;
-      const res = await saveRec(id, d, F.orig);
-      btn.disabled = false;
-      if (!res) return;
+      const label0 = btn.textContent;
+      const res = await saveRec(id, d, orig);
+      if (!res) { btn.disabled = false; return; }
       F.fresh = [];
       for (const a of dropped) dropPhoto(a);
+      let extra = null;
+      if (rf) {
+        /* 나머지 반복 일정을 만들어요 (셋씩 나란히) */
+        const base = { ...d }; const dates = repDates(d.date, rf, repN).slice(1);
+        const ok = await runLanes(dates.length, async (i) => !!(await saveRec(newId('r'), seriesCopy(base, dates[i], i + 2), null)),
+          (k, n) => { btn.textContent = `반복 일정 저장 중 ${k + 1}/${n + 1}`; });
+        extra = { ok: ok + 1, all: repN };
+      } else if (scope === 'after' && orig) {
+        /* 이후 반복 일정 모두: 바꾼 칸만 옮겨 적고, 날짜를 바꿨으면 같은 날수만큼 옮겨요 */
+        const shift = diffDays(orig.date, d.date);
+        const rest = seriesOf(orig).filter((x) => x.id !== id && x.id !== res.id && x.date >= orig.date);
+        const keys = ['title', 'time', 'place', 'memo', 'who', 'pet', 'result'];
+        const ok = await runLanes(rest.length, async (i) => {
+          const x = rest[i]; const y = { ...x };
+          for (const k of keys) if ((d[k] ?? '') !== (orig[k] ?? '')) y[k] = d[k];
+          if (shift) y.date = addDays(x.date, shift);
+          y.updatedAt = new Date().toISOString(); delete y.id;
+          return !!(await saveRec(x.id, y, x));
+        }, (k, n) => { btn.textContent = `반복 일정 고치는 중 ${k}/${n}`; });
+        extra = { ok: ok + 1, all: rest.length + 1, edit: true };
+      }
+      btn.disabled = false; btn.textContent = label0;
       await closeSheet();
+      if (extra) {
+        toast(extra.ok === extra.all ? `반복 일정 ${extra.all}개를 ${extra.edit ? '고쳤어요' : '저장했어요'}${res.cal === 'created' || res.cal === 'updated' ? '. 캘린더에도 반영했어요' : ''}` : `반복 일정 ${extra.all}개 중 ${extra.ok}개만 ${extra.edit ? '고쳤어요' : '저장했어요'}. 나머지는 잠시 뒤 다시 해 주세요`);
+        return;
+      }
       const msg = res.cal === 'created' ? '저장하고 캘린더에도 올렸어요' : res.cal === 'updated' ? '고치고 캘린더 일정도 바꿨어요' : res.cal === 'error' ? '저장했지만 캘린더에는 반영하지 못했어요' : isNew ? '저장했어요' : '고쳤어요';
       toast(msg);
     });
@@ -4688,6 +4799,7 @@ function recordDetail(id) {
   const blocks = [];
   const ds = docsOfRec(r.id);
   if (r.place) blocks.push(['어디서', r.place]);
+  if (r.rep && r.rep.f) { const sr = seriesOf(r); const left = sr.filter((x) => x.date > r.date).length; blocks.push(['반복', `${repLabel(r.rep.f)} · ${sr.length}개 중 ${sr.findIndex((x) => x.id === r.id) + 1}번째${left ? ` · 뒤에 ${left}개 더` : ' · 마지막'}`]); }
   if (r.type === 'weight' && Number(r.bcs) >= 1) blocks.push(['체형 점수', `${r.bcs} / 9`]);
   if (r.type === 'test' && (r.result || (!ds.length && r.date <= T && !auto))) blocks.push(['결과', r.result || '아직 적지 않았어요']);
   if (r.memo && !auto) blocks.push(['메모', r.memo]);
@@ -5015,7 +5127,7 @@ function insForm() {
 /* ───────── actions ───────── */
 const ACT = {
   noop() {},
-  tab(b) { S.tab = b.dataset.tab; S.back = S.tab; if (b.dataset.dmode) setDiaryMode(b.dataset.dmode); window.scrollTo(0, 0); render(); },
+  tab(b) { S.tab = b.dataset.tab === 'rec' ? (S.recMode === 'list' ? 'records' : 'cal') : b.dataset.tab; S.back = S.tab; if (b.dataset.dmode) setDiaryMode(b.dataset.dmode); window.scrollTo(0, 0); render(); },
   star(b) { S.starPet = b.dataset.pet; S.back = S.tab === 'star' ? S.back : S.tab; S.tab = 'star'; window.scrollTo(0, 0); render(); },
   back() { S.tab = S.back || 'home'; window.scrollTo(0, 0); render(); },
   filter(b) { S.filter = b.dataset.filter; S.recLimit = REC_FIRST; S.recJump = null; render(); },
@@ -5044,6 +5156,7 @@ const ACT = {
   'cal-go'(b) { const tab = b.dataset.tab; if (tab === 'diary') setDiaryMode('day'); setDay(tab, b.dataset.date); S.tab = tab; S.back = tab; window.scrollTo(0, 0); render(); },
   /* 오늘의 또롱이: 날짜별 ↔ 사진첩 */
   'diary-mode'(b) { setDiaryMode(b.dataset.mode); window.scrollTo(0, 0); render(); },
+  'rec-mode'(b) { setRecMode(b.dataset.mode); S.tab = S.recMode === 'list' ? 'records' : 'cal'; S.back = S.tab; window.scrollTo(0, 0); render(); },
   'album-photo'(b) {
     const list = albumList(); const i = Number(b.dataset.i);
     if (!list[i]) return;
@@ -5346,6 +5459,12 @@ const ACT = {
     const rec = b.dataset.col === 'records' ? S.records.find((x) => x.id === b.dataset.id) : null;
     const linked = rec ? gcLinked(rec) : exp?.src === 'gcal';
     const attrs = `data-act="do-del" data-col="${esc(b.dataset.col)}" data-id="${esc(b.dataset.id)}"`;
+    const later = rec && rec.series ? seriesOf(rec).filter((x) => x.date >= rec.date) : [];
+    if (later.length > 1 && !S.readOnly) {
+      const cal = rec._ev ? ' data-cal="1"' : '';
+      slot.innerHTML = `<div class="confirm"><span>반복 일정이에요. 어떻게 지울까요?${rec._ev ? ' 공유 캘린더 일정도 같이 지워져요.' : ''}</span><button class="btn sm" ${attrs}${cal}>이 일정만</button><button class="btn sm" ${attrs}${cal} data-scope="after">이후 ${later.length}개 모두</button><button class="btn ghost sm" data-act="cancel-del">그대로 두기</button></div>`;
+      return;
+    }
     if (rec && rec._ev && !S.readOnly) {
       slot.innerHTML = `<div class="confirm"><span>공유 캘린더 일정도 같이 지울까요?${isAutoRec(rec) ? ' 지우면 주기를 바꾸거나 새 검진을 기록할 때까지 다시 넣지 않아요.' : ''}</span><button class="btn sm" ${attrs} data-cal="1">캘린더에서도 지우기</button><button class="btn ghost sm" ${attrs}>앱에서만 지우기</button><button class="btn ghost sm" data-act="cancel-del">그대로 두기</button></div>`;
       return;
@@ -5368,6 +5487,22 @@ const ACT = {
     } else {
       const r = S.records.find((x) => x.id === id);
       const linked = gcLinked(r);
+      if (b.dataset.scope === 'after' && r && r.series) {
+        const list = seriesOf(r).filter((x) => x.date >= r.date);
+        const gone = await runLanes(list.length, async (i) => {
+          const x = list[i]; let good = true;
+          if (b.dataset.cal === '1' && x._ev) good = !!(await removeRec(x.id, x._ev));
+          else {
+            if (S.raw.records && S.raw.records[x.id]) good = await remove('records', x.id);
+            if (good && gcLinked(x)) good = await exclude([x.id]);
+          }
+          if (good) (x.photos || []).forEach(dropPhoto);
+          return good;
+        }, (k, n) => { b.textContent = `지우는 중 ${k}/${n}`; });
+        await closeSheet();
+        toast(gone === list.length ? `반복 일정 ${gone}개를 지웠어요` : `반복 일정 ${list.length}개 중 ${gone}개만 지웠어요. 잠시 뒤 다시 해 주세요`);
+        return;
+      }
       if (b.dataset.cal === '1' && r && r._ev) {
         ok = !!(await removeRec(id, r._ev));
         if (ok) (r.photos || []).forEach(dropPhoto);
@@ -5626,7 +5761,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-10-28a';
+const BUILD = '2026-10-28b';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
