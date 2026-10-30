@@ -3312,7 +3312,7 @@ function buildView() {
 const CACHE_KEY = 'ddorong-cache-v1';
 function saveCache() {
   if (!S.raw || S.fromCache) return;
-  const text = JSON.stringify({ at: Date.now(), v: S.srv, ai: S.ai, me: S.me, owner: S.owner, appUrl: S.appUrl, since: S.since, dayFrom: S.dayFrom, data: S.raw, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial });
+  const text = JSON.stringify({ at: Date.now(), v: S.srv, fast: S.srvFast || 0, ai: S.ai, me: S.me, owner: S.owner, appUrl: S.appUrl, since: S.since, dayFrom: S.dayFrom, data: S.raw, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial });
   for (let t = 0; t < 3; t++) {
     try { localStorage.setItem(CACHE_KEY, text); return; } catch { tcEvict(30, ''); /* 작은 사진 몇 장을 비우고 다시 */ }
   }
@@ -3323,7 +3323,7 @@ function applyResult(r, fromCache) {
   S.raw = r.data; S.events = Array.isArray(r.events) ? r.events : null; S.uids = r.uids || {};
   for (const c of DAY_COLS) if (!S.raw[c] || typeof S.raw[c] !== 'object') S.raw[c] = {};
   if (!S.raw.docs || typeof S.raw.docs !== 'object') S.raw.docs = {};
-  S.srv = Number(r.v) || 0; S.ai = r.ai && typeof r.ai === 'object' ? r.ai : { on: false };
+  S.srv = Number(r.v) || 0; S.srvFast = Number(r.fast) || 0; S.ai = r.ai && typeof r.ai === 'object' ? r.ai : { on: false };
   S.calError = r.calError || ''; S.calPartial = !!r.calPartial;
   S.me = ''; S.owner = r.owner || S.owner; S.appUrl = r.appUrl || S.appUrl; S.since = r.since || S.since;
   S.dayFrom = r.dayFrom || S.dayFrom || '';
@@ -3332,20 +3332,57 @@ function applyResult(r, fromCache) {
   buildView();
   S.phase = meKey() ? 'live' : 'pickme';
 }
+/* 빠르게 열기: 시트 기록(getCore)과 캘린더(getCal)를 동시에 불러서, 시트 기록은 캘린더를 기다리지 않고 바로 보여 줘요.
+ * 서버가 아직 예전 것이면(BAD_FN) 예전처럼 getAll 하나로 불러와요 (30분 뒤 다시 시도) */
+const FAST_OFF = 'ddorong-fast-off';
+const fastOff = () => { const t = Number(store.get(FAST_OFF) || 0); return t > 0 && Date.now() - t < 30 * 60000; };
+const kwArg = () => { const k = ((S.info || {}).gcal || {}).keywords; return Array.isArray(k) && k.length ? JSON.stringify(k) : ''; };
 async function load(opts = {}) {
   if (!store.get(KEY_STORE)) { S.phase = 'needkey'; render(); return; }
   if (S.loading) { S.reloadPending = opts.manual ? 'manual' : (S.reloadPending || true); return; }
   S.loading = true; const started = Date.now();
   if (opts.manual) render();
+  /* 불러오는 사이에 체크가 생겼으면 이 결과는 버리고 곧 다시 불러와요. 직접 누른 ‘새로 불러오기’면 다시 불러온 뒤에 알려요 */
+  const isStale = () => started < S.lastWriteAt;
+  const again = () => { S.reloadPending = opts.manual ? 'manual' : (S.reloadPending || true); };
   try {
-    const r = JSON.parse(await gsr('getAll'));
-    /* 불러오는 사이에 체크가 생겼으면 이 결과는 버리고 곧 다시 불러와요. 직접 누른 ‘새로 불러오기’면 다시 불러온 뒤에 알려요 */
-    const stale = started < S.lastWriteAt;
-    if (stale) S.reloadPending = opts.manual ? 'manual' : (S.reloadPending || true);
-    else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); }
+    let r = null, cal = null;
+    /* 서버가 빠른 길(getCore·getCal)을 안다고 알려 준 뒤에만 나눠 불러요 */
+    if (S.srvFast >= 1 && !fastOff()) {
+      const pCal = gsr('getCal', kwArg()).then((t) => JSON.parse(t), (e) => ({ __err: e }));
+      try { r = JSON.parse(await gsr('getCore')); }
+      catch (e) {
+        /* 빠른 길이 없거나(BAD_FN) 서버에서 오류가 나면 예전 길(getAll)로. 인터넷·비밀번호 문제는 그대로 알려요 */
+        if (e && !['NET', 'NEED_KEY', 'NO_SERVER', ...AUTH_CODES].includes(e.code)) { store.set(FAST_OFF, String(Date.now())); pCal.then(() => {}); r = null; }
+        else { pCal.then(() => {}); throw e; }
+      }
+      if (r) {
+        /* 시트 기록 먼저: 캘린더는 지난번 것을 그대로 두고 바로 그려요 */
+        if (isStale()) again();
+        else {
+          applyResult({ ...r, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial }, false);
+          S.calLoading = true; saveCache();
+          if (opts.soft) softRender(); else render();
+        }
+        cal = await pCal;
+        S.calLoading = false;
+        if (!r.fatal && !isStale()) {
+          if (cal.__err) S.calError = errText(cal.__err) || 'NET';
+          else { S.events = Array.isArray(cal.events) ? cal.events : S.events; S.uids = cal.uids || {}; S.calError = cal.calError || ''; S.calPartial = !!cal.calPartial; }
+          buildView(); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400);
+        } else if (!r.fatal) again();
+      }
+    }
+    if (!r) {
+      r = JSON.parse(await gsr('getAll'));
+      if (isStale()) again();
+      else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); }
+    }
+    const stale = isStale();
+    const calErr = cal ? (cal.__err || cal.calError) : r.calError;
     /* 지난번에 못 보낸 체크가 있으면 지금 보내요 */
     if (Object.values(Q).some((q) => (q.pend || []).length && !q.flying)) setTimeout(() => flushAll(), 50);
-    if (opts.manual && !stale) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : r.calError ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
+    if (opts.manual && !stale) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : calErr ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
   } catch (e) {
     const code = e && e.code;
     S.loadError = code === 'NO_SERVER' ? 'NO_SERVER' : (errText(e) || 'error');
@@ -3354,7 +3391,7 @@ async function load(opts = {}) {
     else if (!ready()) S.phase = 'error';
     if (opts.manual) toast('불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
   } finally {
-    S.loading = false; S.gateBusy = false;
+    S.loading = false; S.gateBusy = false; S.calLoading = false;
     if (opts.soft) softRender(); else render();
     if (S.reloadPending) { const manual = S.reloadPending === 'manual'; S.reloadPending = false; setTimeout(() => load({ soft: true, manual }), 400); }
   }
@@ -3365,7 +3402,8 @@ function syncLine() {
   const pn = NET.failing ? pendingCount() : 0;
   if (pn) return `<div class="sync-line"><i class="dot sync-warn"></i>보내지 못한 체크 ${pn}개를 이 폰에 보관 중이에요 · 인터넷이 연결되면 보낼게요</div>`;
   if (S.fromCache && S.loadError) return '<div class="sync-line"><i class="dot sync-warn"></i>인터넷이 안 돼서 마지막으로 불러온 기록을 보여 주고 있어요</div>';
-  if (S.fromCache) return '<div class="sync-line"><i class="dot sync-off"></i>구글 캘린더에서 새 일정을 불러오는 중…</div>';
+  if (S.fromCache) return '<div class="sync-line"><i class="dot sync-off"></i>새 기록을 불러오는 중…</div>';
+  if (S.calLoading) return '<div class="sync-line"><i class="dot sync-off"></i>기록은 최신이에요 · 구글 캘린더 확인 중…</div>';
   if (S.calError) return '<button class="sync-line link" data-act="tab" data-tab="info" style="padding:0 4px"><i class="dot sync-warn"></i>구글 캘린더를 읽지 못했어요 · 확인하기 ›</button>';
   return `<div class="sync-line"><i class="dot sync-ok"></i>구글 캘린더와 연결됨 · ${esc(clock(S.loadedAt))} 확인</div>`;
 }
@@ -3382,7 +3420,7 @@ function gcCard() {
   const box = (dot, head, body, btn) => `<div class="status-box"><span class="head"><i class="dot ${dot}"></i>${head}</span>${body ? `<span class="muted">${body}</span>` : ''}${btn || ''}</div>`;
   let status;
   if (S.calError) status = box('sync-warn', '공유 캘린더를 읽지 못했어요', `${esc(calErrText(S.calError))} 캘린더 주인 구글 계정에 ‘${esc(name)}’ 캘린더가 그대로 있는지 확인해 주세요.`, '<button class="btn ghost sm" data-act="gc-sync">다시 확인</button>');
-  else if (S.fromCache || !S.loadedAt) status = box('sync-off', '구글 캘린더 확인 중…', '');
+  else if (S.fromCache || !S.loadedAt || S.calLoading) status = box('sync-off', '구글 캘린더 확인 중…', '');
   else {
     const evs = new Set([...S.records, ...S.expenses].filter((x) => x._ev).map((x) => x._ev));
     status = box('sync-ok', `‘${esc(name)}’와 연결됨`, `${esc(clock(S.loadedAt))}에 확인 · 앱에 보이는 캘린더 일정 ${evs.size}개 · 앱을 열 때마다, 열려 있는 동안에는 30초마다 새로 읽어요.`, '<button class="btn ghost sm" data-act="gc-sync">지금 새로 읽기</button>');
@@ -5761,7 +5799,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-10-28b';
+const BUILD = '2026-10-30a';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
