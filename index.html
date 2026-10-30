@@ -746,7 +746,7 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 .mchip { border-radius: 999px; }
 .chart .ln { stroke-width: 2.5; }
 .chart .area { opacity: 0.14; }
-.toast { border-radius: 999px; font-weight: 700; }
+.toast { border-radius: 20px; font-weight: 700; padding: 11px 18px; line-height: 1.4; }
 .sheet { border-radius: 28px 28px 0 0; }
 .sheet-head { border-bottom: 0; padding-top: 18px; }
 .sheet-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: -0.01em; }
@@ -793,6 +793,10 @@ body { font-size: 15.5px; letter-spacing: -0.01em; }
 .rep-more { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .rep-more .unit input { max-width: 96px; }
 .tag.rep { background: var(--accent-soft); color: var(--accent); }
+.ph.up img { opacity: 0.78; }
+.ph.up::after { content: ""; position: absolute; right: 6px; bottom: 6px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.45); border-top-color: #fff; animation: spin 0.8s linear infinite; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
+.ph.up.fail::after { content: "!"; animation: none; border: 0; width: 18px; height: 18px; display: grid; place-items: center; background: var(--danger); color: #fff; font-size: 12px; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .ph.up::after { animation-duration: 2s; } }
 </style>
 </head>
 <body>
@@ -2787,14 +2791,14 @@ function renderAlbum(el) {
     grid += `<button class="atile" type="button" data-act="album-photo" data-i="${i}" aria-label="${esc(mdKo(x.date))} 사진">${photoImg(x.id, 'thumb')}${first ? `<span class="aday">${parts(x.date).d}일</span>` : ''}</button>`;
   });
   if (grid) body += `<div class="agrid">${grid}</div>`;
-  const up = Object.values(S.uploading).reduce((s, n) => s + (Number(n) || 0), 0);
+  const up = UPQ.list.length;
   const tail = !S.album.loadedAt
     ? `<div class="amore">${S.album.failed && !S.album.loading ? '예전 사진을 불러오지 못했어요. <button class="link" type="button" data-act="album-retry">다시 불러오기</button>' : '예전 사진까지 불러오는 중이에요…'}</div>`
     : '';
   el.innerHTML = `
     <div class="view-head"><h1>오늘의 또롱이</h1>${list.length ? `<span class="sub">사진 ${list.length}장 · ${days}일</span>` : ''}</div>
     ${diaryModeSeg()}
-    ${up ? `<div class="banner">사진 ${up}장을 올리는 중이에요…</div>` : ''}
+    ${up ? `<div class="banner">사진 ${up}장을 올리는 중이에요 · 다른 걸 해도 계속 올라가요</div>` : ''}
     ${list.length ? `<div class="album">${body}</div>` : S.album.loadedAt ? `<button class="d-empty" type="button" data-act="diary-add-today">${IC.photo}<b>아직 올린 사진이 없어요</b><span>눌러서 오늘 또롱이 사진을 올려 주세요</span></button>` : ''}
     ${list.length > shown.length ? `<button class="amore" type="button" id="album-more" data-act="album-more">사진 ${list.length - shown.length}장 더 보기</button>` : ''}
     ${tail}`;
@@ -2816,9 +2820,10 @@ function renderDiary() {
   needMonth('diary', ym(date));
   const doc = dayDoc('diary', date);
   const photos = dayPhotos(doc);
-  const up = S.uploading[date] || 0;
+  const ups = UPQ.list.filter((x) => x.date === date);
+  const up = ups.length;
   const grid = photos.length || up
-    ? `<div class="dphotos" data-photos data-diary="${esc(date)}">${photos.map((p) => `<div class="ph"><button class="ph-open" type="button" data-act="view-photo" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${photoImg(p.id, 'thumb')}</button></div>`).join('')}${Array.from({ length: up }, () => '<div class="ph busy"></div>').join('')}${canEdit() ? `<button class="ph add" type="button" data-act="diary-add" aria-label="사진 더 올리기">${IC.plus}</button>` : ''}</div>`
+    ? `<div class="dphotos" data-photos data-diary="${esc(date)}">${photos.map((p) => `<div class="ph"><button class="ph-open" type="button" data-act="view-photo" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${photoImg(p.id, 'thumb')}</button></div>`).join('')}${ups.map((x) => `<div class="ph up${x.state === 'fail' ? ' fail' : ''}" data-up="${esc(x.id)}" title="${x.state === 'fail' ? '인터넷이 되면 이어서 올려요' : '올리는 중'}"><img src="${esc(x.thumb)}" alt="올리는 중인 사진"></div>`).join('')}${canEdit() ? `<button class="ph add" type="button" data-act="diary-add" aria-label="사진 더 올리기">${IC.plus}</button>` : ''}</div>`
     : `<button class="d-empty" type="button" data-act="diary-add">${IC.photo}<b>${date === T ? '오늘' : esc(mdKo(date))} 또롱이 사진을 올려 주세요</b><span>여러 장을 한 번에 골라도 돼요</span></button>`;
   const mk = calMonth('diary');
   needMonth('diary', mk);
@@ -2854,27 +2859,72 @@ function diaryNoteSave() {
   if (v === String(dayDoc('diary', date).note || '')) return;
   if (mut('diary', date, [['set', 'note', v]])) toast(v ? '한 줄 기록을 저장했어요' : '한 줄 기록을 지웠어요');
 }
+/* ───────── 오늘의 또롱이 사진 올리기 ─────────
+ * 고르자마자 화면에 보여 주고, 뒤에서 세 장씩 동시에 올려요. 기다리지 않고 다른 걸 해도 돼요.
+ * 올리는 중인 사진은 이 폰 보관함(upq)에도 넣어 둬서, 앱을 닫았다 열어도 이어서 올려요.
+ * 같은 사진이 두 번 올라가지 않게 사진마다 번호(uid)를 붙여 서버가 확인해요. */
+const UPQ = { list: [], running: 0, done: 0, failed: 0, loaded: false, timer: 0, lastErr: null };
+async function upqStore(op, x) {
+  const db = await fcOpen(); if (!db) return;
+  try { const st = db.transaction('upq', 'readwrite').objectStore('upq'); if (op === 'put') st.put(x); else st.delete(x); } catch { /* 넘어감 */ }
+}
+async function upqLoad() {
+  if (UPQ.loaded) return; UPQ.loaded = true;
+  const db = await fcOpen(); if (!db) return;
+  const items = await new Promise((res) => { try { const q = db.transaction('upq').objectStore('upq').getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => res([]); } catch { res([]); } });
+  for (const x of items) if (x && x.id && x.date && !UPQ.list.some((y) => y.id === x.id)) UPQ.list.push({ ...x, state: 'wait' });
+  if (items.length) { render(); upqRun(); }
+}
+function upqRun() {
+  if (!canEdit()) { clearTimeout(UPQ.timer); UPQ.timer = setTimeout(upqRun, 3000); return; }
+  while (UPQ.running < 3) {
+    const x = UPQ.list.find((y) => y.state === 'wait');
+    if (!x) break;
+    x.state = 'up'; UPQ.running++;
+    upqOne(x).finally(() => { UPQ.running--; upqRun(); upqFinish(); });
+  }
+}
+async function upqOne(x) {
+  try {
+    const r = JSON.parse(await retry(() => gsr('addDiaryPhoto', x.date, x.thumb, x.full, x.id)));
+    PH.thumb.set(r.id, x.thumb); fullPut(r.id, x.full); tcPut(r.id, x.thumb);
+    setBase('diary', x.date, r.doc);
+    UPQ.list = UPQ.list.filter((y) => y !== x); upqStore('del', x.id);
+    UPQ.done++; S.lastWriteAt = Date.now(); render();
+  } catch (e) {
+    UPQ.lastErr = e; UPQ.failed++;
+    if (/BAD_IMAGE|TOO_BIG|TOO_MANY/.test(errText(e))) { UPQ.list = UPQ.list.filter((y) => y !== x); upqStore('del', x.id); }
+    else {
+      /* 인터넷 같은 문제면 이 폰에 남겨 두고 20초 뒤(또는 인터넷이 돌아오면) 다시 올려요 */
+      x.state = 'fail';
+      clearTimeout(UPQ.timer); UPQ.timer = setTimeout(upqRetry, 20000);
+    }
+    render();
+  }
+}
+function upqRetry() { let any = false; for (const y of UPQ.list) if (y.state === 'fail') { y.state = 'wait'; any = true; } if (any) { render(); upqRun(); } }
+function upqFinish() {
+  if (UPQ.running || UPQ.list.some((y) => y.state === 'wait')) return;
+  const ok = UPQ.done, bad = UPQ.failed; UPQ.done = 0; UPQ.failed = 0;
+  saveCache();
+  if (!ok && !bad) return;
+  const left = UPQ.list.length;
+  toast(!bad ? `사진 ${ok}장을 올렸어요` : left ? `${ok ? `${ok}장은 올렸고 ` : ''}${left}장은 아직 못 올렸어요. 인터넷이 되면 이어서 올릴게요` : ok ? `${ok}장은 올렸고 ${bad}장은 올릴 수 없는 사진이에요` : photoErr(UPQ.lastErr));
+}
 function diaryUpload(date) {
   if (!canEdit()) { toast('기록을 다 불러온 뒤에 올려 주세요.'); return; }
   pickPhotos(async (files) => {
     const list = files.slice(0, 30);
     if (files.length > 30) toast('한 번에 30장까지 올릴 수 있어요. 앞의 30장만 올릴게요.');
-    S.uploading[date] = (S.uploading[date] || 0) + list.length; render();
-    let ok = 0, lastErr = null;
     for (const f of list) {
       try {
         const c = await compressImage(f);
-        const uid = newId('u');
-        const r = JSON.parse(await retry(() => gsr('addDiaryPhoto', date, c.thumb, c.full, uid)));
-        PH.thumb.set(r.id, c.thumb); fullPut(r.id, c.full); tcPut(r.id, c.thumb);
-        setBase('diary', date, r.doc); ok++;
-      } catch (e) { lastErr = e; }
-      S.uploading[date] = Math.max(0, (S.uploading[date] || 1) - 1);
-      S.lastWriteAt = Date.now(); render();
+        const x = { id: newId('u'), date, thumb: c.thumb, full: c.full, at: Date.now() };
+        upqStore('put', x);
+        UPQ.list.push({ ...x, state: 'wait' });
+        render(); upqRun();
+      } catch (e) { toast(photoErr(e)); }
     }
-    saveCache();
-    const fail = list.length - ok;
-    toast(!fail ? `사진 ${ok}장을 올렸어요` : ok ? `${ok}장은 올렸고 ${fail}장은 못 올렸어요. 다시 시도해 주세요.` : photoErr(lastErr));
   });
 }
 async function diaryRemove(date, id) {
@@ -3361,7 +3411,7 @@ async function load(opts = {}) {
         if (isStale()) again();
         else {
           applyResult({ ...r, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial }, false);
-          S.calLoading = true; saveCache();
+          S.calLoading = true; saveCache(); upqLoad();
           if (opts.soft) softRender(); else render();
         }
         cal = await pCal;
@@ -3376,7 +3426,7 @@ async function load(opts = {}) {
     if (!r) {
       r = JSON.parse(await gsr('getAll'));
       if (isStale()) again();
-      else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); }
+      else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); upqLoad(); }
     }
     const stale = isStale();
     const calErr = cal ? (cal.__err || cal.calError) : r.calError;
@@ -3527,8 +3577,11 @@ function fcOpen() {
   if (FC.db) return FC.db;
   FC.db = new Promise((res) => {
     try {
-      const r = indexedDB.open('ddorong-photos', 2);
-      r.onupgradeneeded = () => { for (const n of FC_STORES) if (!r.result.objectStoreNames.contains(n)) r.result.createObjectStore(n, { keyPath: 'id' }).createIndex('t', 't'); };
+      const r = indexedDB.open('ddorong-photos', 3);
+      r.onupgradeneeded = () => {
+        for (const n of FC_STORES) if (!r.result.objectStoreNames.contains(n)) r.result.createObjectStore(n, { keyPath: 'id' }).createIndex('t', 't');
+        if (!r.result.objectStoreNames.contains('upq')) r.result.createObjectStore('upq', { keyPath: 'id' });
+      };
       r.onsuccess = () => { const db = r.result; db.onversionchange = () => { db.close(); FC.db = null; }; res(db); };
       r.onerror = () => { FC.db = null; res(null); };
       /* 예전 화면이 보관함을 잡고 있어 열리지 않으면, 기다리지 않고 이번엔 서버에서 받아요 (다음에 다시 열어 봐요) */
@@ -3734,16 +3787,16 @@ function photoErr(e) {
   return '사진을 올리지 못했어요. 다시 시도해 주세요.';
 }
 async function uploadFiles(files) {
-  const ids = [];
-  for (const f of files) {
+  const ids = new Array(files.length).fill('');
+  await runLanes(files.length, async (i) => {
     try {
-      const c = await compressImage(f);
-      const id = await gsr('savePhoto', c.thumb, c.full);
+      const c = await compressImage(files[i]);
+      const id = await retry(() => gsr('savePhoto', c.thumb, c.full));
       PH.thumb.set(id, c.thumb); fullPut(id, c.full); tcPut(id, c.thumb);
-      ids.push(id);
-    } catch (e) { toast(photoErr(e)); }
-  }
-  return ids;
+      ids[i] = id; return true;
+    } catch (e) { toast(photoErr(e)); return false; }
+  });
+  return ids.filter(Boolean);
 }
 const dropPhoto = (id) => { PH.thumb.delete(id); fullDel(id); tcDel(id); return gsr('deletePhoto', id).catch(() => {}); };
 let filePick = null;
@@ -5792,6 +5845,7 @@ document.addEventListener('visibilitychange', () => {
   if (liveKey() && Date.now() - S.loadedAt > 8000) load({ soft: true });
 });
 window.addEventListener('pagehide', () => flushAll(true));
+window.addEventListener('online', () => upqRetry());
 window.addEventListener('pageshow', (e) => { if (e.persisted && liveKey()) load({ soft: true }); });
 window.addEventListener('focus', () => { if (liveKey() && Date.now() - S.loadedAt > 8000) load({ soft: true }); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
@@ -5799,7 +5853,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-10-30a';
+const BUILD = '2026-10-30b';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
