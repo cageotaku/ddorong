@@ -994,7 +994,12 @@ function codeErr(code, msg) { const e = new Error(msg || code); e.code = code; r
 const gsr = (fn, ...args) => gsrCall(false, fn, args);
 /* 앱을 닫는 순간 남은 체크·간식 수를 보낼 때만: 화면이 사라져도 끝까지 보내지게 */
 const gsrKeep = (fn, ...args) => gsrCall(true, fn, args);
+/* 고치는 요청이 실패하면 이 폰의 기록 번호를 지워서, 다음 불러오기에서 서버 기록을 통째로 다시 받아요 */
+const GSR_READ = new Set(['getAll', 'getCore', 'getCal', 'getMonth', 'getPhotos', 'getDiaryAll', 'docUploadStatus', 'docFileChunk', 'aiStatus']);
 async function gsrCall(keep, fn, args) {
+  try { return await gsrCall0(keep, fn, args); } catch (e) { if (!GSR_READ.has(fn)) S.dataVer = ''; throw e; }
+}
+async function gsrCall0(keep, fn, args) {
   if (!API_URL) throw codeErr('NO_SERVER');
   const key = store.get(KEY_STORE) || '';
   if (!key) throw codeErr('NEED_KEY');
@@ -1298,7 +1303,7 @@ function recordRow(r, opts = {}) {
   if (opts.who !== false && r.who && whoLabel(r.who)) bits.push(whoLabel(r.who));
   const tags = recTags(r);
   if ((r.photos || []).length) tags.push(`<span class="tag">사진 ${r.photos.length}</span>`);
-  if (r.src === 'gcal') tags.push('<span class="tag gc">캘린더</span>');
+  if (r.src === 'gcal' && !calOff()) tags.push('<span class="tag gc">캘린더</span>');
   let end = '';
   if (r.date > T) end = `<span class="dchip${diffDays(T, r.date) <= 7 ? ' soon' : ''}">${dday(diffDays(T, r.date))}</span>`;
   else if (r.date === T) end = '<span class="dchip today">오늘</span>';
@@ -1646,7 +1651,7 @@ function calDayHtml(d, hide) {
       const bits = [t.label]; if (r.place) bits.push(r.place); if (r.type === 'test' && r.result) bits.push(`결과: ${r.result}`); if (r.who && whoLabel(r.who)) bits.push(whoLabel(r.who));
       const tags = recTags(r);
       if ((r.photos || []).length) tags.push(`<span class="tag">사진 ${r.photos.length}</span>`);
-      if (r.src === 'gcal') tags.push('<span class="tag gc">캘린더</span>');
+      if (r.src === 'gcal' && !calOff()) tags.push('<span class="tag gc">캘린더</span>');
       rows.push(calRow({ time: r.type === 'weight' ? '' : r.time, title: r.type === 'weight' ? `몸무게 ${wt(r.kg)}` : r.title || t.label, sub: bits.join(' · '), dot: famDot(t.fam), tags: tags.join(''), attrs: `data-act="open-record" data-id="${esc(r.id)}"`, end: r.date > T ? `<span class="dchip${diffDays(T, r.date) <= 7 ? ' soon' : ''}">${dday(diffDays(T, r.date))}</span>` : '' }));
     } else if (e.doc) {
       const x = e.doc; const fl = docFlags(x).length;
@@ -3268,7 +3273,7 @@ async function saveRec(id, data, orig) {
     if (doc.title === CYC_AUTO_TITLE && (doc.date !== orig.date || (doc.time || '') !== (orig.time || '') || doc.date <= todayStr() || doc.result)) doc.title = '건강검진';
   }
   /* 400일보다 먼 일정은 캘린더 목록에 안 들어와서, 기록에 적어 둔 일정 번호로 고쳐요 */
-  const evId = (orig && (orig._ev || (orig.gcal && isDate(orig.date) && orig.date > addDays(todayStr(), 390) ? orig.gcal : ''))) || '';
+  const evId = calOff() ? '' : ((orig && (orig._ev || (orig.gcal && isDate(orig.date) && orig.date > addDays(todayStr(), 390) ? orig.gcal : ''))) || '');
   try {
     const r = JSON.parse(await gsr('saveRecord', id || newId('r'), JSON.stringify(doc), prev ? JSON.stringify(prev) : '', evId));
     const recs = { ...(S.raw.records || {}) };
@@ -3300,8 +3305,50 @@ async function removeRec(id, evId) {
   } catch (e) { writeError(e); return null; }
 }
 
-/* ───────── 구글 캘린더 + 데이터 시트 합치기 ───────── */
-const gcLinked = (r) => !!r && !!(r._ev || r.cal || r.src === 'gcal' || String(r.id || '').startsWith('g-'));
+/* ───────── 구글 캘린더 + 데이터 시트 합치기 ─────────
+ * 구글 캘린더 연동은 껐어요(info.gcal.off). 끄기 전 마지막 한 번만 캘린더를 읽어서, 캘린더에서만 보이던 기록·지출을 시트로 옮겨요. */
+const calOff = () => !!(S.calOffSrv || (((S.info || {}).gcal || {}).off) || (((S.raw || {}).info || {}).gcal || {}).off);
+const gcLinked = (r) => !calOff() && !!r && !!(r._ev || r.cal || r.src === 'gcal' || String(r.id || '').startsWith('g-'));
+const CALM = { busy: false, at: 0 };
+async function calMigrate() {
+  if (CALM.busy || calOff() || !canEdit() || S.fromCache || !S.raw || !Array.isArray(S.events) || S.calError || S.calPartial || S.srvFast < 2) return;
+  if (Date.now() - CALM.at < 60000) return;
+  CALM.busy = true; CALM.at = Date.now();
+  try {
+    const rawR = S.raw.records || {}, rawE = S.raw.expenses || {}, now = new Date().toISOString();
+    const g0 = (S.raw.info || {}).gcal || {}, exl = new Set(g0.excluded || []);
+    const strip = (x) => { const d = cleanDoc(x); for (const k of ['gcal', 'gsig', 'cal', 'calError']) delete d[k]; return d; };
+    /* 지금 앱에 보이는 그대로 남겨요: 캘린더에서만 보이던 것은 새로, 캘린더에서 고쳐져 다르게 보이던 것은 보이는 대로 */
+    const records = {}, expenses = {};
+    for (const r of S.records) {
+      if (!r || !r.id) continue;
+      const raw = rawR[r.id];
+      if (!raw) records[r.id] = { ...strip(r), src: r.src || 'gcal', updatedAt: now };
+      else if (r._ev && r._sig && raw.gsig !== r._sig) records[r.id] = { ...strip(r), updatedAt: now };
+    }
+    for (const e of S.expenses) {
+      if (!e || !e.id || e.virtual) continue;
+      const raw = rawE[e.id];
+      if (!raw) { if (!e.auto) expenses[e.id] = { ...strip(e), src: e.src || 'gcal', updatedAt: now }; }
+      else if (e._ev && e._sig && raw.gsig !== e._sig) expenses[e.id] = { ...strip(e), updatedAt: now };
+    }
+    /* 캘린더에서 지워져 앱에서 안 보이던 시트 기록은 지우지 않고 계속 숨겨요 */
+    const visR = new Set(S.records.map((r) => r.id)), visE = new Set(S.expenses.map((e) => e.id));
+    const hide = [...Object.keys(rawR).filter((k) => !visR.has(k) && !exl.has(k)), ...Object.keys(rawE).filter((k) => !visE.has(k) && !exl.has(k))];
+    const T = todayStr();
+    const dropAuto = Object.entries(rawR).filter(([, r]) => r && isAutoRec(r) && isDate(r.date) && r.date >= T).map(([k]) => k);
+    const res = JSON.parse(await gsr('calOffMigrate', JSON.stringify({ records, expenses, dropAuto, hide })) || '{}');
+    if (!res.already) {
+      /* 이 폰에도 바로 */
+      const recs = { ...rawR, ...records }; for (const k of dropAuto) delete recs[k];
+      S.raw.records = recs; S.raw.expenses = { ...rawE, ...expenses };
+      S.raw.info = { ...(S.raw.info || {}), gcal: { ...g0, off: true, push: 'off', excluded: [...exl, ...hide] } };
+    }
+    S.calOffSrv = true; S.events = null; S.calError = ''; S.dataVer = '';
+    buildView(); saveCache(); render();
+    setTimeout(() => load({ soft: true }), 300);
+  } catch (e) { /* 다음에 다시 해 봐요 */ } finally { CALM.busy = false; }
+}
 const inWindow = (date) => isDate(date) && date >= (S.since || '2024-12-01') && date <= addDays(todayStr(), 395);
 function applyEvent(r, ev, ctx, mapped, pre) {
   const d = pre || deriveFromEvent(ev, ctx, r);
@@ -3362,7 +3409,7 @@ function buildView() {
 const CACHE_KEY = 'ddorong-cache-v1';
 function saveCache() {
   if (!S.raw || S.fromCache) return;
-  const text = JSON.stringify({ at: Date.now(), v: S.srv, fast: S.srvFast || 0, ai: S.ai, me: S.me, owner: S.owner, appUrl: S.appUrl, since: S.since, dayFrom: S.dayFrom, data: S.raw, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial });
+  const text = JSON.stringify({ at: Date.now(), v: S.srv, fast: S.srvFast || 0, ver: S.dataVer || '', calOff: !!S.calOffSrv, ai: S.ai, me: S.me, owner: S.owner, appUrl: S.appUrl, since: S.since, dayFrom: S.dayFrom, data: S.raw, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial });
   for (let t = 0; t < 3; t++) {
     try { localStorage.setItem(CACHE_KEY, text); return; } catch { tcEvict(30, ''); /* 작은 사진 몇 장을 비우고 다시 */ }
   }
@@ -3377,6 +3424,8 @@ function applyResult(r, fromCache) {
   S.calError = r.calError || ''; S.calPartial = !!r.calPartial;
   S.me = ''; S.owner = r.owner || S.owner; S.appUrl = r.appUrl || S.appUrl; S.since = r.since || S.since;
   S.dayFrom = r.dayFrom || S.dayFrom || '';
+  S.dataVer = r.ver || ''; S.calOffSrv = !!r.calOff;
+  if (r.calOff || (((r.data || {}).info || {}).gcal || {}).off) { S.events = null; S.calError = ''; S.calPartial = false; }
   S.fromCache = !!fromCache;
   if (!fromCache) { S.loadedAt = Date.now(); S.loadError = ''; }
   buildView();
@@ -3396,11 +3445,14 @@ async function load(opts = {}) {
   const isStale = () => started < S.lastWriteAt;
   const again = () => { S.reloadPending = opts.manual ? 'manual' : (S.reloadPending || true); };
   try {
-    let r = null, cal = null;
+    let r = null, cal = null, redo = false;
     /* 서버가 빠른 길(getCore·getCal)을 안다고 알려 준 뒤에만 나눠 불러요 */
     if (S.srvFast >= 1 && !fastOff()) {
-      const pCal = gsr('getCal', kwArg()).then((t) => JSON.parse(t), (e) => ({ __err: e }));
-      try { r = JSON.parse(await gsr('getCore')); }
+      const wantCal = !calOff();
+      const pCal = wantCal ? gsr('getCal', kwArg()).then((t) => JSON.parse(t), (e) => ({ __err: e })) : Promise.resolve(null);
+      /* 이 폰이 가진 기록 번호를 보내요: 서버에서 바뀐 게 없으면 '그대로'만 돌아와서 빨라요 */
+      const known = S.raw && S.dataVer && S.srvFast >= 2 ? S.dataVer : '';
+      try { r = JSON.parse(await gsr('getCore', known)); }
       catch (e) {
         /* 빠른 길이 없거나(BAD_FN) 서버에서 오류가 나면 예전 길(getAll)로. 인터넷·비밀번호 문제는 그대로 알려요 */
         if (e && !['NET', 'NEED_KEY', 'NO_SERVER', ...AUTH_CODES].includes(e.code)) { store.set(FAST_OFF, String(Date.now())); pCal.then(() => {}); r = null; }
@@ -3409,30 +3461,45 @@ async function load(opts = {}) {
       if (r) {
         /* 시트 기록 먼저: 캘린더는 지난번 것을 그대로 두고 바로 그려요 */
         if (isStale()) again();
-        else {
-          applyResult({ ...r, events: S.events, uids: S.uids, calError: S.calError, calPartial: S.calPartial }, false);
-          S.calLoading = true; saveCache(); upqLoad();
+        else if (r.same && S.raw && Number(r.v) === S.srv) {
+          /* 서버에서 바뀐 게 없어요: 이 폰에 있는 기록이 최신이에요 */
+          S.fromCache = false; S.loadedAt = Date.now(); S.loadError = ''; S.srvFast = Number(r.fast) || S.srvFast; S.calOffSrv = !!r.calOff;
+          S.phase = meKey() ? 'live' : 'pickme';
+          if (calOff() && Array.isArray(S.events)) { S.events = null; buildView(); }
+          S.calLoading = wantCal; saveCache(); upqLoad();
+          if (opts.soft) softRender(); else render();
+        } else if (r.same) {
+          /* 서버 판이 달라졌어요: 번호를 지우고 통째로 다시 받아요 */
+          S.dataVer = ''; redo = true; again();
+        } else {
+          applyResult({ ...r, events: wantCal ? S.events : null, uids: S.uids, calError: wantCal ? S.calError : '', calPartial: S.calPartial }, false);
+          S.calLoading = wantCal && !calOff(); saveCache(); upqLoad();
           if (opts.soft) softRender(); else render();
         }
         cal = await pCal;
         S.calLoading = false;
-        if (!r.fatal && !isStale()) {
+        if (cal && !r.fatal && !isStale() && !calOff()) {
           if (cal.__err) S.calError = errText(cal.__err) || 'NET';
           else { S.events = Array.isArray(cal.events) ? cal.events : S.events; S.uids = cal.uids || {}; S.calError = cal.calError || ''; S.calPartial = !!cal.calPartial; }
-          buildView(); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400);
-        } else if (!r.fatal) again();
+          buildView(); saveCache(); cycleCheckSoon(1200);
+          if (!cal.__err && !cal.calError && !cal.calPartial) setTimeout(calMigrate, 400);
+        } else if (cal && !r.fatal && isStale()) again();
+        if (!r.fatal) setTimeout(autoMealTick, 400);
       }
     }
     if (!r) {
       r = JSON.parse(await gsr('getAll'));
       if (isStale()) again();
-      else { applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); upqLoad(); }
+      else {
+        applyResult(r, false); saveCache(); cycleCheckSoon(1200); setTimeout(autoMealTick, 400); upqLoad();
+        if (!calOff() && Array.isArray(r.events) && !r.calError && !r.calPartial) setTimeout(calMigrate, 400);
+      }
     }
     const stale = isStale();
     const calErr = cal ? (cal.__err || cal.calError) : r.calError;
     /* 지난번에 못 보낸 체크가 있으면 지금 보내요 */
     if (Object.values(Q).some((q) => (q.pend || []).length && !q.flying)) setTimeout(() => flushAll(), 50);
-    if (opts.manual && !stale) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : calErr ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
+    if (opts.manual && !stale && !redo) toast(r.fatal ? '기록을 담은 시트를 열지 못했어요' : calErr && !calOff() ? '캘린더를 읽지 못했어요' : '새로 불러왔어요');
   } catch (e) {
     const code = e && e.code;
     S.loadError = code === 'NO_SERVER' ? 'NO_SERVER' : (errText(e) || 'error');
@@ -3453,6 +3520,7 @@ function syncLine() {
   if (pn) return `<div class="sync-line"><i class="dot sync-warn"></i>보내지 못한 체크 ${pn}개를 이 폰에 보관 중이에요 · 인터넷이 연결되면 보낼게요</div>`;
   if (S.fromCache && S.loadError) return '<div class="sync-line"><i class="dot sync-warn"></i>인터넷이 안 돼서 마지막으로 불러온 기록을 보여 주고 있어요</div>';
   if (S.fromCache) return '<div class="sync-line"><i class="dot sync-off"></i>새 기록을 불러오는 중…</div>';
+  if (calOff()) return `<div class="sync-line"><i class="dot sync-ok"></i>최신 기록 · ${esc(clock(S.loadedAt))} 확인</div>`;
   if (S.calLoading) return '<div class="sync-line"><i class="dot sync-off"></i>기록은 최신이에요 · 구글 캘린더 확인 중…</div>';
   if (S.calError) return '<button class="sync-line link" data-act="tab" data-tab="info" style="padding:0 4px"><i class="dot sync-warn"></i>구글 캘린더를 읽지 못했어요 · 확인하기 ›</button>';
   return `<div class="sync-line"><i class="dot sync-ok"></i>구글 캘린더와 연결됨 · ${esc(clock(S.loadedAt))} 확인</div>`;
@@ -3465,6 +3533,13 @@ function calErrText(msg) {
   return '잠시 연결이 안 됐어요.';
 }
 function gcCard() {
+  if (calOff()) {
+    const live = !(S.fromCache || !S.loadedAt);
+    return `<div class="card">
+      <div class="card-head"><h2>기록 불러오기</h2></div>
+      <div class="status-box"><span class="head"><i class="dot ${live ? 'sync-ok' : 'sync-off'}"></i>${live ? `${esc(clock(S.loadedAt))}에 최신으로 확인` : '새 기록을 불러오는 중…'}</span><span class="muted">앱을 열 때마다, 열려 있는 동안에는 30초마다 새 기록이 있는지 확인해요. 구글 캘린더 연동은 꺼 두었어요.</span><button class="btn ghost sm" data-act="gc-sync">지금 새로 불러오기</button></div>
+    </div>`;
+  }
   const cfg = S.info.gcal || {};
   const name = cfg.calendarName || '공유 캘린더';
   const box = (dot, head, body, btn) => `<div class="status-box"><span class="head"><i class="dot ${dot}"></i>${head}</span>${body ? `<span class="muted">${body}</span>` : ''}${btn || ''}</div>`;
@@ -4495,7 +4570,7 @@ function vetReport(pid) {
 }
 /* 건강검진 주기 칸 아래: 공유 캘린더에 넣어 둔 상태를 알려 줘요 */
 function cycCalNote(c) {
-  if (!CAL_CYCLES.includes(c.key) || !c.months) return '';
+  if (calOff() || !CAL_CYCLES.includes(c.key) || !c.months) return '';
   const st = ((S.info || {}).cycleAuto || {})[`${c.pid}:${c.key}`] || null;
   if (c.auto) return '다음 날짜를 공유 캘린더에 하루 종일 일정으로 넣어 뒀어요. 주기를 바꾸면 그 일정도 옮겨져요.';
   if (c.booked) return '잡아 둔 검진이 지나면 그다음 날짜를 공유 캘린더에 자동으로 넣어 둬요.';
@@ -4526,7 +4601,7 @@ function cycleSheet(pid, focus) {
       </div>`;
     }).join('');
   };
-  openSheet(`${p.name} 챙기는 주기`, `<div class="form"><span class="mini-note">마지막 기록에서 이만큼 지나면 홈의 ‘다가오는 일’과 달력에 ‘예상’으로 떠요. 날짜를 잡아 기록해 두면 그 날짜가 대신 떠요. 건강검진은 다음 날짜를 공유 캘린더에도 자동으로 넣어 둬요.</span><div id="cyc-list"></div></div>`, () => {
+  openSheet(`${p.name} 챙기는 주기`, `<div class="form"><span class="mini-note">마지막 기록에서 이만큼 지나면 홈의 ‘다가오는 일’과 달력에 ‘예상’으로 떠요. 날짜를 잡아 기록해 두면 그 날짜가 대신 떠요.${calOff() ? '' : ' 건강검진은 다음 날짜를 공유 캘린더에도 자동으로 넣어 둬요.'}</span><div id="cyc-list"></div></div>`, () => {
     F = { kind: 'cycle', pid: p.id, draw, custom: '' }; draw();
     if (focus) requestAnimationFrame(() => { const el = $(`#cyc-${focus}`); if (el) el.scrollIntoView({ block: 'nearest' }); });
   });
@@ -4574,6 +4649,7 @@ function cycleCheckSoon(ms = 900, loud = false) {
   clearTimeout(CYC.timer); CYC.timer = setTimeout(() => { cycleCheck(); }, ms);
 }
 async function cycleCheck() {
+  if (calOff()) return;
   if (CYC.busy) { cycleCheckSoon(700); return; }
   if (!docsReady() || S.readOnly || S.phase !== 'live' || S.fromCache || !S.raw || NET.failing) { CYC.loud = false; return; }
   CYC.busy = true;
@@ -4701,7 +4777,7 @@ function recordForm(rec, kind, petId, preset) {
   const pet = S.pets[r.pet];
   F = { kind: 'record', id: rec ? rec.id : null, data: r, orig: rec ? { ...rec } : null, photos: [...(r.photos || [])], fresh: [], dropped: [] };
   const push = (S.info.gcal || {}).push || 'all';
-  const willPush = isNew ? (push === 'all' || (push === 'events' && PUSH_TYPES.includes(type))) : !!(rec && rec._ev);
+  const willPush = !calOff() && (isNew ? (push === 'all' || (push === 'events' && PUSH_TYPES.includes(type))) : !!(rec && rec._ev));
   const places = S.records.map((x) => x.place);
   const titles = [...(SUGGEST[type] || []), ...S.records.filter((x) => x.type === type).map((x) => x.title)];
   const showPlace = !['weight', 'milestone'].includes(type);
@@ -4913,7 +4989,7 @@ function recordDetail(id) {
     ${(r.photos || []).length ? photoGrid(r.photos, false) : ''}
     ${r.ttPhotos ? `<div class="note">이 기록의 사진 ${esc(r.ttPhotos)}장은 타임트리에 있어요.${canEdit() ? ' 고치기에서 사진을 올려 두면 여기서 바로 볼 수 있어요.' : ''}</div>` : ''}
     ${gcLinked(r) ? `<div class="note"><span>구글 캘린더 일정이에요. 캘린더에서 날짜나 제목을 고치면 앱에도 바뀌어요.${r._link ? ` <a href="${esc(r._link)}" target="_blank" rel="noopener">캘린더에서 보기</a>` : ''}</span></div>` : ''}
-    <span class="muted" style="font-size:13px">${esc([whoLabel(r.who) ? `${whoLabel(r.who)} 기록` : '', r.src === 'timetree' ? '타임트리에서 옮김' : r.src === 'gcal' ? '구글 캘린더에서 들어옴' : ''].filter(Boolean).join(' · '))}</span>
+    <span class="muted" style="font-size:13px">${esc([whoLabel(r.who) ? `${whoLabel(r.who)} 기록` : '', r.src === 'timetree' ? '타임트리에서 옮김' : r.src === 'gcal' ? (calOff() ? '구글 캘린더에서 옮김' : '구글 캘린더에서 들어옴') : ''].filter(Boolean).join(' · '))}</span>
     ${S.readOnly ? '' : `<div class="btn-row"><button class="btn" data-act="edit-record" data-id="${esc(r.id)}">${esc(editLabel)}</button><button class="btn danger" data-act="ask-del" data-col="records" data-id="${esc(r.id)}">${gcLinked(r) ? '앱에서 지우기' : '지우기'}</button></div><div id="del-slot"></div>`}
   </div>`;
   F = null;
@@ -4929,7 +5005,7 @@ function expenseDetail(id) {
     ${blocks.map(([k, v]) => `<div class="block"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('')}
     ${(e.photos || []).length ? photoGrid(e.photos, false) : ''}
     ${e.src === 'timetree' ? '<span class="muted" style="font-size:13px">타임트리에서 옮김</span>' : ''}
-    ${e.src === 'gcal' ? `<div class="note"><span>구글 캘린더 일정에 적힌 금액으로 들어온 지출이에요. 캘린더에서 고치면 여기도 바뀌어요.${e._link ? ` <a href="${esc(e._link)}" target="_blank" rel="noopener">캘린더에서 보기</a>` : ''}</span></div>` : ''}
+    ${e.src === 'gcal' && !calOff() ? `<div class="note"><span>구글 캘린더 일정에 적힌 금액으로 들어온 지출이에요. 캘린더에서 고치면 여기도 바뀌어요.${e._link ? ` <a href="${esc(e._link)}" target="_blank" rel="noopener">캘린더에서 보기</a>` : ''}</span></div>` : ''}
     ${S.readOnly ? '' : `<div class="btn-row"><button class="btn" data-act="edit-expense" data-id="${esc(e.id)}">고치기</button><button class="btn danger" data-act="ask-del" data-col="expenses" data-id="${esc(e.id)}">${e.auto === 'insurance' ? '이 달 빼기' : e.src === 'gcal' ? '앱에서 지우기' : '지우기'}</button></div><div id="del-slot"></div>`}
   </div>`;
   F = null;
@@ -5548,7 +5624,7 @@ const ACT = {
     const exp = b.dataset.col === 'expenses' ? allExpenses().find((x) => x.id === b.dataset.id) : null;
     const ins = exp?.auto === 'insurance';
     const rec = b.dataset.col === 'records' ? S.records.find((x) => x.id === b.dataset.id) : null;
-    const linked = rec ? gcLinked(rec) : exp?.src === 'gcal';
+    const linked = rec ? gcLinked(rec) : exp?.src === 'gcal' && !calOff();
     const attrs = `data-act="do-del" data-col="${esc(b.dataset.col)}" data-id="${esc(b.dataset.id)}"`;
     const later = rec && rec.series ? seriesOf(rec).filter((x) => x.date >= rec.date) : [];
     if (later.length > 1 && !S.readOnly) {
@@ -5572,7 +5648,7 @@ const ACT = {
       if (e && e.auto === 'insurance') ok = await put('expenses', id, { skip: true, auto: 'insurance', date: e.date, updatedAt: new Date().toISOString() });
       else {
         if (S.raw.expenses && S.raw.expenses[id]) ok = await remove('expenses', id);
-        if (ok && (String(id).startsWith('gx-') || (e && e.src === 'gcal'))) ok = await exclude([id]);
+        if (ok && !calOff() && (String(id).startsWith('gx-') || (e && e.src === 'gcal'))) ok = await exclude([id]);
         if (ok && e) (e.photos || []).forEach(dropPhoto);
       }
     } else {
@@ -5652,7 +5728,7 @@ const ACT = {
     if (await patch('info', 'gcal', { push: mode })) toast(mode === 'all' ? '앱에서 적은 기록을 모두 캘린더에 올려요' : mode === 'events' ? '병원·접종 같은 일정만 캘린더에 올려요' : '앱에서 적은 기록은 앱에만 남겨요');
   },
   'set-me'(b) { store.set(ME_STORE, b.dataset.key); render(); toast(`이 폰은 ${famName(b.dataset.key)} 폰으로 기록해요`); },
-  'gate-me'(b) { store.set(ME_STORE, b.dataset.key); S.phase = S.raw ? 'live' : 'needkey'; S.tab = 'home'; window.scrollTo(0, 0); render(); toast(`${famName(b.dataset.key)} 폰으로 시작해요`); },
+  'gate-me'(b) { store.set(ME_STORE, b.dataset.key); S.phase = S.raw ? 'live' : 'needkey'; S.tab = 'home'; window.scrollTo(0, 0); render(); toast(`${famName(b.dataset.key)} 폰으로 시작해요`); setTimeout(calMigrate, 400); },
   'code-form'() { codeForm(); },
   'app-howto'() { F = null; openSheet('앱으로 설치하기', `<div class="form">${installSteps()}</div>`); },
   'tip-close'() { tipClosed = true; try { sessionStorage.setItem('ddorong-tip', '1'); } catch { /* 넘어감 */ } render(); },
@@ -5830,7 +5906,7 @@ const h0 = (location.hash || '').slice(1); if (TABS.includes(h0)) { S.tab = h0; 
 
 /* ───────── boot ───────── */
 /* 내 컴퓨터에서 시험할 때만 사진 보관 상태를 들여다볼 수 있게 해요 (실제 사이트에서는 안 생겨요) */
-if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, WARM, fcOpen, stopWarm: () => clearTimeout(warmT) };
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, WARM, fcOpen, stopWarm: () => clearTimeout(warmT), S, calOff };
 const liveKey = () => !!store.get(KEY_STORE) && !gated();
 if (!API_URL) { S.phase = 'error'; S.loadError = 'NO_SERVER'; }
 else if (!store.get(KEY_STORE)) S.phase = 'needkey';
@@ -5853,7 +5929,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-10-30b';
+const BUILD = '2026-11-03a';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
