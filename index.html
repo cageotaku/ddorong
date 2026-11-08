@@ -715,6 +715,21 @@ button.amore { color: var(--accent); }
 .cyc-row .pick button { padding: 6px 11px; }
 .cyc-row.focus { background: var(--surface-2); border-radius: 12px; padding: 12px; margin: 0 -12px; border-top-color: transparent; }
 
+/* 사진 고르기 (여러 장 지우기) */
+.psel-row { display: flex; justify-content: flex-end; margin: -2px 0 -4px; }
+.psel-row .link { font-size: 14px; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 6px 2px; }
+.psel-mode .ph-open::after, .psel-mode .atile::after { content: ""; position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0, 0, 0, 0.22); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); box-sizing: border-box; }
+.psel-mode .picked .ph-open::after, .psel-mode .atile.picked::after { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 15px no-repeat; }
+.psel-mode .ph img, .psel-mode .atile img { transition: transform 0.12s ease, opacity 0.12s ease; }
+.psel-mode .picked img, .psel-mode .atile.picked img { transform: scale(0.9); opacity: 0.8; border-radius: 8px; }
+.psel-mode .atile.picked, .psel-mode .ph.picked { background: var(--accent-soft); }
+.selbar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 15; display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 14px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--accent); box-shadow: 0 8px 22px rgba(150, 70, 80, 0.16); }
+.selbar .t { flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 700; color: var(--ink); display: flex; flex-direction: column; }
+.selbar .t small { font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.selbar .btn { flex: 0 0 auto; }
+.btn.danger-fill { background: var(--danger); color: #fff; }
+.btn.danger-fill:disabled { opacity: 0.4; }
+
 /* ───────── 밝은 테마 (고양이 수첩) ─────────
  * 바탕은 우유빛, 포인트는 또롱이 코 같은 분홍, 강조는 호박색 눈 같은 노랑.
  * 한 군데만 힘을 줘요: 홈 맨 위 또롱이 사진에 고양이 귀. 나머지는 조용하고 둥글게. */
@@ -1121,7 +1136,7 @@ const S = {
   gateErr: '', gateBusy: false,
   /* 날짜별 탭 */
   dayFrom: '', day: {}, pinned: {}, cal: {}, calPinned: {}, hist: { diary: {}, meds: {}, snacks: {}, health: {} }, histLoading: new Set(), uploading: {}, medsDays: MEDS_DAYS, medHist: '',
-  diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', recMode: store.get('ddorong-rec-mode') === 'list' ? 'list' : 'cal', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 },
+  diaryMode: store.get('ddorong-diary-mode') === 'album' ? 'album' : 'day', recMode: store.get('ddorong-rec-mode') === 'list' ? 'list' : 'cal', album: { loadedAt: 0, loading: false, failed: 0, limit: 90 }, psel: null,
 };
 
 const famName = (key) => { const m = (S.info.family?.members || []).find((x) => x.key === key); return m ? m.name : ''; };
@@ -2744,7 +2759,9 @@ function renderSnacks() {
 }
 
 /* ───────── 오늘의 또롱이 ───────── */
-const dayPhotos = (doc) => (Array.isArray(doc.photos) ? doc.photos : []).filter((p) => p && p.id);
+/* DELP: 지우는 중인 사진(누르자마자 화면에서 빼요. 서버가 끝내면 기록에서도 빠지고, 못 지웠으면 다시 보여요) */
+const DELP = new Map();
+const dayPhotos = (doc) => (Array.isArray(doc.photos) ? doc.photos : []).filter((p) => p && p.id && !DELP.has(p.id));
 /* 기록 탭: 달력 ↔ 목록 (둘은 같은 기록을 다르게 보여 줘요) */
 function setRecMode(m) { const v = m === 'list' ? 'list' : 'cal'; if (S.recMode !== v) { S.recMode = v; store.set('ddorong-rec-mode', v); } }
 const recModeSeg = () => `<div class="seg wide" role="group" aria-label="보기 방식"><button type="button" data-act="rec-mode" data-mode="cal" aria-pressed="${S.tab === 'cal'}">달력</button><button type="button" data-act="rec-mode" data-mode="list" aria-pressed="${S.tab === 'records'}">목록</button></div>`;
@@ -2783,6 +2800,7 @@ function loadAlbum(force) {
 }
 function renderAlbum(el) {
   loadAlbum(false);
+  if (S.psel && S.psel.view !== 'album') S.psel = null;
   const list = albumList();
   const days = new Set(list.map((x) => x.date)).size;
   const shown = list.slice(0, S.album.limit);
@@ -2793,17 +2811,21 @@ function renderAlbum(el) {
     const k = ym(x.date);
     if (k !== curM) { if (grid) body += `<div class="agrid">${grid}</div>`; grid = ''; curM = k; curD = ''; body += `<div class="ahead"><b>${esc(ymKo(k))}</b><span>${perMonth[k]}장</span></div>`; }
     const first = x.date !== curD; curD = x.date;
-    grid += `<button class="atile" type="button" data-act="album-photo" data-i="${i}" aria-label="${esc(mdKo(x.date))} 사진">${photoImg(x.id, 'thumb')}${first ? `<span class="aday">${parts(x.date).d}일</span>` : ''}</button>`;
+    const on = S.psel && S.psel.ids.has(x.id);
+    grid += `<button class="atile${on ? ' picked' : ''}" type="button" data-act="album-photo" data-i="${i}" aria-label="${esc(mdKo(x.date))} 사진${S.psel ? (on ? ' · 골랐어요' : ' · 고르기') : ''}"${S.psel ? ` aria-pressed="${on ? 'true' : 'false'}"` : ''}>${photoImg(x.id, 'thumb')}${first ? `<span class="aday">${parts(x.date).d}일</span>` : ''}</button>`;
   });
   if (grid) body += `<div class="agrid">${grid}</div>`;
   const up = UPQ.list.length;
   const tail = !S.album.loadedAt
     ? `<div class="amore">${S.album.failed && !S.album.loading ? '예전 사진을 불러오지 못했어요. <button class="link" type="button" data-act="album-retry">다시 불러오기</button>' : '예전 사진까지 불러오는 중이에요…'}</div>`
     : '';
+  el.classList.toggle('psel-mode', !!S.psel);
   el.innerHTML = `
     <div class="view-head"><h1>오늘의 또롱이</h1>${list.length ? `<span class="sub">사진 ${list.length}장 · ${days}일</span>` : ''}</div>
     ${diaryModeSeg()}
+    ${list.length && canEdit() && !S.psel ? '<div class="psel-row"><button class="link" type="button" data-act="psel-start" data-view="album">여러 장 골라 지우기</button></div>' : ''}
     ${up ? `<div class="banner">사진 ${up}장을 올리는 중이에요 · 다른 걸 해도 계속 올라가요</div>` : ''}
+    ${pselBar()}
     ${list.length ? `<div class="album">${body}</div>` : S.album.loadedAt ? `<button class="d-empty" type="button" data-act="diary-add-today">${IC.photo}<b>아직 올린 사진이 없어요</b><span>눌러서 오늘 또롱이 사진을 올려 주세요</span></button>` : ''}
     ${list.length > shown.length ? `<button class="amore" type="button" id="album-more" data-act="album-more">사진 ${list.length - shown.length}장 더 보기</button>` : ''}
     ${tail}`;
@@ -2825,10 +2847,15 @@ function renderDiary() {
   needMonth('diary', ym(date));
   const doc = dayDoc('diary', date);
   const photos = dayPhotos(doc);
-  const ups = UPQ.list.filter((x) => x.date === date);
+  if (S.psel && (S.psel.view !== 'day' || S.psel.date !== date || !photos.length)) S.psel = null;
+  /* 서버에 이미 들어간 사진(같은 번호)은 '올리는 중'으로 두 번 보이지 않게 */
+  const have = new Set((Array.isArray(doc.photos) ? doc.photos : []).map((p) => p && p.uid).filter(Boolean));
+  const ups = UPQ.list.filter((x) => x.date === date && !have.has(x.id) && !x.drop);
   const up = ups.length;
+  const sel = S.psel;
+  el.classList.toggle('psel-mode', !!sel);
   const grid = photos.length || up
-    ? `<div class="dphotos" data-photos data-diary="${esc(date)}">${photos.map((p) => `<div class="ph"><button class="ph-open" type="button" data-act="view-photo" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${photoImg(p.id, 'thumb')}</button></div>`).join('')}${ups.map((x) => `<div class="ph up${x.state === 'fail' ? ' fail' : ''}" data-up="${esc(x.id)}" title="${x.state === 'fail' ? '인터넷이 되면 이어서 올려요' : '올리는 중'}"><img src="${esc(x.thumb)}" alt="올리는 중인 사진"></div>`).join('')}${canEdit() ? `<button class="ph add" type="button" data-act="diary-add" aria-label="사진 더 올리기">${IC.plus}</button>` : ''}</div>`
+    ? `${photos.length && canEdit() && !sel ? `<div class="psel-row"><button class="link" type="button" data-act="psel-start" data-view="day" data-date="${esc(date)}">여러 장 골라 지우기</button></div>` : ''}${pselBar()}<div class="dphotos" data-photos data-diary="${esc(date)}">${photos.map((p) => { const on = sel && sel.ids.has(p.id); return `<div class="ph${on ? ' picked' : ''}"><button class="ph-open" type="button" data-act="view-photo" data-id="${esc(p.id)}" aria-label="${sel ? (on ? '골랐어요' : '고르기') : '사진 크게 보기'}"${sel ? ` aria-pressed="${on ? 'true' : 'false'}"` : ''}>${photoImg(p.id, 'thumb')}</button></div>`; }).join('')}${sel ? '' : ups.map((x) => `<div class="ph up${x.state === 'fail' ? ' fail' : ''}" data-up="${esc(x.id)}" title="${x.state === 'fail' ? '인터넷이 되면 이어서 올려요' : '올리는 중'}"><img src="${esc(x.thumb)}" alt="올리는 중인 사진"></div>`).join('')}${canEdit() && !sel ? `<button class="ph add" type="button" data-act="diary-add" aria-label="사진 더 올리기">${IC.plus}</button>` : ''}</div>`
     : `<button class="d-empty" type="button" data-act="diary-add">${IC.photo}<b>${date === T ? '오늘' : esc(mdKo(date))} 또롱이 사진을 올려 주세요</b><span>여러 장을 한 번에 골라도 돼요</span></button>`;
   const mk = calMonth('diary');
   needMonth('diary', mk);
@@ -2873,15 +2900,38 @@ async function upqStore(op, x) {
   const db = await fcOpen(); if (!db) return;
   try { const st = db.transaction('upq', 'readwrite').objectStore('upq'); if (op === 'put') st.put(x); else st.delete(x); } catch { /* 넘어감 */ }
 }
+/* 서버 기록에 이미 있는 사진(같은 번호)이나 이미 지운 사진은 다시 올리지 않고 줄에서 빼요.
+ * (올리기 답을 못 받은 채 앱이 멈췄다가 다시 열려도, 지운 사진이 되살아나지 않게) */
+function upqKnown(x) {
+  const doc = baseDay('diary', x.date);
+  if (!doc) return '';
+  if ((Array.isArray(doc.photos) ? doc.photos : []).some((p) => p && p.uid === x.id)) return 'have';
+  if (Array.isArray(doc.goneUids) && doc.goneUids.includes(x.id)) return 'gone';
+  return '';
+}
+function upqSettle() {
+  let n = 0;
+  for (const x of UPQ.list.slice()) if (x.state !== 'up' && (x.drop || upqKnown(x))) { UPQ.list = UPQ.list.filter((y) => y !== x); upqStore('del', x.id); n++; }
+  return n;
+}
+/* 지운 사진과 같은 번호로 올리는 중이던 것도 멈춰요 (이미 보내는 중이면 서버가 받지 않아요) */
+function upqDrop(uid) {
+  if (!uid) return;
+  for (const x of UPQ.list) if (x.id === uid) x.drop = true;
+  upqSettle(); upqStore('del', uid);
+}
 async function upqLoad() {
-  if (UPQ.loaded) return; UPQ.loaded = true;
+  if (UPQ.loaded) { if (UPQ.list.length && upqSettle()) render(); return; }
+  UPQ.loaded = true;
   const db = await fcOpen(); if (!db) return;
   const items = await new Promise((res) => { try { const q = db.transaction('upq').objectStore('upq').getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => res([]); } catch { res([]); } });
   for (const x of items) if (x && x.id && x.date && !UPQ.list.some((y) => y.id === x.id)) UPQ.list.push({ ...x, state: 'wait' });
+  upqSettle();
   if (items.length) { render(); upqRun(); }
 }
 function upqRun() {
   if (!canEdit()) { clearTimeout(UPQ.timer); UPQ.timer = setTimeout(upqRun, 3000); return; }
+  upqSettle();
   while (UPQ.running < 3) {
     const x = UPQ.list.find((y) => y.state === 'wait');
     if (!x) break;
@@ -2892,9 +2942,14 @@ function upqRun() {
 async function upqOne(x) {
   try {
     const r = JSON.parse(await retry(() => gsr('addDiaryPhoto', x.date, x.thumb, x.full, x.id)));
+    UPQ.list = UPQ.list.filter((y) => y !== x); upqStore('del', x.id);
+    if (!r.id || r.store === 'gone' || x.drop) {
+      /* 그사이에 지운 사진이에요: 서버가 받지 않았어요(이미 들어갔으면 지우는 쪽이 같이 지워요) */
+      if (r.doc && !x.drop) setBase('diary', x.date, r.doc);
+      S.lastWriteAt = Date.now(); render(); return;
+    }
     PH.thumb.set(r.id, x.thumb); fullPut(r.id, x.full); tcPut(r.id, x.thumb);
     setBase('diary', x.date, r.doc);
-    UPQ.list = UPQ.list.filter((y) => y !== x); upqStore('del', x.id);
     UPQ.done++; S.lastWriteAt = Date.now(); render();
   } catch (e) {
     UPQ.lastErr = e; UPQ.failed++;
@@ -2932,15 +2987,52 @@ function diaryUpload(date) {
     }
   });
 }
-async function diaryRemove(date, id) {
-  if (!canEdit()) return false;
+/* 오늘의 또롱이 사진 지우기 (한 장이든 여러 장이든)
+ * 누르자마자 화면에서 빼고, 서버에는 뒤에서 한 번에 보내요. 못 지웠으면 다시 보여 주고 알려요. */
+async function diaryRemoveMany(items) {
+  items = items.filter((x) => x && x.id && isDate(x.date) && !DELP.has(x.id));
+  if (!items.length) return true;
+  if (!canEdit()) { toast('기록을 다 불러온 뒤에 지워 주세요.'); return false; }
+  for (const x of items) {
+    const p = (Array.isArray((baseDay('diary', x.date) || {}).photos) ? baseDay('diary', x.date).photos : []).find((y) => y && y.id === x.id);
+    DELP.set(x.id, x.date);
+    if (p && p.uid) upqDrop(p.uid);
+  }
+  S.lastWriteAt = Date.now(); render();
+  const list = items.map((x) => ({ date: x.date, id: x.id }));
   try {
-    const txt = await retry(() => gsr('removeDiaryPhoto', date, id));
-    setBase('diary', date, JSON.parse(txt));
-    PH.thumb.delete(id); fullDel(id); tcDel(id);
+    if (S.srvFast >= 3) {
+      const r = JSON.parse(await retry(() => gsr('removeDiaryPhotos', JSON.stringify(list))));
+      for (const [d, doc] of Object.entries(r.docs || {})) setBase('diary', d, doc);
+    } else {
+      for (const x of list) setBase('diary', x.date, JSON.parse(await retry(() => gsr('removeDiaryPhoto', x.date, x.id))));
+    }
+    for (const x of list) { DELP.delete(x.id); PH.thumb.delete(x.id); fullDel(x.id); tcDel(x.id); }
     S.lastWriteAt = Date.now(); saveCache(); render();
     return true;
-  } catch (e) { writeError(e); return false; }
+  } catch (e) {
+    for (const x of list) DELP.delete(x.id);
+    S.lastWriteAt = Date.now(); render();
+    const c = e && e.code;
+    if (!AUTH_CODES.includes(c) && c !== 'NEED_KEY') toast(c === 'NET' ? '사진을 지우지 못했어요. 인터넷 연결을 확인하고 다시 지워 주세요.' : '사진을 지우지 못했어요. 잠시 뒤 다시 지워 주세요.');
+    return false;
+  }
+}
+/* 사진 고르기 (여러 장 지우기): 날짜별 화면이면 그날 사진, 사진첩이면 아무 날이나 */
+function pselStart(view, date) { S.psel = { view, date: date || '', ids: new Map(), ask: false }; render(); }
+function pselEnd() { if (!S.psel) return; S.psel = null; render(); }
+function pselToggle(id, date) {
+  const P = S.psel; if (!P || !id || !isDate(date)) return;
+  if (P.ids.has(id)) P.ids.delete(id); else P.ids.set(id, date);
+  P.ask = false; render();
+}
+function pselBar() {
+  const P = S.psel; if (!P) return '';
+  const n = P.ids.size;
+  if (P.ask) return `<div class="selbar ask" role="alertdialog" aria-label="사진 지우기 확인"><span class="t">사진 ${n}장을 지울까요?<small>지운 사진은 되돌릴 수 없어요</small></span><button class="btn sm danger-fill" type="button" data-act="psel-yes">지우기</button><button class="btn ghost sm" type="button" data-act="psel-no">취소</button></div>`;
+  const all = P.view === 'day' ? dayPhotos(dayDoc('diary', P.date)) : [];
+  const allOn = all.length && all.every((p) => P.ids.has(p.id));
+  return `<div class="selbar" role="toolbar" aria-label="사진 고르기"><span class="t">${n ? `${n}장 골랐어요` : '지울 사진을 눌러 고르세요'}</span>${all.length > 1 ? `<button class="btn ghost sm" type="button" data-act="psel-all">${allOn ? '모두 빼기' : '모두'}</button>` : ''}<button class="btn sm danger-fill" type="button" data-act="psel-del"${n ? '' : ' disabled'}>지우기</button><button class="btn ghost sm" type="button" data-act="psel-end">취소</button></div>`;
 }
 
 /* ───────── 홈: 오늘 챙기기 ───────── */
@@ -3143,7 +3235,8 @@ function renderNow() {
   if (curTab === 'cal' || curTab === 'records') setRecMode(curTab === 'records' ? 'list' : 'cal');
   const tabKey = curTab === 'cal' || curTab === 'records' ? 'rec' : curTab;
   document.querySelectorAll('.tab').forEach((b) => { if (b.dataset.tab === tabKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  $('#fab').hidden = S.readOnly || !ready() || ['star', 'meds', 'snacks'].includes(S.tab);
+  if (S.psel && S.tab !== 'diary') S.psel = null;
+  $('#fab').hidden = S.readOnly || !ready() || ['star', 'meds', 'snacks'].includes(S.tab) || !!S.psel;
   $('#fab').setAttribute('aria-label', S.tab === 'diary' ? '사진 올리기' : '기록 추가');
   const R = { home: renderHome, cal: renderCal, diary: renderDiary, meds: renderMeds, snacks: renderSnacks, records: renderRecords, money: renderMoney, info: renderInfo };
   (R[S.tab] || renderStar)();
@@ -5294,7 +5387,7 @@ function insForm() {
 /* ───────── actions ───────── */
 const ACT = {
   noop() {},
-  tab(b) { S.tab = b.dataset.tab === 'rec' ? (S.recMode === 'list' ? 'records' : 'cal') : b.dataset.tab; S.back = S.tab; if (b.dataset.dmode) setDiaryMode(b.dataset.dmode); window.scrollTo(0, 0); render(); },
+  tab(b) { S.psel = null; S.tab = b.dataset.tab === 'rec' ? (S.recMode === 'list' ? 'records' : 'cal') : b.dataset.tab; S.back = S.tab; if (b.dataset.dmode) setDiaryMode(b.dataset.dmode); window.scrollTo(0, 0); render(); },
   star(b) { S.starPet = b.dataset.pet; S.back = S.tab === 'star' ? S.back : S.tab; S.tab = 'star'; window.scrollTo(0, 0); render(); },
   back() { S.tab = S.back || 'home'; window.scrollTo(0, 0); render(); },
   filter(b) { S.filter = b.dataset.filter; S.recLimit = REC_FIRST; S.recJump = null; render(); },
@@ -5322,11 +5415,12 @@ const ACT = {
   'cal-add'() { if (S.readOnly) return; S.addDate = S.calSel; addMenu(); },
   'cal-go'(b) { const tab = b.dataset.tab; if (tab === 'diary') setDiaryMode('day'); setDay(tab, b.dataset.date); S.tab = tab; S.back = tab; window.scrollTo(0, 0); render(); },
   /* 오늘의 또롱이: 날짜별 ↔ 사진첩 */
-  'diary-mode'(b) { setDiaryMode(b.dataset.mode); window.scrollTo(0, 0); render(); },
+  'diary-mode'(b) { S.psel = null; setDiaryMode(b.dataset.mode); window.scrollTo(0, 0); render(); },
   'rec-mode'(b) { setRecMode(b.dataset.mode); S.tab = S.recMode === 'list' ? 'records' : 'cal'; S.back = S.tab; window.scrollTo(0, 0); render(); },
   'album-photo'(b) {
     const list = albumList(); const i = Number(b.dataset.i);
     if (!list[i]) return;
+    if (S.psel) { pselToggle(list[i].id, list[i].date); return; }
     lbOpen(list.map((x) => x.id), i, list.map((x) => x.date), true);
   },
   'album-more'() { S.album.limit += 90; render(); },
@@ -5449,15 +5543,33 @@ const ACT = {
   'lb-go'(b) { lbGo(Number(b.dataset.dir)); },
   'lb-del'() { LB.confirm = true; lbShow(); },
   'lb-del-no'() { LB.confirm = false; lbShow(); },
-  async 'lb-del-yes'() {
+  'lb-del-yes'() {
     const id = LB.ids[LB.i]; const date = LB.dates[LB.i]; if (!id || !date) return;
-    $('#lb-bar').innerHTML = '<span>지우는 중…</span>';
-    const done = await diaryRemove(date, id);
+    if (!canEdit()) { toast('기록을 다 불러온 뒤에 지워 주세요.'); return; }
     LB.confirm = false;
-    if (!done) { lbShow(); return; }
     LB.ids.splice(LB.i, 1); LB.dates.splice(LB.i, 1);
     if (!LB.ids.length) lbClose(); else { LB.i = Math.min(LB.i, LB.ids.length - 1); lbShow(); }
     toast('사진을 지웠어요');
+    diaryRemoveMany([{ date, id }]);
+  },
+  /* 사진 고르기 */
+  'psel-start'(b) { pselStart(b.dataset.view === 'album' ? 'album' : 'day', b.dataset.date || ''); },
+  'psel-end'() { pselEnd(); },
+  'psel-all'() {
+    const P = S.psel; if (!P || P.view !== 'day') return;
+    const all = dayPhotos(dayDoc('diary', P.date));
+    if (all.every((p) => P.ids.has(p.id))) P.ids.clear(); else for (const p of all) P.ids.set(p.id, P.date);
+    render();
+  },
+  'psel-del'() { if (S.psel && S.psel.ids.size) { S.psel.ask = true; render(); } },
+  'psel-no'() { if (S.psel) { S.psel.ask = false; render(); } },
+  'psel-yes'() {
+    const P = S.psel; if (!P || !P.ids.size) return;
+    if (!canEdit()) { toast('기록을 다 불러온 뒤에 지워 주세요.'); return; }
+    const items = [...P.ids].map(([id, date]) => ({ id, date }));
+    S.psel = null; render();
+    toast(`사진 ${items.length}장을 지웠어요`);
+    diaryRemoveMany(items);
   },
   /* 밥 */
   'home-meal'(b) {
@@ -5758,6 +5870,7 @@ const ACT = {
   },
   'view-photo'(b) {
     const box = b.closest('[data-photos]');
+    if (S.psel && box && box.dataset.diary) { pselToggle(b.dataset.id, box.dataset.diary); return; }
     const ids = box ? [...box.querySelectorAll('[data-act="view-photo"]')].map((x) => x.dataset.id) : [b.dataset.id];
     lbOpen(ids, ids.indexOf(b.dataset.id), box && box.dataset.diary ? box.dataset.diary : '');
   },
@@ -5906,7 +6019,7 @@ const h0 = (location.hash || '').slice(1); if (TABS.includes(h0)) { S.tab = h0; 
 
 /* ───────── boot ───────── */
 /* 내 컴퓨터에서 시험할 때만 사진 보관 상태를 들여다볼 수 있게 해요 (실제 사이트에서는 안 생겨요) */
-if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, WARM, fcOpen, stopWarm: () => clearTimeout(warmT), S, calOff };
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__dd = { PH, LB, WARM, fcOpen, stopWarm: () => clearTimeout(warmT), S, calOff, UPQ, upqRetry, DELP, load };
 const liveKey = () => !!store.get(KEY_STORE) && !gated();
 if (!API_URL) { S.phase = 'error'; S.loadError = 'NO_SERVER'; }
 else if (!store.get(KEY_STORE)) S.phase = 'needkey';
@@ -5929,7 +6042,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 /* 새 화면 확인: 홈 화면 앱은 며칠씩 켜진 채로 남아 있어서 예전 화면이 계속 보일 수 있어요.
  * 앱을 열 때마다 올라가 있는 화면 번호(version.json)를 보고, 다르면 쓰던 창이 없을 때 새로 불러와요 */
-const BUILD = '2026-11-03a';
+const BUILD = '2026-11-08a';
 let buildChecking = false;
 async function checkBuild() {
   if (buildChecking || location.protocol !== 'https:') return;
